@@ -1140,23 +1140,52 @@ function saveProd(){
     const idx=ps.findIndex(x=>x.id===ePid);
     if(idx>=0){
       nd.id=ePid;
+      const skuAntigo=ps[idx].sku;
+      const skuMudou=skuAntigo&&skuAntigo!==sku;
       // BUG 2 CORRIGIDO: histórico diferenciado por tipo
       if(oProd){
         if(oProd.tipo==='Nacional'||tipo==='Nacional'){
-          // Nacional: registrar apenas variação do CMV Contábil
           const cmvAnt=calcCMV(oProd);
           const cmvNovo=calcCMV(nd);
           if(Math.abs(cmvAnt-cmvNovo)>0.001){
             trgH(sku,nome,[{campo:'CMV Contábil',ant:cmvAnt,novo:cmvNovo,labelAnt:'CMV Contábil Anterior',labelNovo:'CMV Contábil Novo'}]);
           }
         }else{
-          // Importado: registrar apenas variação do Custo NF
           const custoAnt=parseFloat(oProd.custo||0);
           const custoNovo=parseFloat(nd.custo||0);
           if(Math.abs(custoAnt-custoNovo)>0.001){
             trgH(sku,nome,[{campo:'Custo NF',ant:custoAnt,novo:custoNovo,labelAnt:'Custo NF Anterior',labelNovo:'Custo NF Novo'}]);
           }
         }
+      }
+      // CORREÇÃO SKU: se o SKU mudou, migrar dados e deletar antigo no Supabase
+      if(skuMudou){
+        // Migrar marketplace_dados no cache
+        const mkt=LS.get('lb_m')||{};
+        ['meli','shp','tkt','amz','mga'].forEach(mk=>{
+          const kAnt=mk+'_'+skuAntigo,kNovo=mk+'_'+sku;
+          if(mkt[kAnt]){mkt[kNovo]=mkt[kAnt];delete mkt[kAnt];}
+        });
+        _cache['lb_m']=JSON.parse(JSON.stringify(mkt));
+        try{localStorage.setItem('lb_m',JSON.stringify(mkt));}catch{}
+        // Migrar observações no cache
+        const obs=LS.get('lb_obs')||{};
+        ['meli','shp','tkt','amz','mga'].forEach(mk=>{
+          const kAnt=mk+'_'+skuAntigo,kNovo=mk+'_'+sku;
+          if(obs[kAnt]){obs[kNovo]=obs[kAnt];delete obs[kAnt];}
+        });
+        _cache['lb_obs']=JSON.parse(JSON.stringify(obs));
+        try{localStorage.setItem('lb_obs',JSON.stringify(obs));}catch{}
+        // Deletar SKU antigo no Supabase e recriar com novo SKU
+        SB.from('produtos').delete().eq('sku',skuAntigo).then(()=>{});
+        SB.from('marketplace_dados').delete().eq('sku',skuAntigo).then(()=>{});
+        SB.from('observacoes').delete().eq('sku',skuAntigo).then(()=>{});
+        // Re-salvar marketplace_dados com novo SKU
+        const mkt2=LS.get('lb_m')||{};
+        ['meli','shp','tkt','amz','mga'].forEach(mk=>{
+          const d=mkt2[mk+'_'+sku];
+          if(d)sbPersistMktItem(sku,mk,d).catch(e=>console.warn(e));
+        });
       }
       ps[idx]=nd;
     }
