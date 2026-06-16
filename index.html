@@ -1193,24 +1193,36 @@ function saveProd(){
   LS.set('lb_p',ps);cM('mprod');rBase();toast('Produto salvo!');
 }
 
-// BUG 1 CORRIGIDO: delProd agora remove do Supabase
 function delProd(){
   if(!ePid){toast('Nenhum produto selecionado','e');return;}
   const ps=LS.get('lb_p')||[];
   const p=ps.find(x=>x.id===ePid);
   if(!p)return;
   if(!confirm('Excluir o produto "'+p.sku+' — '+(p.nome||p.sku)+'"? Esta ação não pode ser desfeita.'))return;
-  LS.set('lb_p',ps.filter(x=>x.id!==ePid));
+  const skuDel=p.sku;
+  // 1. Remover do cache e localStorage SEM triggar sbPersist (evita race condition)
+  const psFilt=ps.filter(x=>x.id!==ePid);
+  _cache['lb_p']=JSON.parse(JSON.stringify(psFilt));
+  try{localStorage.setItem('lb_p',JSON.stringify(psFilt));}catch{}
+  // 2. Remover marketplace_dados do cache
   const mkt=LS.get('lb_m')||{};
-  ['meli','shp','tkt','amz','mga'].forEach(mk=>{delete mkt[mk+'_'+p.sku];});
-  LS.set('lb_m',mkt);
+  ['meli','shp','tkt','amz','mga'].forEach(mk=>{delete mkt[mk+'_'+skuDel];});
+  _cache['lb_m']=JSON.parse(JSON.stringify(mkt));
+  try{localStorage.setItem('lb_m',JSON.stringify(mkt));}catch{}
+  // 3. Remover observações do cache
   const obs=LS.get('lb_obs')||{};
-  ['meli','shp','tkt','amz','mga'].forEach(mk=>{delete obs[mk+'_'+p.sku];});
-  LS.set('lb_obs',obs);
-  // Deletar do Supabase
-  SB.from('produtos').delete().eq('sku',p.sku).then(({error})=>{if(error)console.warn('Erro ao deletar produto:',error);});
-  SB.from('marketplace_dados').delete().eq('sku',p.sku).then(({error})=>{if(error)console.warn('Erro ao deletar mkt_dados:',error);});
-  SB.from('observacoes').delete().eq('sku',p.sku).then(({error})=>{if(error)console.warn('Erro ao deletar obs:',error);});
+  ['meli','shp','tkt','amz','mga'].forEach(mk=>{delete obs[mk+'_'+skuDel];});
+  _cache['lb_obs']=JSON.parse(JSON.stringify(obs));
+  try{localStorage.setItem('lb_obs',JSON.stringify(obs));}catch{}
+  // 4. Deletar do Supabase (direto, sem upsert concorrente)
+  Promise.all([
+    SB.from('produtos').delete().eq('sku',skuDel),
+    SB.from('marketplace_dados').delete().eq('sku',skuDel),
+    SB.from('observacoes').delete().eq('sku',skuDel)
+  ]).then(results=>{
+    const erros=results.filter(r=>r.error);
+    if(erros.length)console.warn('Erros ao deletar no Supabase:',erros.map(r=>r.error));
+  });
   cM('mprod');rBase();toast('Produto excluído.');
 }
 
