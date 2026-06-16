@@ -847,7 +847,24 @@ async function sbLoad(){
     if(rObs.data?.length){const obs={};rObs.data.forEach(r=>{obs[r.marketplace+'_'+r.sku]={tags:r.tags||[],nota:r.nota||''};});_cache['lb_obs']=obs;}
     if(rClbs.data?.length)_cache['lb_clbs']=rClbs.data.map(r=>({nome:r.clb_id,data:r.data_chegada||null}));
     if(rCmvSkus.data?.length)_cache['lb_cmv_skus']=rCmvSkus.data.map(r=>r.sku);
-    if(rConfig.data?.length)rConfig.data.forEach(c=>{if(c.chave==='lb_cmv_data')_cache['lb_cmv_data']=c.valor;if(c.chave==='lb_order')_cache['lb_order']=c.valor;if(c.chave==='lb_cmv_cols'){_cache['lb_cmv_cols']=c.valor;cmvColsOcultas=c.valor||{};}if(c.chave==='lb_fiscal')_cache['lb_fiscal']=c.valor;});
+    if(rConfig.data?.length)rConfig.data.forEach(c=>{
+      if(c.chave==='lb_cmv_data'){
+        // Converter formato plano {SKU_CLB:{cmv,qtd,est}} para aninhado {SKU:{CLB:{cmv,qtd,est}}}
+        const raw=c.valor||{};const nested={};
+        Object.entries(raw).forEach(([k,v])=>{
+          // Formato pode ser SKU_CLB (ex: VA-BA10_CLB01)
+          // SKU pode conter _ então separar pelo último _CLB
+          const clbMatch=k.match(/^(.+)_(CLB\d+)$/);
+          if(clbMatch){const sku=clbMatch[1],clb=clbMatch[2];if(!nested[sku])nested[sku]={};nested[sku][clb]={cmv:v.cmv||0,qtd:v.qtd||0,est:v.estoque||v.est||0,cmvAnt:v.cmvAnt||null};}
+          else{// formato já aninhado ou desconhecido — manter como está
+            nested[k]=v;}
+        });
+        _cache['lb_cmv_data']=nested;
+      }
+      if(c.chave==='lb_order')_cache['lb_order']=c.valor;
+      if(c.chave==='lb_cmv_cols'){_cache['lb_cmv_cols']=c.valor;cmvColsOcultas=c.valor||{};}
+      if(c.chave==='lb_fiscal')_cache['lb_fiscal']=c.valor;
+    });
     hideLoadingOverlay();
   }catch(e){console.error('Erro ao carregar Supabase:',e);hideLoadingOverlay();toast('Erro ao conectar ao banco. Usando dados locais.','e');}
 }
