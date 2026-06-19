@@ -886,7 +886,11 @@ function fShp(preco){const fc=getFC();const p=parseFloat(preco)||0;if(p<=0)retur
 function fTkt(d){const fc=getFC();return{frete:parseFloat((d&&d.frete!=null)?d.frete:fc.tktFrete)||fc.tktFrete||4,tar:parseFloat((d&&d.tar!=null&&d.tar!==0)?d.tar:fc.tktTar)||fc.tktTar||6};}
 function fMga(d){const fc=getFC();return{frete:parseFloat((d&&d.frete!=null)?d.frete:fc.mgaFrete)||fc.mgaFrete||5,tar:parseFloat((d&&d.tar!=null&&d.tar!==0)?d.tar:fc.mgaTar)||fc.mgaTar||9.9};}
 function gM(sku,mk){const all=LS.get('lb_m')||{};return all[mk+'_'+sku]||{};}
-function sM(sku,mk,field,val){const all=LS.get('lb_m')||{};const k=mk+'_'+sku;if(!all[k])all[k]={};all[k][field]=parseFloat(val)||0;_cache['lb_m']=JSON.parse(JSON.stringify(all));try{localStorage.setItem('lb_m',JSON.stringify(all));}catch{}sbPersistMktItem(sku,mk,all[k]).catch(e=>{console.warn('Supabase sync error lb_m:',e);if(typeof toast==='function')toast('Erro ao salvar no servidor','e');});}
+function sM(sku,mk,field,val){const all=LS.get('lb_m')||{};const k=mk+'_'+sku;if(!all[k])all[k]={};all[k][field]=parseFloat(val)||0;
+  // Garantir que tar e frete sempre refletem o padrão fiscal quando não definidos explicitamente
+  if(mk==='tkt'){const tc=fTkt(all[k]);if(!all[k].tar||all[k].tar===0)all[k].tar=tc.tar;if(!all[k].frete||all[k].frete===0)all[k].frete=tc.frete;}
+  if(mk==='mga'){const mc2=fMga(all[k]);if(!all[k].tar||all[k].tar===0)all[k].tar=mc2.tar;if(!all[k].frete||all[k].frete===0)all[k].frete=mc2.frete;}
+  _cache['lb_m']=JSON.parse(JSON.stringify(all));try{localStorage.setItem('lb_m',JSON.stringify(all));}catch{}sbPersistMktItem(sku,mk,all[k]).catch(e=>{console.warn('Supabase sync error lb_m:',e);if(typeof toast==='function')toast('Erro ao salvar no servidor','e');});}
 function cM(id){const el=document.getElementById(id);if(el)el.classList.remove('open');}
 function toast(msg,type='ok'){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.style.borderColor=type==='e'?'var(--red)':'var(--green)';t.style.color=type==='e'?'var(--red)':'var(--green)';t.style.display='block';setTimeout(()=>t.style.display='none',3000);}
 
@@ -1015,12 +1019,13 @@ function rDash(){
   const chipEl=document.getElementById('dash-filtros-ativos');
   if(chipEl)chipEl.innerHTML=chips.map(ch=>`<span style="display:inline-block;background:var(--accent2);color:#fff;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;margin:2px;cursor:pointer;" onclick="document.getElementById('${ch.id}').value='';rDash()">✕ ${ch.lbl}</span>`).join('');
   function getMkList(){return f.mk?[f.mk]:['meli','shp','tkt','amz','mga'];}
-  function avgMkFilt(mk){const at=psFilt.filter(p=>p[mk]);const vs=at.map(p=>{const d=mkt[mk+'_'+p.sku]||{};const pr=parseFloat(d.preco)||0;const fr=mk==='meli'?fM(p.peso,pr):(parseFloat(d.frete)||0);const m=cMarg(p,pr,fr,d.tar,d.reb,d.ads);return m.p===''?null:m.p;}).filter(v=>v!==null);return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}
+  function avgMkFilt(mk){const at=psFilt.filter(p=>p[mk]);const vs=at.map(p=>{const d=mkt[mk+'_'+p.sku]||{};const pr=parseFloat(d.preco)||0;let fr,tar,reb=parseFloat(d.reb)||0,ads=parseFloat(d.ads)||0;if(mk==='meli'){fr=fM(p.peso,pr);tar=parseFloat(d.tar)||0;}else if(mk==='shp'){const sc=fShp(pr);fr=sc.frete;tar=sc.tar;}else if(mk==='tkt'){const tc=fTkt(d);fr=tc.frete;tar=tc.tar;}else if(mk==='mga'){const mc2=fMga(d);fr=mc2.frete;tar=mc2.tar;}else{fr=parseFloat(d.frete)||0;tar=parseFloat(d.tar)||0;}const m=cMarg(p,pr,fr,tar,reb,ads);return m.p===''?null:m.p;}).filter(v=>v!==null);return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}
   const mks=getMkList();
   const imp=psFilt.filter(p=>p.tipo==='Importado'),nac=psFilt.filter(p=>p.tipo==='Nacional');
   const tm=psFilt.filter(p=>p.meli).length,ts=psFilt.filter(p=>p.shp).length,ta=psFilt.filter(p=>p.amz).length;
-  function avgTipo(tipo){const at=psFilt.filter(p=>p.tipo===tipo);const vs=[];at.forEach(p=>{mks.forEach(k=>{if(!p[k])return;const d=mkt[k+'_'+p.sku]||{};const pr=parseFloat(d.preco)||0;const fr=k==='meli'?fM(p.peso,pr):(parseFloat(d.frete)||0);const m=cMarg(p,pr,fr,d.tar,d.reb,d.ads);if(m.p!=='')vs.push(m.p);});});return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}
-  function avgGeral(){const vs=[];psFilt.forEach(p=>{mks.forEach(k=>{if(!p[k])return;const d=mkt[k+'_'+p.sku]||{};const pr=parseFloat(d.preco)||0;const fr=k==='meli'?fM(p.peso,pr):(parseFloat(d.frete)||0);const m=cMarg(p,pr,fr,d.tar,d.reb,d.ads);if(m.p!=='')vs.push(m.p);});});return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}
+  function getMktFreteTar(k,d,p,pr){let fr,tar;if(k==='meli'){fr=fM(p.peso,pr);tar=parseFloat(d.tar)||0;}else if(k==='shp'){const sc=fShp(pr);fr=sc.frete;tar=sc.tar;}else if(k==='tkt'){const tc=fTkt(d);fr=tc.frete;tar=tc.tar;}else if(k==='mga'){const mc2=fMga(d);fr=mc2.frete;tar=mc2.tar;}else{fr=parseFloat(d.frete)||0;tar=parseFloat(d.tar)||0;}return{fr,tar};}
+  function avgTipo(tipo){const at=psFilt.filter(p=>p.tipo===tipo);const vs=[];at.forEach(p=>{mks.forEach(k=>{if(!p[k])return;const d=mkt[k+'_'+p.sku]||{};const pr=parseFloat(d.preco)||0;const{fr,tar}=getMktFreteTar(k,d,p,pr);const m=cMarg(p,pr,fr,tar,parseFloat(d.reb)||0,parseFloat(d.ads)||0);if(m.p!=='')vs.push(m.p);});});return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}
+  function avgGeral(){const vs=[];psFilt.forEach(p=>{mks.forEach(k=>{if(!p[k])return;const d=mkt[k+'_'+p.sku]||{};const pr=parseFloat(d.preco)||0;const{fr,tar}=getMktFreteTar(k,d,p,pr);const m=cMarg(p,pr,fr,tar,parseFloat(d.reb)||0,parseFloat(d.ads)||0);if(m.p!=='')vs.push(m.p);});});return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}
   const amMeli=avgMkFilt('meli'),amShp=avgMkFilt('shp'),amAmz=avgMkFilt('amz'),amMga=avgMkFilt('mga');
   const amImp=avgTipo('Importado'),amNac=avgTipo('Nacional'),amGeral=avgGeral();
   const isQtd=f.metrica==='qtd';
@@ -1311,6 +1316,9 @@ function lU(sku,mk){
   if(eAR)eAR.textContent=preco&&ads?fR(preco*ads/100):'—';
   if(eFR&&(mk==='meli'||mk==='shp'||mk==='tkt'||mk==='mga'))eFR.textContent=preco?fR(frete):'—';
   if(eTarCell&&(mk==='shp'||mk==='tkt'||mk==='mga'))eTarCell.textContent=preco?pc(tar):'—';
+  // Atualizar dashboard se estiver visível
+  const dashScreen=document.getElementById('screen-dash');
+  if(dashScreen&&dashScreen.classList.contains('active'))rDash();
 }
 // HISTÓRICO — Bug 2 + Alteração 4 (só custos, sem preços/rebate)
 let histTab='imp';
