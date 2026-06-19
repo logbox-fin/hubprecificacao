@@ -1636,8 +1636,8 @@ function openMgDetail(sku,mk){
   else if(mk==='tkt'){const tc=fTkt(d);frete=tc.frete;tar=tc.tar;}
   else if(mk==='mga'){const mc2=fMga(d);frete=mc2.frete;tar=mc2.tar;}
   else{frete=parseFloat(d.frete)||0;tar=parseFloat(d.tar)||0;}
-  // CMV calculado (mesmo para importados e nacionais)
-  const cmv=calcCMV(p);
+  // Base fiscal: Custo NF para Importados, CMV calculado para Nacionais
+  const cmv=p.tipo==='Importado'?(parseFloat(p.custo)||0):calcCMV(p);
   // Custo ajustado (gerencial)
   const aj=cAj(p,frete,tar,reb,ads,preco);
   // Margem Gerencial (base: custo ajustado) — cálculo atual
