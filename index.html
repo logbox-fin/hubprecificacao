@@ -190,6 +190,12 @@ tbody td.td-res{background:var(--col-res-bg);font-weight:700;}
 .drag-handle:active{cursor:grabbing;}
 tr.dragging{opacity:0.4;}
 tr.drag-over{border-top:2px solid var(--accent2)!important;}
+.preco-novo-preview{background:#f0fdf4;border:1.5px solid var(--green);border-radius:var(--r2);padding:14px 16px;margin-top:12px;}
+.preco-novo-preview-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--green2);margin-bottom:10px;}
+.preco-novo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.preco-novo-item{background:#fff;border-radius:var(--r);padding:10px 12px;border:1px solid var(--border);}
+.preco-novo-item-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:4px;}
+.preco-novo-item-val{font-size:18px;font-weight:700;color:var(--green);}
 </style>
 </head>
 <body>
@@ -804,6 +810,63 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
   </div>
 </div>
 
+<div class="mov" id="mod-preco-novo">
+  <div class="mod" style="width:520px;">
+    <div class="mt">💰 Preço Novo — Custo Médio Ponderado</div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;padding:12px 14px;background:var(--bg3);border-radius:var(--r);align-items:center;">
+      <div style="flex:1;">
+        <div class="fl">Produto</div>
+        <div id="pn-nome" style="font-weight:700;font-size:13px;color:var(--text);">—</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="fl">CMV Atual</div>
+        <div id="pn-cmv-atual" style="font-size:20px;font-weight:700;color:var(--accent2);">—</div>
+      </div>
+    </div>
+    <div class="dv"></div>
+    <div class="sl">Estoque Antes da Nova Compra</div>
+    <div class="fg">
+      <label class="fl">Quantidade em Estoque Atual</label>
+      <input type="number" id="pn-est" class="full" step="1" min="0" placeholder="Ex: 50" oninput="calcPrecoNovo()">
+    </div>
+    <div class="dv"></div>
+    <div class="sl">Dados da Nova Compra</div>
+    <div class="gr g2">
+      <div class="fg"><label class="fl">Custo NF Novo (R$)</label><div class="pfx"><span>R$</span><input type="number" id="pn-custo" step="0.01" class="full" oninput="calcPrecoNovo()"></div></div>
+      <div class="fg"><label class="fl">ST (R$)</label><div class="pfx"><span>R$</span><input type="number" id="pn-st" step="0.01" class="full" oninput="calcPrecoNovo()"></div></div>
+    </div>
+    <div class="gr g3">
+      <div class="fg"><label class="fl">IPI %</label><div class="pfx"><span>%</span><input type="number" id="pn-ipi" step="0.01" class="full" oninput="calcPrecoNovo()"></div></div>
+      <div class="fg"><label class="fl">ICMS %</label><div class="pfx"><span>%</span><input type="number" id="pn-icms" step="0.01" class="full" oninput="calcPrecoNovo()"></div></div>
+      <div class="fg"><label class="fl">Qtd Entrada</label><input type="number" id="pn-qtd" step="1" min="1" class="full" placeholder="Ex: 100" oninput="calcPrecoNovo()"></div>
+    </div>
+    <div class="preco-novo-preview" id="pn-preview" style="display:none;">
+      <div class="preco-novo-preview-title">📊 Resultado — Custo Médio Ponderado</div>
+      <div class="preco-novo-grid">
+        <div class="preco-novo-item">
+          <div class="preco-novo-item-lbl">CMV Nova Compra</div>
+          <div class="preco-novo-item-val" id="pn-cmv-novo">—</div>
+        </div>
+        <div class="preco-novo-item">
+          <div class="preco-novo-item-lbl">CMV Médio Ponderado</div>
+          <div class="preco-novo-item-val" id="pn-cmv-med" style="color:var(--accent2);">—</div>
+        </div>
+        <div class="preco-novo-item">
+          <div class="preco-novo-item-lbl">Estoque Total</div>
+          <div class="preco-novo-item-val" id="pn-est-total" style="color:var(--text2);">—</div>
+        </div>
+        <div class="preco-novo-item">
+          <div class="preco-novo-item-lbl">Novo Custo NF</div>
+          <div class="preco-novo-item-val" id="pn-custo-med" style="color:var(--text2);">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="cM('mod-preco-novo')">Cancelar</button>
+      <button class="btn btn-p" id="pn-btn-salvar" style="display:none;" onclick="salvarPrecoNovo()">✅ Confirmar e Salvar</button>
+    </div>
+  </div>
+</div>
 <div class="mov" id="mod-mg-detail">
   <div class="mod" style="width:420px;">
     <div class="mt" id="mod-mg-title">Detalhes da Margem</div>
@@ -1118,7 +1181,7 @@ function toggleMktProd(id,mk){const ps=LS.get('lb_p')||[];const idx=ps.findIndex
 function rowB(p){
   const cv=parseFloat(p.custo)||0;const ipi=(parseFloat(p.ipi)||0)/100,pis=(parseFloat(p.pis)||0)/100,icms=(parseFloat(p.icms)||0)/100;
   function mkChip(mk,val){return`<td class="tdc" style="cursor:pointer;" onclick="toggleMktProd(${p.id},'${mk}')" title="Clique para alternar"><span class="chip ${val?'cs':'cn'}" style="cursor:pointer;">${val?'S':'N'}</span></td>`;}
-  return`<tr data-sku="${p.sku}"><td class="tdl"><strong>${p.nome||p.sku}</strong></td><td class="tdc tmu" style="cursor:pointer;text-decoration:underline dotted;color:var(--accent2);" onclick="openPM(${p.id})">${p.sku}</td><td class="tdc"><span class="chip ${p.tipo==='Importado'?'ci':'cna'}">${p.tipo}</span></td><td class="tdc tmu">${p.ncm||'—'}</td><td class="tdc">${Math.round(p.peso||0)} g</td><td class="tdc">${fR(cv)}</td><td class="td-imp tdc">${p.st?fR(p.st):'—'}</td><td class="td-imp tdc">${pc(p.ipi)}</td><td class="td-imp tdc">${fR(cv*ipi)}</td><td class="td-imp tdc">${pc(p.pis)}</td><td class="td-imp tdc">${fR(cv*pis)}</td><td class="td-imp tdc">${pc(p.icms)}</td><td class="td-imp tdc">${fR(cv*icms)}</td>${mkChip('meli',p.meli)}${mkChip('shp',p.shp)}${mkChip('tkt',p.tkt)}${mkChip('amz',p.amz)}${mkChip('mga',p.mga)}<td class="tdc tmu">${p.marca||'—'}</td><td class="tdc tmu">${p.categoria||'—'}</td><td class="tdc tmu">${p.upAt||'—'}</td><td class="tdc tmu">${p.upBy||'—'}</td><td class="tdc"><button class="btn btn-sm" onclick="openPM(${p.id})">Editar</button></td></tr>`;
+  const btnPrecoNovo=p.tipo==='Nacional'?`<button class="btn btn-sm btn-g" style="margin-left:4px;" data-pid="${p.id}" onclick="openPrecoNovo(this.dataset.pid)">💰 Preço Novo</button>`:'';return`<tr data-sku="${p.sku}"><td class="tdl"><strong>${p.nome||p.sku}</strong></td><td class="tdc tmu" style="cursor:pointer;text-decoration:underline dotted;color:var(--accent2);" onclick="openPM(${p.id})">${p.sku}</td><td class="tdc"><span class="chip ${p.tipo==='Importado'?'ci':'cna'}">${p.tipo}</span></td><td class="tdc tmu">${p.ncm||'—'}</td><td class="tdc">${Math.round(p.peso||0)} g</td><td class="tdc">${fR(cv)}</td><td class="td-imp tdc">${p.st?fR(p.st):'—'}</td><td class="td-imp tdc">${pc(p.ipi)}</td><td class="td-imp tdc">${fR(cv*ipi)}</td><td class="td-imp tdc">${pc(p.pis)}</td><td class="td-imp tdc">${fR(cv*pis)}</td><td class="td-imp tdc">${pc(p.icms)}</td><td class="td-imp tdc">${fR(cv*icms)}</td>${mkChip('meli',p.meli)}${mkChip('shp',p.shp)}${mkChip('tkt',p.tkt)}${mkChip('amz',p.amz)}${mkChip('mga',p.mga)}<td class="tdc tmu">${p.marca||'—'}</td><td class="tdc tmu">${p.categoria||'—'}</td><td class="tdc tmu">${p.upAt||'—'}</td><td class="tdc tmu">${p.upBy||'—'}</td><td class="tdc"><button class="btn btn-sm" onclick="openPM(${p.id})">Editar</button>${btnPrecoNovo}</td></tr>`;
 }
 
 // MARCAS E CATEGORIAS
@@ -1674,6 +1737,96 @@ function openMgDetail(sku,mk){
   document.getElementById('mgd-fis-p').style.color=preco?corMg(mFisP):'var(--text3)';
   document.getElementById('mgd-fis-r').textContent=preco?fR(parseFloat(mFisR.toFixed(2))):'—';
   document.getElementById('mod-mg-detail').classList.add('open');
+}
+
+// CUSTO MÉDIO PONDERADO — NACIONAIS
+let _pnProdId=null;
+
+function openPrecoNovo(pid){
+  const ps=LS.get('lb_p')||[];
+  const p=ps.find(x=>String(x.id)===String(pid));
+  if(!p||p.tipo!=='Nacional'){toast('Apenas produtos Nacionais','e');return;}
+  _pnProdId=pid;
+  const cmvAtual=calcCMV(p);
+  document.getElementById('pn-nome').textContent=p.sku+' — '+(p.nome||'');
+  document.getElementById('pn-cmv-atual').textContent=fR(cmvAtual);
+  // Pré-preencher com dados atuais do produto
+  document.getElementById('pn-est').value='';
+  document.getElementById('pn-custo').value=p.custo||'';
+  document.getElementById('pn-st').value=p.st||'';
+  document.getElementById('pn-ipi').value=p.ipi||'';
+  document.getElementById('pn-icms').value=p.icms||'';
+  document.getElementById('pn-qtd').value='';
+  document.getElementById('pn-preview').style.display='none';
+  document.getElementById('pn-btn-salvar').style.display='none';
+  document.getElementById('mod-preco-novo').classList.add('open');
+}
+
+function calcPrecoNovo(){
+  if(!_pnProdId)return;
+  const ps=LS.get('lb_p')||[];
+  const p=ps.find(x=>String(x.id)===String(_pnProdId));
+  if(!p)return;
+  const estAtual=parseFloat(document.getElementById('pn-est').value)||0;
+  const custoNovo=parseFloat(document.getElementById('pn-custo').value)||0;
+  const stNovo=parseFloat(document.getElementById('pn-st').value)||0;
+  const ipiNovo=parseFloat(document.getElementById('pn-ipi').value)||0;
+  const icmsNovo=parseFloat(document.getElementById('pn-icms').value)||0;
+  const qtdNova=parseFloat(document.getElementById('pn-qtd').value)||0;
+  if(!custoNovo||!qtdNova){
+    document.getElementById('pn-preview').style.display='none';
+    document.getElementById('pn-btn-salvar').style.display='none';
+    return;
+  }
+  // CMV atual
+  const cmvAtual=calcCMV(p);
+  // CMV nova compra (com novos dados)
+  const pNovo={tipo:'Nacional',custo:custoNovo,st:stNovo,ipi:ipiNovo,icms:icmsNovo};
+  const cmvNovo=calcCMV(pNovo);
+  // Custo médio ponderado do CMV
+  const totalEst=estAtual+qtdNova;
+  const cmvMedio=totalEst>0?(estAtual*cmvAtual+qtdNova*cmvNovo)/totalEst:cmvNovo;
+  // Custo NF médio ponderado
+  const custoAtual=parseFloat(p.custo)||0;
+  const custoMedio=totalEst>0?(estAtual*custoAtual+qtdNova*custoNovo)/totalEst:custoNovo;
+  // Exibir preview
+  document.getElementById('pn-cmv-novo').textContent=fR(cmvNovo);
+  document.getElementById('pn-cmv-med').textContent=fR(parseFloat(cmvMedio.toFixed(4)));
+  document.getElementById('pn-est-total').textContent=totalEst+' un.';
+  document.getElementById('pn-custo-med').textContent=fR(parseFloat(custoMedio.toFixed(4)));
+  document.getElementById('pn-preview').style.display='block';
+  document.getElementById('pn-btn-salvar').style.display='inline-flex';
+  // Guardar valores calculados para usar no salvar
+  document.getElementById('pn-preview').dataset.cmvMedio=cmvMedio.toFixed(4);
+  document.getElementById('pn-preview').dataset.custoMedio=custoMedio.toFixed(4);
+}
+
+function salvarPrecoNovo(){
+  if(!_pnProdId)return;
+  const ps=LS.get('lb_p')||[];
+  const idx=ps.findIndex(x=>String(x.id)===String(_pnProdId));
+  if(idx<0)return;
+  const p=ps[idx];
+  const preview=document.getElementById('pn-preview');
+  const custoMedio=parseFloat(preview.dataset.custoMedio)||0;
+  const cmvAtual=calcCMV(p);
+  const cmvMedio=parseFloat(preview.dataset.cmvMedio)||0;
+  const stNovo=parseFloat(document.getElementById('pn-st').value)||0;
+  const ipiNovo=parseFloat(document.getElementById('pn-ipi').value)||0;
+  const icmsNovo=parseFloat(document.getElementById('pn-icms').value)||0;
+  // Registrar no histórico (CMV Contábil Anterior → Novo)
+  if(Math.abs(cmvAtual-cmvMedio)>0.001){
+    trgH(p.sku,p.nome||p.sku,[{campo:'CMV Contábil',ant:cmvAtual,novo:cmvMedio,labelAnt:'CMV Contábil Anterior',labelNovo:'CMV Contábil Novo'}]);
+  }
+  // Atualizar produto com custo médio ponderado e novos dados fiscais
+  ps[idx]={...p,custo:parseFloat(custoMedio.toFixed(4)),st:stNovo,ipi:ipiNovo,icms:icmsNovo,pis:9.25,upAt:td(),upBy:CU?CU.user:'sistema'};
+  _cache['lb_p']=JSON.parse(JSON.stringify(ps));
+  try{localStorage.setItem('lb_p',JSON.stringify(ps));}catch{}
+  // Persistir no Supabase
+  SB.from('produtos').upsert({sku:ps[idx].sku,nome:ps[idx].nome,tipo:ps[idx].tipo,ncm:ps[idx].ncm||null,peso:ps[idx].peso||0,custo:parseFloat(custoMedio.toFixed(4)),st:stNovo,ipi:ipiNovo,pis:9.25,icms:icmsNovo,marca:ps[idx].marca||null,categoria:ps[idx].categoria||null,meli:!!ps[idx].meli,shp:!!ps[idx].shp,amz:!!ps[idx].amz,tkt:!!ps[idx].tkt,mga:!!ps[idx].mga,atualizado_em:new Date().toISOString(),atualizado_por:CU?CU.user:'sistema'},{onConflict:'sku'}).then(({error})=>{if(error)console.warn('Erro Supabase:',error);});
+  cM('mod-preco-novo');
+  rBase();
+  toast('Custo médio salvo com sucesso!');
 }
 
 // BOOT
