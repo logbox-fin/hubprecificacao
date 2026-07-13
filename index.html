@@ -540,11 +540,9 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
         <div id="cmv-imp-panel">
           <div class="flex g8" style="margin-bottom:14px;flex-wrap:wrap;align-items:center;">
             <div class="flex g8 fc" style="flex-wrap:wrap;">
-              <span class="fl" style="margin:0;white-space:nowrap;">Período:</span>
-              <input type="date" id="cmv-data-de" onchange="rCmv()" style="padding:6px 10px;font-size:12px;">
-              <span class="tmu tsm">até</span>
-              <input type="date" id="cmv-data-ate" onchange="rCmv()" style="padding:6px 10px;font-size:12px;">
-              <button class="btn btn-sm" onclick="document.getElementById('cmv-data-de').value='';document.getElementById('cmv-data-ate').value='';rCmv()">✕ Limpar</button>
+              <span class="fl" style="margin:0;white-space:nowrap;">CMV até:</span>
+              <input type="date" id="cmv-data-ate" onchange="rCmv()" style="padding:6px 10px;font-size:12px;" title="Mostrar CMV do último container registrado até esta data">
+              <button class="btn btn-sm" onclick="document.getElementById('cmv-data-ate').value='';rCmv()">✕ Limpar</button>
             </div>
             <div class="flex g8 fc ml-auto">
               <button class="btn btn-sm btn-p" onclick="openCmvAddProd()">+ Produto</button>
@@ -1601,28 +1599,57 @@ let cmvColsOcultas={};
 function setCmvTab(t){const bi=document.getElementById('cmv-tab-imp'),bn=document.getElementById('cmv-tab-nac');if(bi)bi.className='btn'+(t==='imp'?' btn-p':'');if(bn)bn.className='btn'+(t==='nac'?' btn-p':'');const pi=document.getElementById('cmv-imp-panel'),pn=document.getElementById('cmv-nac-panel');if(pi)pi.style.display=t==='imp'?'block':'none';if(pn)pn.style.display=t==='nac'?'block':'none';if(t==='nac')rCmvNac();}
 function initCmvClbs(){if(!LS.get('lb_clbs'))LS.set('lb_clbs',[]);if(!LS.get('lb_cmv_data'))LS.set('lb_cmv_data',{});if(!LS.get('lb_cmv_skus'))LS.set('lb_cmv_skus',[]);}
 function rCmv(){
-  const clbs=LS.get('lb_clbs')||[];const de=(document.getElementById('cmv-data-de')||{value:''}).value,ate=(document.getElementById('cmv-data-ate')||{value:''}).value;
-  let clbsF=clbs.slice();if(de)clbsF=clbsF.filter(c=>!c.data||c.data>=de);if(ate)clbsF=clbsF.filter(c=>!c.data||c.data<=ate);
-  const skuOrder=LS.get('lb_cmv_skus')||[];const allD=LS.get('lb_cmv_data')||{};const ps=LS.get('lb_p')||[];
+  const clbs=LS.get('lb_clbs')||[];
+  // CORREÇÃO 4: campo "até" = último container registrado até essa data
+  const ate=(document.getElementById('cmv-data-ate')||{value:''}).value;
+  // Filtrar containers até a data informada (ou todos se vazio)
+  const clbsRef=ate?clbs.filter(c=>!c.data||c.data<=ate):clbs.slice();
+  // Ordenar containers por data para garantir sequência correta
+  const clbsOrd=clbsRef.slice().sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  // CORREÇÃO 1: usar apenas SKUs da lista lb_cmv_skus (escolhidos manualmente)
+  const skuOrder=LS.get('lb_cmv_skus')||[];
+  // CORREÇÃO 2: ordenar A→Z por SKU
+  const skuSorted=skuOrder.slice().sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const allD=LS.get('lb_cmv_data')||{};const ps=LS.get('lb_p')||[];
   const prodsImp=ps.filter(p=>p.tipo==='Importado');
-  const skuSorted=[...skuOrder,...prodsImp.filter(p=>!skuOrder.includes(p.sku)).map(p=>p.sku)];
   // Chips de containers ativos
   const ch=document.getElementById('cmv-clbs-ativos');
   if(ch)ch.innerHTML=clbs.map(c=>{const oculto=cmvColsOcultas[c.nome];const bg=oculto?'#e2e8f0':'var(--accent2)';const col=oculto?'var(--text3)':'#fff';const dataStr=c.data?' ('+c.data.substring(5).split('-').reverse().join('/')+')':'';return '<span class="tag-chip" style="background:'+bg+';color:'+col+';cursor:pointer;" onclick="toggleCmvCol(\'' + c.nome + '\')">' + c.nome + dataStr + (oculto?' ·oculto':'') + '</span>';}).join('');
-  const visClbs=clbsF.filter(c=>!cmvColsOcultas[c.nome]);
+  const visClbs=clbsOrd.filter(c=>!cmvColsOcultas[c.nome]);
   // Thead
   const thead=document.getElementById('cmv-thead');
-  if(thead)thead.innerHTML=`<tr><th class="th-sku" rowspan="2" style="text-align:left;min-width:60px;">SKU</th>${visClbs.map(c=>`<th class="thg-imp" colspan="3" style="cursor:pointer;" onclick="toggleCmvCol('${c.nome}')">${c.nome}</th>`).join('')}<th class="thg-mg" rowspan="2">CMV Médio</th><th class="thg-mg" rowspan="2">Estoque</th></tr><tr>${visClbs.map(c=>`<th class="thg-imp-sub">Qtd</th><th class="thg-imp-sub">CMV (R$)</th><th class="thg-imp-sub">CMV Méd.</th>`).join('')}</tr>`;
+  if(thead){const thCols=visClbs.map(c=>{return '<th class="thg-imp" colspan="3" style="cursor:pointer;" onclick="toggleCmvCol(this.dataset.clb)" data-clb="'+c.nome+'">'+c.nome+'</th>';}).join('');const thSub=visClbs.map(()=>'<th class="thg-imp-sub">Qtd</th><th class="thg-imp-sub">CMV (R$)</th><th class="thg-imp-sub">CMV Méd.</th>').join('');thead.innerHTML='<tr><th class="th-sku" rowspan="2" style="text-align:left;min-width:60px;">SKU</th>'+thCols+'<th class="thg-mg" rowspan="2">CMV Médio</th><th class="thg-mg" rowspan="2">Estoque</th></tr><tr>'+thSub+'</tr>';}
   // Tbody
   const tbody=document.getElementById('cmv-tbody');if(!tbody)return;
-  if(!skuSorted.length){tbody.innerHTML=`<tr><td colspan="${2+visClbs.length*3}" class="nd">Nenhum produto importado. Adicione na Base de Dados.</td></tr>`;return;}
-  tbody.innerHTML=skuSorted.map(sku=>{const p=prodsImp.find(x=>x.sku===sku);const nome=p?p.nome||sku:sku;const pData=allD[sku]||{};
-  const med=calcCmvMed(sku,clbs);
-  const estoque=Object.values(pData).reduce((s,d)=>s+parseFloat(d.est||0),0);
-  return`<tr id="cmvr-${sku}" data-sku="${sku}"><td class="tdl"><span style="cursor:pointer;font-weight:700;color:var(--accent2);text-decoration:underline dotted;" onclick="openGrafCmv('${sku}')" title="Ver gráfico">${sku}</span><div class="tsm tmu">${nome}</div></td>${visClbs.map(c=>{const d=pData[c.nome]||{};const q=parseFloat(d.qtd||0),cv=parseFloat(d.cmv||0),m=q?cv:null;return`<td class="tdc tmu" style="cursor:pointer;" onclick="openCmvProd('${sku}','${c.nome}')" title="Editar">${q||'—'}</td><td class="tdc td-custo" style="cursor:pointer;" onclick="openCmvProd('${sku}','${c.nome}')">${cv?fR(cv):'—'}</td><td class="tdc" style="cursor:pointer;" onclick="openCmvProd('${sku}','${c.nome}')">${m?fR(m):'—'}</td>`;}).join('')}<td class="tdc td-res" style="cursor:pointer;" onclick="openGrafCmv('${sku}')">${med?fR(med):'—'}</td><td class="tdc" style="font-weight:700;">${estoque||'—'}</td></tr>`;}).join('');
+  if(!skuSorted.length){tbody.innerHTML='<tr><td colspan="'+(2+visClbs.length*3)+'" class="nd">Nenhum produto adicionado. Clique em "+ Produto" para adicionar.</td></tr>';return;}
+  tbody.innerHTML=skuSorted.map(sku=>{
+    const p=prodsImp.find(x=>x.sku===sku);const nome=p?p.nome||sku:sku;const pData=allD[sku]||{};
+    // CORREÇÃO 4: CMV médio calculado apenas com containers até a data filtrada
+    const med=calcCmvMed(sku,clbsOrd);
+    // Estoque total considerando todos os containers (não filtrado por data)
+    const estoque=Object.values(pData).reduce((s,d)=>s+parseFloat(d.est||0),0);
+    const cellsCols=visClbs.map(c=>{
+      const d=pData[c.nome]||{};
+      const q=parseFloat(d.qtd||0),cv=parseFloat(d.cmv||0);
+      const idxC=clbsOrd.findIndex(x=>x.nome===c.nome);
+      const clbsAteEste=clbsOrd.slice(0,idxC+1);
+      const medAteEste=calcCmvMed(sku,clbsAteEste);
+      const tdQ='<td class="tdc tmu" style="cursor:pointer;" onclick="openCmvProd(this.dataset.sku,this.dataset.clb)" data-sku="'+sku+'" data-clb="'+c.nome+'" title="Editar">'+(q||'—')+'</td>';
+      const tdC='<td class="tdc td-custo" style="cursor:pointer;" onclick="openCmvProd(this.dataset.sku,this.dataset.clb)" data-sku="'+sku+'" data-clb="'+c.nome+'">'+(cv?fR(cv):'—')+'</td>';
+      const tdM='<td class="tdc" style="cursor:pointer;" onclick="openCmvProd(this.dataset.sku,this.dataset.clb)" data-sku="'+sku+'" data-clb="'+c.nome+'">'+(medAteEste?fR(medAteEste):'—')+'</td>';
+      return tdQ+tdC+tdM;
+    }).join('');
+    const tdMed='<td class="tdc td-res" style="cursor:pointer;" onclick="openGrafCmv(this.dataset.sku)" data-sku="'+sku+'">'+(med?fR(med):'—')+'</td>';
+    const tdEst='<td class="tdc" style="font-weight:700;">'+(estoque||'—')+'</td>';
+    const tdNome='<td class="tdl"><span style="cursor:pointer;font-weight:700;color:var(--accent2);text-decoration:underline dotted;" onclick="openGrafCmv(this.dataset.sku)" data-sku="'+sku+'" title="Ver gráfico">'+sku+'</span><div class="tsm tmu">'+nome+'</div><button class="btn btn-sm btn-d" style="margin-top:4px;font-size:10px;" onclick="removerCmvProd(this.dataset.sku)" data-sku="'+sku+'">× Remover</button></td>';
+    return '<tr id="cmvr-'+sku+'" data-sku="'+sku+'">'+tdNome+cellsCols+tdMed+tdEst+'</tr>';
+  }).join('');
+  if(tbody)initDrag(tbody);
 }
+function removerCmvProd(sku){if(!confirm('Remover "'+sku+'" da lista do CMV? Os dados de CMV não serão apagados.'))return;const order=LS.get('lb_cmv_skus')||[];LS.set('lb_cmv_skus',order.filter(s=>s!==sku));rCmv();toast('Produto removido da lista.');}
 function toggleCmvCol(nome){cmvColsOcultas[nome]=!cmvColsOcultas[nome];LS.set('lb_cmv_cols',cmvColsOcultas);rCmv();}
-function calcCmvMed(sku,clbs){const allD=LS.get('lb_cmv_data')||{};const pData=allD[sku]||{};let totalEst=0,totalVal=0;(clbs||[]).forEach(c=>{const d=pData[c.nome]||{};const q=parseFloat(d.est||0),cv=parseFloat(d.cmv||0);if(q>0&&cv>0){totalEst+=q;totalVal+=q*cv;}});return totalEst>0?totalVal/totalEst:null;}
+function calcCmvMed(sku,clbs){const allD=LS.get('lb_cmv_data')||{};const pData=allD[sku]||{};let totalEst=0,totalVal=0,hasAny=false;(clbs||[]).forEach(c=>{const d=pData[c.nome]||{};const q=parseFloat(d.est||0),cv=parseFloat(d.cmv||0);if(cv>0){hasAny=true;if(q>0){totalEst+=q;totalVal+=q*cv;}}});// Se tem CMV mas sem estoque registrado, retorna o último CMV encontrado
+if(hasAny&&totalEst===0){const ultClb=[...(clbs||[])].reverse().find(c=>{const d=pData[c.nome]||{};return parseFloat(d.cmv||0)>0;});return ultClb?parseFloat((pData[ultClb.nome]||{}).cmv||0):null;}return totalEst>0?totalVal/totalEst:null;}
 function openCmvProd(sku,clb){const allD=LS.get('lb_cmv_data')||{};const d=(allD[sku]||{})[clb]||{};const med=calcCmvMed(sku,LS.get('lb_clbs')||[]);
 document.getElementById('cmv-prod-sku').textContent=sku;
 document.getElementById('cmv-prod-clb').textContent=clb;
