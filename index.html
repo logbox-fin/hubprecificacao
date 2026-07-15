@@ -613,11 +613,27 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
           <button class="btn btn-sm btn-p" style="margin-top:10px;" onclick="addShpFaixa()">+ Adicionar Faixa</button>
         </div>
         <div class="card" style="margin-bottom:16px;">
-          <div class="sl">TikTok Shop — Padrões</div>
-          <div class="gr g2">
-            <div class="fg"><label class="fl">Frete Padrão (R$)</label><div class="pfx"><span>R$</span><input type="number" id="fc-tkt-frete" step="0.01" class="full"></div></div>
-            <div class="fg"><label class="fl">Comissão Padrão (%)</label><div class="pfx"><span>%</span><input type="number" id="fc-tkt-tar" step="0.01" class="full"></div></div>
-          </div>
+          <div class="sl">TikTok Shop — Faixas por Preço de Venda</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px;">
+            <thead><tr>
+              <th class="th-sku">Faixa</th>
+              <th class="thg-tarifa">Comissão (%)</th>
+              <th class="thg-frete">Frete (R$)</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td style="padding:8px 10px;border:1px solid var(--border);font-weight:700;color:var(--text2);">Preço &lt; R$ 50,00</td>
+                <td style="padding:6px 8px;border:1px solid var(--border);"><div class="pfx"><span>%</span><input type="number" id="fc-tkt-tar-baixo" step="0.01" class="full" style="border-radius:0 var(--r) var(--r) 0;"></div></td>
+                <td style="padding:6px 8px;border:1px solid var(--border);"><div class="pfx"><span>R$</span><input type="number" id="fc-tkt-frete-baixo" step="0.01" class="full" style="border-radius:0 var(--r) var(--r) 0;"></div></td>
+              </tr>
+              <tr>
+                <td style="padding:8px 10px;border:1px solid var(--border);font-weight:700;color:var(--text2);">Preço ≥ R$ 50,00</td>
+                <td style="padding:6px 8px;border:1px solid var(--border);"><div class="pfx"><span>%</span><input type="number" id="fc-tkt-tar-alto" step="0.01" class="full" style="border-radius:0 var(--r) var(--r) 0;"></div></td>
+                <td style="padding:6px 8px;border:1px solid var(--border);"><div class="pfx"><span>R$</span><input type="number" id="fc-tkt-frete-alto" step="0.01" class="full" style="border-radius:0 var(--r) var(--r) 0;"></div></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="tmu tsm" style="margin-top:4px;">Vigente a partir de 15/07/2026 — Faixa baseada no preço final ao comprador</div>
         </div>
         <div class="card" style="margin-bottom:16px;">
           <div class="sl">Magalu — Padrões</div>
@@ -982,12 +998,12 @@ function pc(v){return fn(v)+'%';}
 function td(){return new Date().toLocaleDateString('pt-BR').split('/').reverse().join('-');}
 function mc(p){const fc=getFC();const am=fc.mgAmarelo||15,vd=fc.mgVerde||18;return p===''?'':(p<0?'mg-zero':p<am?'mg-r':p<vd?'mg-y':'mg-g');}
 function fShp(preco){const fc=getFC();const p=parseFloat(preco)||0;if(p<=0)return{frete:0,tar:0};const faixas=(fc.shpFaixas&&fc.shpFaixas.length)?fc.shpFaixas:FC_DEFAULT.shpFaixas;const fx=faixas.find(f=>p<=f.ate)||faixas[faixas.length-1];return{frete:fx.frete||0,tar:fx.tar||0};}
-function fTkt(d){const fc=getFC();return{frete:parseFloat((d&&d.frete!=null)?d.frete:fc.tktFrete)||fc.tktFrete||4,tar:parseFloat((d&&d.tar!=null&&d.tar!==0)?d.tar:fc.tktTar)||fc.tktTar||6};}
+function fTkt(d,preco){const fc=getFC();const faixas=fc.tktFaixas||FC_DEFAULT.tktFaixas;const pr=parseFloat(preco)||0;const fx=pr>0?(faixas.find(f=>pr<f.limiar)||faixas[faixas.length-1]):faixas[faixas.length-1];const frPadrao=fx.frete,tarPadrao=fx.tar;return{frete:parseFloat((d&&d.frete!=null)?d.frete:frPadrao)||frPadrao,tar:parseFloat((d&&d.tar!=null&&d.tar!==0)?d.tar:tarPadrao)||tarPadrao};}
 function fMga(d){const fc=getFC();return{frete:parseFloat((d&&d.frete!=null)?d.frete:fc.mgaFrete)||fc.mgaFrete||5,tar:parseFloat((d&&d.tar!=null&&d.tar!==0)?d.tar:fc.mgaTar)||fc.mgaTar||9.9};}
 function gM(sku,mk){const all=LS.get('lb_m')||{};return all[mk+'_'+sku]||{};}
 function sM(sku,mk,field,val){const all=LS.get('lb_m')||{};const k=mk+'_'+sku;if(!all[k])all[k]={};all[k][field]=parseFloat(val)||0;
   // Garantir que tar e frete sempre refletem o padrão fiscal quando não definidos explicitamente
-  if(mk==='tkt'){const tc=fTkt(all[k]);if(!all[k].tar||all[k].tar===0)all[k].tar=tc.tar;if(!all[k].frete||all[k].frete===0)all[k].frete=tc.frete;}
+  if(mk==='tkt'){const pr=parseFloat(all[k].preco)||0;const tc=fTkt(all[k],pr);if(!all[k].tar||all[k].tar===0)all[k].tar=tc.tar;if(!all[k].frete||all[k].frete===0)all[k].frete=tc.frete;}
   if(mk==='mga'){const mc2=fMga(all[k]);if(!all[k].tar||all[k].tar===0)all[k].tar=mc2.tar;if(!all[k].frete||all[k].frete===0)all[k].frete=mc2.frete;}
   _cache['lb_m']=JSON.parse(JSON.stringify(all));try{localStorage.setItem('lb_m',JSON.stringify(all));}catch{}sbPersistMktItem(sku,mk,all[k]).catch(e=>{console.warn('Supabase sync error lb_m:',e);if(typeof toast==='function')toast('Erro ao salvar no servidor','e');});}
 function cM(id){const el=document.getElementById(id);if(el)el.classList.remove('open');}
@@ -1001,7 +1017,7 @@ function cMarg(p,preco,frete,tarP,reb,adsP){const fc=getFC();if(!preco)return{r:
 // GLOBAIS
 let CU=null;
 const PL={admin:'Administrador',meli:'Resp. Mercado Livre',shp:'Resp. Shopee',amz:'Resp. Amazon',tkt:'Resp. TikTok',mga:'Resp. Magalu'};
-const FC_DEFAULT={icmsImp12:15.5,icmsImp18:18.5,icmsNacST:9.5,icmsNacSem:18.5,pisSaida:9.25,pisFrete:9.25,pisTar:9.25,pisAds:9.25,icmsFrete:12,precoFrete:78.99,pisEntrada:9.25,tktFrete:4,tktTar:6,mgaFrete:5,mgaTar:9.9,mgAmarelo:15,mgVerde:18,shpFaixas:[{ate:79.99,frete:4,tar:20},{ate:99.99,frete:16,tar:14},{ate:199.99,frete:20,tar:14},{ate:999999,frete:26,tar:14}]};
+const FC_DEFAULT={icmsImp12:15.5,icmsImp18:18.5,icmsNacST:9.5,icmsNacSem:18.5,pisSaida:9.25,pisFrete:9.25,pisTar:9.25,pisAds:9.25,icmsFrete:12,precoFrete:78.99,pisEntrada:9.25,tktFaixas:[{limiar:50,tar:10,frete:4},{limiar:999999,tar:6,frete:6}],mgaFrete:5,mgaTar:9.9,mgAmarelo:15,mgVerde:18,shpFaixas:[{ate:79.99,frete:4,tar:20},{ate:99.99,frete:16,tar:14},{ate:199.99,frete:20,tar:14},{ate:999999,frete:26,tar:14}]};
 function getFC(){return Object.assign({},FC_DEFAULT,LS.get('lb_fiscal')||{});}
 
 function initData(){
@@ -1085,7 +1101,7 @@ function initFiscal(){
   s('fc-pis-saida').value=fc.pisSaida;s('fc-pis-frete').value=fc.pisFrete;
   s('fc-pis-tar').value=fc.pisTar;s('fc-pis-ads').value=fc.pisAds;
   s('fc-icms-frete').value=fc.icmsFrete;s('fc-preco-frete').value=fc.precoFrete;
-  s('fc-pis-entrada').value=fc.pisEntrada;s('fc-tkt-frete').value=fc.tktFrete;s('fc-tkt-tar').value=fc.tktTar;
+  s('fc-pis-entrada').value=fc.pisEntrada;const tktF=fc.tktFaixas||FC_DEFAULT.tktFaixas;s('fc-tkt-tar-baixo').value=tktF[0].tar;s('fc-tkt-frete-baixo').value=tktF[0].frete;s('fc-tkt-tar-alto').value=tktF[1].tar;s('fc-tkt-frete-alto').value=tktF[1].frete;
   s('fc-mga-frete').value=fc.mgaFrete;s('fc-mga-tar').value=fc.mgaTar;
   s('fc-mg-amarelo').value=fc.mgAmarelo;s('fc-mg-verde').value=fc.mgVerde;
   renderShpFaixas(fc.shpFaixas);
@@ -1093,7 +1109,7 @@ function initFiscal(){
 let _shpFaixas=[];
 function renderShpFaixas(faixas){_shpFaixas=faixas?JSON.parse(JSON.stringify(faixas)):JSON.parse(JSON.stringify(FC_DEFAULT.shpFaixas));const tb=document.getElementById('fc-shp-tbody');if(!tb)return;const tdS='padding:6px 8px;border:1px solid var(--border);';tb.innerHTML=_shpFaixas.map((f,i)=>`<tr><td style="${tdS}"><input type="number" step="0.01" value="${f.ate>=999999?'':f.ate}" placeholder="∞ (última faixa)" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);" onchange="_shpFaixas[${i}].ate=parseFloat(this.value)||999999"></td><td style="${tdS}"><input type="number" step="0.01" value="${f.frete}" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);" onchange="_shpFaixas[${i}].frete=parseFloat(this.value)||0"></td><td style="${tdS}"><input type="number" step="0.01" value="${f.tar}" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);" onchange="_shpFaixas[${i}].tar=parseFloat(this.value)||0"></td><td style="${tdS};text-align:center;"><button class="btn btn-sm btn-d" onclick="_shpFaixas.splice(${i},1);renderShpFaixas(_shpFaixas)">−</button></td></tr>`).join('');}
 function addShpFaixa(){_shpFaixas.push({ate:999999,frete:0,tar:0});renderShpFaixas(_shpFaixas);}
-function saveFiscal(){const g=id=>parseFloat(document.getElementById(id).value)||0;const fc={icmsImp12:g('fc-icms-imp-12'),icmsImp18:g('fc-icms-imp-18'),icmsNacST:g('fc-icms-nac-st'),icmsNacSem:g('fc-icms-nac-sem'),pisSaida:g('fc-pis-saida'),pisFrete:g('fc-pis-frete'),pisTar:g('fc-pis-tar'),pisAds:g('fc-pis-ads'),icmsFrete:g('fc-icms-frete'),precoFrete:g('fc-preco-frete'),pisEntrada:g('fc-pis-entrada'),tktFrete:g('fc-tkt-frete'),tktTar:g('fc-tkt-tar'),mgaFrete:g('fc-mga-frete'),mgaTar:g('fc-mga-tar'),mgAmarelo:g('fc-mg-amarelo'),mgVerde:g('fc-mg-verde'),shpFaixas:_shpFaixas};LS.set('lb_fiscal',fc);toast('Configurações fiscais salvas!');}
+function saveFiscal(){const g=id=>parseFloat(document.getElementById(id).value)||0;const fc={icmsImp12:g('fc-icms-imp-12'),icmsImp18:g('fc-icms-imp-18'),icmsNacST:g('fc-icms-nac-st'),icmsNacSem:g('fc-icms-nac-sem'),pisSaida:g('fc-pis-saida'),pisFrete:g('fc-pis-frete'),pisTar:g('fc-pis-tar'),pisAds:g('fc-pis-ads'),icmsFrete:g('fc-icms-frete'),precoFrete:g('fc-preco-frete'),pisEntrada:g('fc-pis-entrada'),tktFaixas:[{limiar:50,tar:g('fc-tkt-tar-baixo'),frete:g('fc-tkt-frete-baixo')},{limiar:999999,tar:g('fc-tkt-tar-alto'),frete:g('fc-tkt-frete-alto')}],mgaFrete:g('fc-mga-frete'),mgaTar:g('fc-mga-tar'),mgAmarelo:g('fc-mg-amarelo'),mgVerde:g('fc-mg-verde'),shpFaixas:_shpFaixas};LS.set('lb_fiscal',fc);toast('Configurações fiscais salvas!');}
 
 // DASHBOARD
 function limparDashFiltros(){['df-mk','df-origem','df-marca','df-cat'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const m=document.getElementById('df-metrica');if(m)m.value='margem';rDash();}
@@ -1118,11 +1134,11 @@ function rDash(){
   const chipEl=document.getElementById('dash-filtros-ativos');
   if(chipEl)chipEl.innerHTML=chips.map(ch=>`<span style="display:inline-block;background:var(--accent2);color:#fff;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;margin:2px;cursor:pointer;" onclick="document.getElementById('${ch.id}').value='';rDash()">✕ ${ch.lbl}</span>`).join('');
   function getMkList(){return f.mk?[f.mk]:['meli','shp','tkt','amz','mga'];}
-  function avgMkFilt(mk){const at=psFilt.filter(p=>p[mk]);const vs=at.map(p=>{const d=mkt[mk+'_'+p.sku]||{};const pr=parseFloat(d.preco)||0;let fr,tar,reb=parseFloat(d.reb)||0,ads=parseFloat(d.ads)||0;if(mk==='meli'){fr=fM(p.peso,pr);tar=parseFloat(d.tar)||0;}else if(mk==='shp'){const sc=fShp(pr);fr=sc.frete;tar=sc.tar;}else if(mk==='tkt'){const tc=fTkt(d);fr=tc.frete;tar=tc.tar;}else if(mk==='mga'){const mc2=fMga(d);fr=mc2.frete;tar=mc2.tar;}else{fr=parseFloat(d.frete)||0;tar=parseFloat(d.tar)||0;}const m=cMarg(p,pr,fr,tar,reb,ads);return m.p===''?null:m.p;}).filter(v=>v!==null);return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}
+  function avgMkFilt(mk){const at=psFilt.filter(p=>p[mk]);const vs=at.map(p=>{const d=mkt[mk+'_'+p.sku]||{};const pr=parseFloat(d.preco)||0;let fr,tar,reb=parseFloat(d.reb)||0,ads=parseFloat(d.ads)||0;if(mk==='meli'){fr=fM(p.peso,pr);tar=parseFloat(d.tar)||0;}else if(mk==='shp'){const sc=fShp(pr);fr=sc.frete;tar=sc.tar;}else if(mk==='tkt'){const tc=fTkt(d,pr);fr=tc.frete;tar=tc.tar;}else if(mk==='mga'){const mc2=fMga(d);fr=mc2.frete;tar=mc2.tar;}else{fr=parseFloat(d.frete)||0;tar=parseFloat(d.tar)||0;}const m=cMarg(p,pr,fr,tar,reb,ads);return m.p===''?null:m.p;}).filter(v=>v!==null);return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}
   const mks=getMkList();
   const imp=psFilt.filter(p=>p.tipo==='Importado'),nac=psFilt.filter(p=>p.tipo==='Nacional');
   const tm=psFilt.filter(p=>p.meli).length,ts=psFilt.filter(p=>p.shp).length,ta=psFilt.filter(p=>p.amz).length;
-  function getMktFreteTar(k,d,p,pr){let fr,tar;if(k==='meli'){fr=fM(p.peso,pr);tar=parseFloat(d.tar)||0;}else if(k==='shp'){const sc=fShp(pr);fr=sc.frete;tar=sc.tar;}else if(k==='tkt'){const tc=fTkt(d);fr=tc.frete;tar=tc.tar;}else if(k==='mga'){const mc2=fMga(d);fr=mc2.frete;tar=mc2.tar;}else{fr=parseFloat(d.frete)||0;tar=parseFloat(d.tar)||0;}return{fr,tar};}
+  function getMktFreteTar(k,d,p,pr){let fr,tar;if(k==='meli'){fr=fM(p.peso,pr);tar=parseFloat(d.tar)||0;}else if(k==='shp'){const sc=fShp(pr);fr=sc.frete;tar=sc.tar;}else if(k==='tkt'){const tc=fTkt(d,pr);fr=tc.frete;tar=tc.tar;}else if(k==='mga'){const mc2=fMga(d);fr=mc2.frete;tar=mc2.tar;}else{fr=parseFloat(d.frete)||0;tar=parseFloat(d.tar)||0;}return{fr,tar};}
   function avgTipo(tipo){const at=psFilt.filter(p=>p.tipo===tipo);const vs=[];at.forEach(p=>{mks.forEach(k=>{if(!p[k])return;const d=mkt[k+'_'+p.sku]||{};const pr=parseFloat(d.preco)||0;const{fr,tar}=getMktFreteTar(k,d,p,pr);const m=cMarg(p,pr,fr,tar,parseFloat(d.reb)||0,parseFloat(d.ads)||0);if(m.p!=='')vs.push(m.p);});});return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}
   function avgGeral(){const vs=[];psFilt.forEach(p=>{mks.forEach(k=>{if(!p[k])return;const d=mkt[k+'_'+p.sku]||{};const pr=parseFloat(d.preco)||0;const{fr,tar}=getMktFreteTar(k,d,p,pr);const m=cMarg(p,pr,fr,tar,parseFloat(d.reb)||0,parseFloat(d.ads)||0);if(m.p!=='')vs.push(m.p);});});return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}
   const amMeli=avgMkFilt('meli'),amShp=avgMkFilt('shp'),amAmz=avgMkFilt('amz'),amMga=avgMkFilt('mga');
@@ -1364,7 +1380,7 @@ function rowM(p,mk){
   const preco=parseFloat(d.preco)||0;
   let frete,tar,reb,ads;
   if(isShp){const sc=fShp(preco);frete=sc.frete;tar=sc.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
-  else if(isTkt){const tc=fTkt(d);frete=tc.frete;tar=tc.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
+  else if(isTkt){const tc=fTkt(d,preco);frete=tc.frete;tar=tc.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
   else if(isMga){const mc2=fMga(d);frete=mc2.frete;tar=mc2.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
   else{frete=isMeli?fM(p.peso,preco):(parseFloat(d.frete)||0);tar=parseFloat(d.tar)||0;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
   const aj=cAj(p,frete,tar,reb,ads,preco);
@@ -1399,7 +1415,7 @@ function lU(sku,mk){
   const preco=parseFloat(d.preco)||0;
   let frete,tar,reb,ads;
   if(mk==='shp'){const sc=fShp(preco);frete=sc.frete;tar=sc.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
-  else if(mk==='tkt'){const tc=fTkt(d);frete=tc.frete;tar=tc.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
+  else if(mk==='tkt'){const tc=fTkt(d,preco);frete=tc.frete;tar=tc.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
   else if(mk==='mga'){const mc2=fMga(d);frete=mc2.frete;tar=mc2.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
   else{tar=parseFloat(d.tar)||0;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;frete=mk==='meli'?fM(p.peso,preco):(parseFloat(d.frete)||0);}
   const aj=cAj(p,frete,tar,reb,ads,preco);
@@ -1507,9 +1523,9 @@ function cRap(){
     const rf=document.getElementById('rf');if(rf)rf.value=preco?fn(frete):'';
     const rt=document.getElementById('rt');if(rt)rt.value=preco?String(sc.tar):'';
   }else if(rapT==='tkt'){
-    tar=g('rt')>0?g('rt'):6;frete=g('rf')||4;
-    const rf=document.getElementById('rf');if(rf&&!rf.value)rf.value=fn(4);
-    const rt=document.getElementById('rt');if(rt&&!rt.value)rt.value='6';
+    const tcRap=fTkt({},g('rp'));tar=g('rt')>0?g('rt'):tcRap.tar;frete=g('rf')||tcRap.frete;
+    const rf=document.getElementById('rf');if(rf&&!rf.value)rf.value=fn(tcRap.frete);
+    const rt=document.getElementById('rt');if(rt&&!rt.value)rt.value=String(tcRap.tar);
   }else if(rapT==='mga'){
     tar=g('rt')>0?g('rt'):9.9;frete=g('rf')||5;
     const rf=document.getElementById('rf');if(rf&&!rf.value)rf.value=fn(5);
@@ -1725,7 +1741,7 @@ function openMgDetail(sku,mk){
   let frete,tar,reb=parseFloat(d.reb)||0,ads=parseFloat(d.ads)||0;
   if(mk==='meli'){frete=fM(p.peso,preco);tar=parseFloat(d.tar)||0;}
   else if(mk==='shp'){const sc=fShp(preco);frete=sc.frete;tar=sc.tar;}
-  else if(mk==='tkt'){const tc=fTkt(d);frete=tc.frete;tar=tc.tar;}
+  else if(mk==='tkt'){const tc=fTkt(d,preco);frete=tc.frete;tar=tc.tar;}
   else if(mk==='mga'){const mc2=fMga(d);frete=mc2.frete;tar=mc2.tar;}
   else{frete=parseFloat(d.frete)||0;tar=parseFloat(d.tar)||0;}
   // Base fiscal: Custo NF para Importados, CMV calculado para Nacionais
