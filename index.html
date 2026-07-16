@@ -929,7 +929,7 @@ const LS={
   get:k=>{if(_cache[k]!==undefined)return JSON.parse(JSON.stringify(_cache[k]));try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}},
   set:(k,v)=>{_cache[k]=JSON.parse(JSON.stringify(v));try{localStorage.setItem(k,JSON.stringify(v));}catch{}sbPersist(k,v).catch(e=>console.warn('Supabase sync error:',k,e));}
 };
-async function sbPersistMktItem(sku,mk,d){const{error}=await SB.from('marketplace_dados').upsert({marketplace:mk,sku,preco:d.preco||0,frete:(d.frete!=null&&d.frete!==0)?d.frete:null,tar:d.tar||0,reb:d.reb||0,ads:d.ads||0,atualizado_por:(typeof CU!=='undefined'&&CU)?CU.user:null,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'});if(error)throw error;}
+async function sbPersistMktItem(sku,mk,d){const isTkt=mk==='tkt';const{error}=await SB.from('marketplace_dados').upsert({marketplace:mk,sku,preco:d.preco||0,frete:isTkt?null:((d.frete!=null&&d.frete!==0)?d.frete:null),tar:isTkt?null:(d.tar||0),reb:d.reb||0,ads:d.ads||0,atualizado_por:(typeof CU!=='undefined'&&CU)?CU.user:null,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'});if(error)throw error;}
 async function sbPersist(k,v){
   if(k==='lb_p'){if(!Array.isArray(v))return;const rows=v.map(p=>({sku:p.sku,nome:p.nome,tipo:p.tipo||'Importado',ncm:p.ncm||null,peso:p.peso||0,custo:p.custo||0,st:p.st||0,ipi:p.ipi||0,pis:p.pis||9.25,icms:p.icms||0,marca:p.marca||null,categoria:p.categoria||null,meli:!!p.meli,shp:!!p.shp,amz:!!p.amz,tkt:!!p.tkt,mga:!!p.mga,atualizado_em:new Date().toISOString(),atualizado_por:p.upBy||null}));for(let i=0;i<rows.length;i+=50){await SB.from('produtos').upsert(rows.slice(i,i+50),{onConflict:'sku'});}}
   else if(k==='lb_u'){if(!Array.isArray(v))return;for(const u of v)await SB.from('usuarios').upsert({nome:u.nome,usuario:u.user,senha:u.senha,perfil:u.perfil||'meli',atualizado_em:new Date().toISOString()},{onConflict:'usuario'});}
@@ -1003,7 +1003,7 @@ function fMga(d){const fc=getFC();return{frete:parseFloat((d&&d.frete!=null)?d.f
 function gM(sku,mk){const all=LS.get('lb_m')||{};return all[mk+'_'+sku]||{};}
 function sM(sku,mk,field,val){const all=LS.get('lb_m')||{};const k=mk+'_'+sku;if(!all[k])all[k]={};all[k][field]=parseFloat(val)||0;
   // Garantir que tar e frete sempre refletem o padrão fiscal quando não definidos explicitamente
-  if(mk==='tkt'){const pr=parseFloat(all[k].preco)||0;const tc=fTkt(all[k],pr);if(!all[k].tar||all[k].tar===0)all[k].tar=tc.tar;if(!all[k].frete||all[k].frete===0)all[k].frete=tc.frete;}
+  // TikTok: tar e frete são calculados dinamicamente por faixa de preço — não salvar no Supabase
   if(mk==='mga'){const mc2=fMga(all[k]);if(!all[k].tar||all[k].tar===0)all[k].tar=mc2.tar;if(!all[k].frete||all[k].frete===0)all[k].frete=mc2.frete;}
   _cache['lb_m']=JSON.parse(JSON.stringify(all));try{localStorage.setItem('lb_m',JSON.stringify(all));}catch{}sbPersistMktItem(sku,mk,all[k]).catch(e=>{console.warn('Supabase sync error lb_m:',e);if(typeof toast==='function')toast('Erro ao salvar no servidor','e');});}
 function cM(id){const el=document.getElementById(id);if(el)el.classList.remove('open');}
