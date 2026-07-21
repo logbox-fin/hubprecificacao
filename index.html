@@ -1088,7 +1088,7 @@ function nav(id){
   if(id==='amz')rMkt('amz');
   if(id==='mga')rMkt('mga');
   if(id==='hist'){setHistTab('imp');}
-  if(id==='cmv'){initCmvClbs();rCmv();}
+  if(id==='cmv'){initCmvClbs();rCmv();const psAll=LS.get('lb_p')||[];sbSalvarCmvNacionais(psAll).catch(e=>console.warn('CMV Nac:',e));}
   if(id==='admin')rAdmin();
   if(id==='rap')setRap('meli');
   if(id==='fiscal')initFiscal();
@@ -1316,7 +1316,7 @@ function saveProd(){
       ps[idx]=nd;
     }
   }else{nd.id=Date.now();ps.push(nd);}
-  LS.set('lb_p',ps);cM('mprod');rBase();toast('Produto salvo!');
+  LS.set('lb_p',ps);cM('mprod');rBase();toast('Produto salvo!');const pSaved=ps.find(x=>x.sku===nd.sku);if(pSaved&&pSaved.tipo==='Nacional')sbSalvarCmvNacionais([pSaved]).catch(e=>console.warn('CMV Nac:',e));
 }
 
 function delProd(){
@@ -1618,7 +1618,7 @@ function obsKey(){return(obsMk||'')+'_'+(obsSku||'');}
 function saveObs(){if(!obsMk||!obsSku)return;const obs=LS.get('lb_obs')||{};const k=obsKey();if(!obs[k])obs[k]={tags:[],nota:''};const ne=document.getElementById('obs-nota');obs[k].nota=ne?ne.value:'';LS.set('lb_obs',obs);cM('mod-obs');rMkt(obsMk);toast('Observação salva!');}
 // CMV CONTÁBIL
 let cmvColsOcultas={};
-function setCmvTab(t){const bi=document.getElementById('cmv-tab-imp'),bn=document.getElementById('cmv-tab-nac');if(bi)bi.className='btn'+(t==='imp'?' btn-p':'');if(bn)bn.className='btn'+(t==='nac'?' btn-p':'');const pi=document.getElementById('cmv-imp-panel'),pn=document.getElementById('cmv-nac-panel');if(pi)pi.style.display=t==='imp'?'block':'none';if(pn)pn.style.display=t==='nac'?'block':'none';if(t==='nac')rCmvNac();}
+function setCmvTab(t){const bi=document.getElementById('cmv-tab-imp'),bn=document.getElementById('cmv-tab-nac');if(bi)bi.className='btn'+(t==='imp'?' btn-p':'');if(bn)bn.className='btn'+(t==='nac'?' btn-p':'');const pi=document.getElementById('cmv-imp-panel'),pn=document.getElementById('cmv-nac-panel');if(pi)pi.style.display=t==='imp'?'block':'none';if(pn)pn.style.display=t==='nac'?'block':'none';if(t==='nac'){rCmvNac();const psAll=LS.get('lb_p')||[];sbSalvarCmvNacionais(psAll).catch(e=>console.warn('CMV Nac:',e));}}
 function initCmvClbs(){if(!LS.get('lb_clbs'))LS.set('lb_clbs',[]);if(!LS.get('lb_cmv_data'))LS.set('lb_cmv_data',{});if(!LS.get('lb_cmv_skus'))LS.set('lb_cmv_skus',[]);}
 function rCmv(){
   const clbs=LS.get('lb_clbs')||[];
@@ -1903,6 +1903,29 @@ function salvarPrecoNovo(){
   cM('mod-preco-novo');
   rBase();
   toast('Custo médio salvo com sucesso!');
+}
+
+// SALVAR CMV NACIONAIS NO SUPABASE
+async function sbSalvarCmvNacionais(prods){
+  if(!prods||!prods.length)return;
+  const nac=prods.filter(p=>p.tipo==='Nacional');
+  if(!nac.length)return;
+  const rows=nac.map(p=>({
+    sku:p.sku,
+    nome:p.nome||p.sku,
+    custo:parseFloat(p.custo)||0,
+    st:parseFloat(p.st)||0,
+    ipi:parseFloat(p.ipi)||0,
+    icms:parseFloat(p.icms)||0,
+    cmv_contabil:parseFloat(calcCMV(p).toFixed(4)),
+    atualizado_em:new Date().toISOString(),
+    atualizado_por:CU?CU.user:null
+  }));
+  // Salvar em lotes de 50
+  for(let i=0;i<rows.length;i+=50){
+    const{error}=await SB.from('cmv_nacionais').upsert(rows.slice(i,i+50),{onConflict:'sku'});
+    if(error)console.warn('Erro ao salvar CMV Nacionais:',error);
+  }
 }
 
 // BOOT
