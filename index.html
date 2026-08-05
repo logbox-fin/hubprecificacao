@@ -978,7 +978,7 @@ async function sbLoad(){
     if(rProd.data?.length)_cache['lb_p']=rProd.data.map(p=>({id:p.id,sku:p.sku,nome:p.nome,tipo:p.tipo||'Importado',ncm:p.ncm||'',peso:parseFloat(p.peso)||0,custo:parseFloat(p.custo)||0,st:parseFloat(p.st)||0,ipi:parseFloat(p.ipi)||0,pis:parseFloat(p.pis)||9.25,icms:parseFloat(p.icms)||0,marca:p.marca||'',categoria:p.categoria||'',meli:!!p.meli,shp:!!p.shp,amz:!!p.amz,tkt:!!p.tkt,mga:!!p.mga,variacao:!!p.variacao,upAt:p.atualizado_em?p.atualizado_em.substring(0,10):'',upBy:p.atualizado_por||''}));
     if(rUsers.data?.length)_cache['lb_u']=rUsers.data.map(u=>({id:u.id,nome:u.nome,user:u.usuario,senha:u.senha,perfil:u.perfil}));
     if(rMkt.data?.length){const mkt={};rMkt.data.forEach(r=>{mkt[r.marketplace+'_'+r.sku]={preco:parseFloat(r.preco)||0,frete:(r.frete!=null&&r.frete!==0)?parseFloat(r.frete):null,tar:parseFloat(r.tar)||0,reb:parseFloat(r.reb)||0,ads:parseFloat(r.ads)||0};});_cache['lb_m']=mkt;}
-    if(rHist.data?.length)_cache['lb_h']=rHist.data.map(h=>{const ant=parseFloat(h.valor_anterior)||0,novo=parseFloat(h.valor_novo)||0;const vp=ant>0?((novo-ant)/ant*100).toFixed(2):'—';return{id:h.id,sku:h.sku,nome:h.nome||'',campo:h.campo||'Custo NF',ant,novo,var:vp!=='—'?(novo>=ant?'+':'')+vp+'%':'—',user:h.alterado_por||'',data:h.alterado_em?h.alterado_em.substring(0,10):''};});
+    if(rHist.data?.length)_cache['lb_h']=rHist.data.map(h=>{const ant=parseFloat(h.valor_anterior)||0,novo=parseFloat(h.valor_novo)||0;const vp=ant>0?((novo-ant)/ant*100).toFixed(2):'—';const campo=h.campo==='Custo'?'Custo NF':h.campo||'Custo NF';return{id:h.id,sku:h.sku,nome:h.nome||'',campo,ant,novo,var:vp!=='—'?(novo>=ant?'+':'')+vp+'%':'—',user:h.alterado_por||'',data:h.alterado_em?h.alterado_em.substring(0,10):''};});
     if(rMarcas.data?.length)_cache['lb_marcas']=rMarcas.data.map(r=>r.nome);
     if(rCats.data?.length)_cache['lb_cats']=rCats.data.map(r=>r.nome);
     if(rObs.data?.length){const obs={};rObs.data.forEach(r=>{obs[r.marketplace+'_'+r.sku]={tags:r.tags||[],nota:r.nota||''};});_cache['lb_obs']=obs;}
@@ -1514,7 +1514,7 @@ function rHist(){
   const ordem=(document.getElementById('hist-ordem')||{value:'recente'}).value;
   const ps=LS.get('lb_p')||[];const tipoMap={};ps.forEach(p=>tipoMap[p.sku]=p.tipo);
   let h=(LS.get('lb_h')||[]).slice();
-  h=h.filter(x=>{const t=x.tipo||(tipoMap[x.sku]||'Importado');return histTab==='imp'?t==='Importado':t==='Nacional';});
+  h=h.filter(x=>{const t=x.tipo||(tipoMap[x.sku]||'Importado');const campo=x.campo||'';if(histTab==='imp')return t==='Importado'||(campo==='Custo NF'&&t!=='Nacional'&&t!=='Terceiro Importado');return(t==='Nacional'||t==='Terceiro Importado')||(campo==='CMV Contábil'&&t!=='Importado');});
   if(de)h=h.filter(x=>x.data&&x.data>=de);
   if(ate)h=h.filter(x=>x.data&&x.data<=ate);
   if(filtro){const cur=filtro.value;const skus=[...new Set(h.map(x=>x.sku))].sort();filtro.innerHTML='<option value="">Todos os produtos</option>'+skus.map(s=>`<option value="${s}" ${cur===s?'selected':''}>${s}</option>`).join('');filtro.value=skus.includes(cur)?cur:'';}
