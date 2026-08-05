@@ -1217,19 +1217,20 @@ function rBase(){
   const busca=(document.getElementById('busca-base')||{value:''}).value.toLowerCase();
   const ordem=(document.getElementById('base-ordem')||{value:''}).value;
   const filtrados=busca?ps.filter(p=>(p.sku||'').toLowerCase().includes(busca)||(p.nome||'').toLowerCase().includes(busca)):ps;
-  let imp=filtrados.filter(p=>p.tipo==='Importado'),nac=filtrados.filter(p=>p.tipo==='Nacional');
+  // Ordenar todos os produtos filtrados primeiro
   const sortNat=(a,b)=>(a.sku||'').localeCompare(b.sku||'','pt-BR',{numeric:true,sensitivity:'base'});
-  if(ordem==='nome-az'){imp=imp.slice().sort((a,b)=>(a.nome||a.sku).localeCompare(b.nome||b.sku,'pt-BR',{numeric:true}));nac=nac.slice().sort((a,b)=>(a.nome||a.sku).localeCompare(b.nome||b.sku,'pt-BR',{numeric:true}));}
-  else if(ordem==='sku-za'){imp=imp.slice().sort((a,b)=>(b.sku||'').localeCompare(a.sku||'','pt-BR',{numeric:true,sensitivity:'base'}));nac=nac.slice().sort((a,b)=>(b.sku||'').localeCompare(a.sku||'','pt-BR',{numeric:true,sensitivity:'base'}));}
-  else{imp=imp.slice().sort(sortNat);nac=nac.slice().sort(sortNat);}
-  // Separar por tipo e variação
-  const ps2=filtrados;
-  const impNormal=ps2.filter(p=>p.tipo==='Importado'&&!p.variacao);
-  const nacNormal=ps2.filter(p=>(p.tipo==='Nacional'||p.tipo==='Terceiro Importado')&&!p.variacao);
-  const tercNormal=nacNormal.filter(p=>p.tipo==='Terceiro Importado');
-  const nacSomente=nacNormal.filter(p=>p.tipo==='Nacional');
-  const varImp=ps2.filter(p=>p.tipo==='Importado'&&p.variacao);
-  const varNac=ps2.filter(p=>(p.tipo==='Nacional'||p.tipo==='Terceiro Importado')&&p.variacao);
+  const sortNome=(a,b)=>(a.nome||a.sku).localeCompare(b.nome||b.sku,'pt-BR',{numeric:true});
+  const sortZa=(a,b)=>(b.sku||'').localeCompare(a.sku||'','pt-BR',{numeric:true,sensitivity:'base'});
+  let todosFiltrados=filtrados.slice();
+  if(ordem==='nome-az')todosFiltrados.sort(sortNome);
+  else if(ordem==='sku-za')todosFiltrados.sort(sortZa);
+  else todosFiltrados.sort(sortNat); // padrão: sku-az
+  // Separar por tipo e variação — mantendo a ordenação
+  const impNormal=todosFiltrados.filter(p=>p.tipo==='Importado'&&!p.variacao);
+  const nacSomente=todosFiltrados.filter(p=>p.tipo==='Nacional'&&!p.variacao);
+  const tercNormal=todosFiltrados.filter(p=>p.tipo==='Terceiro Importado'&&!p.variacao);
+  const varImp=todosFiltrados.filter(p=>p.tipo==='Importado'&&p.variacao);
+  const varNac=todosFiltrados.filter(p=>(p.tipo==='Nacional'||p.tipo==='Terceiro Importado')&&p.variacao);
   let h='';
   if(impNormal.length){h+='<tr class="tr-imp"><td colspan="22">Importados</td></tr>';impNormal.forEach(p=>h+=rowB(p));}
   if(nacSomente.length){h+='<tr class="tr-nac"><td colspan="22">Nacionais</td></tr>';nacSomente.forEach(p=>h+=rowB(p));}
