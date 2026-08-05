@@ -1218,9 +1218,10 @@ function rBase(){
   const ordem=(document.getElementById('base-ordem')||{value:''}).value;
   const filtrados=busca?ps.filter(p=>(p.sku||'').toLowerCase().includes(busca)||(p.nome||'').toLowerCase().includes(busca)):ps;
   let imp=filtrados.filter(p=>p.tipo==='Importado'),nac=filtrados.filter(p=>p.tipo==='Nacional');
-  if(ordem==='nome-az'){imp=imp.slice().sort((a,b)=>(a.nome||a.sku).localeCompare(b.nome||b.sku,'pt-BR'));nac=nac.slice().sort((a,b)=>(a.nome||a.sku).localeCompare(b.nome||b.sku,'pt-BR'));}
+  const sortNat=(a,b)=>(a.sku||'').localeCompare(b.sku||'','pt-BR',{numeric:true,sensitivity:'base'});
+  if(ordem==='nome-az'){imp=imp.slice().sort((a,b)=>(a.nome||a.sku).localeCompare(b.nome||b.sku,'pt-BR',{numeric:true}));nac=nac.slice().sort((a,b)=>(a.nome||a.sku).localeCompare(b.nome||b.sku,'pt-BR',{numeric:true}));}
   else if(ordem==='sku-za'){imp=imp.slice().sort((a,b)=>(b.sku||'').localeCompare(a.sku||'','pt-BR',{numeric:true,sensitivity:'base'}));nac=nac.slice().sort((a,b)=>(b.sku||'').localeCompare(a.sku||'','pt-BR',{numeric:true,sensitivity:'base'}));}
-  else{imp=imp.slice().sort((a,b)=>(a.sku||'').localeCompare(b.sku||'','pt-BR',{numeric:true,sensitivity:'base'}));nac=nac.slice().sort((a,b)=>(a.sku||'').localeCompare(b.sku||'','pt-BR',{numeric:true,sensitivity:'base'}));}
+  else{imp=imp.slice().sort(sortNat);nac=nac.slice().sort(sortNat);}
   // Separar por tipo e variação
   const ps2=filtrados;
   const impNormal=ps2.filter(p=>p.tipo==='Importado'&&!p.variacao);
@@ -1308,7 +1309,7 @@ function saveProd(){
   if(erros.length){toast(erros[0],'e');return;}
   if(!ePid){const ps=LS.get('lb_p')||[];if(ps.find(x=>x.sku===sku)){toast('SKU já cadastrado: '+sku,'e');return;}}
   function safeFloat(id,def=0){const v=parseFloat(document.getElementById(id)?document.getElementById(id).value:def);return isNaN(v)||v<0?def:v;}
-  const nd={sku,nome,tipo,ncm,peso:safeFloat('fpp',0),custo:safeFloat('fpc',0),st:safeFloat('fpst',0),ipi:safeFloat('fpipi',0),pis:9.25,icms:safeFloat('fpicms',0),marca,categoria,meli:!!(document.getElementById('fpm')||{}).checked,shp:!!(document.getElementById('fps2')||{}).checked,tkt:!!(document.getElementById('fptkt')||{}).checked,amz:!!(document.getElementById('fpa')||{}).checked,mga:!!(document.getElementById('fpmga')||{}).checked,upAt:td(),upBy:CU?CU.user:'sistema'};
+  const prodAtual=ePid?(LS.get('lb_p')||[]).find(x=>x.id===ePid):null;const nd={sku,nome,tipo,ncm,peso:safeFloat('fpp',0),custo:safeFloat('fpc',0),st:safeFloat('fpst',0),ipi:safeFloat('fpipi',0),pis:9.25,icms:safeFloat('fpicms',0),marca,categoria,meli:!!(document.getElementById('fpm')||{}).checked,shp:!!(document.getElementById('fps2')||{}).checked,tkt:!!(document.getElementById('fptkt')||{}).checked,amz:!!(document.getElementById('fpa')||{}).checked,mga:!!(document.getElementById('fpmga')||{}).checked,variacao:prodAtual?!!prodAtual.variacao:false,upAt:td(),upBy:CU?CU.user:'sistema'};
   const ps=LS.get('lb_p')||[];
   if(ePid){
     const idx=ps.findIndex(x=>x.id===ePid);
