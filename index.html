@@ -1242,7 +1242,7 @@ function rBase(){
   const all=LS.get('lb_p')||[];
   const ds=document.getElementById('base-stats');
   const totalAlerta=all.filter(p=>!p.nome||p.nome===p.sku||!p.ncm||!p.marca||!p.categoria).length;
-  if(ds)ds.innerHTML=`<div class="sc"><div class="sc-l">Total de Produtos</div><div class="sc-v">${all.length}</div></div><div class="sc"><div class="sc-l">Importados</div><div class="sc-v" style="color:#60a5fa;">${all.filter(p=>p.tipo==='Importado').length}</div></div><div class="sc"><div class="sc-l">Nacionais</div><div class="sc-v" style="color:#4ade80;">${all.filter(p=>p.tipo==='Nacional').length}</div></div><div class="sc"><div class="sc-l">Cadastro Incompleto</div><div class="sc-v" style="color:var(--yellow);">${totalAlerta}</div><div class="sc-s">NCM, marca ou categoria</div></div>`;
+  if(ds)ds.innerHTML=`<div class="sc"><div class="sc-l">Total de Produtos</div><div class="sc-v">${all.length}</div></div><div class="sc"><div class="sc-l">Importados</div><div class="sc-v" style="color:#60a5fa;">${all.filter(p=>p.tipo==='Importado').length}</div></div><div class="sc"><div class="sc-l">Nacionais + 3° Imp.</div><div class="sc-v" style="color:#4ade80;">${all.filter(p=>p.tipo==='Nacional'||p.tipo==='Terceiro Importado').length}</div></div><div class="sc"><div class="sc-l">Cadastro Incompleto</div><div class="sc-v" style="color:var(--yellow);">${totalAlerta}</div><div class="sc-s">NCM, marca ou categoria</div></div>`;
   rBaseAlertas();
 }
 function buscaBase(v){rBase();}
