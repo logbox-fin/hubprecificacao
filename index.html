@@ -238,7 +238,7 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
             <span style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">Filtros</span>
             <select id="df-metrica" onchange="rDash()" style="padding:6px 10px;font-size:12px;"><option value="margem">Margem Média</option><option value="qtd">Quantidade de Produtos</option></select>
             <select id="df-mk" onchange="rDash()" style="padding:6px 10px;font-size:12px;"><option value="">Todos os Marketplaces</option><option value="meli">Mercado Livre</option><option value="shp">Shopee</option><option value="tkt">TikTok Shop</option><option value="amz">Amazon</option><option value="mga">Magalu</option></select>
-            <select id="df-origem" onchange="rDash()" style="padding:6px 10px;font-size:12px;"><option value="">Todas as Origens</option><option value="Importado">Importados</option><option value="Nacional">Nacionais</option></select>
+            <select id="df-origem" onchange="rDash()" style="padding:6px 10px;font-size:12px;"><option value="">Todas as Origens</option><option value="Importado">Importados</option><option value="Nacional">Nacionais + 3° Imp.</option></select>
             <select id="df-marca" onchange="rDash()" style="padding:6px 10px;font-size:12px;min-width:140px;"><option value="">Todas as Marcas</option></select>
             <select id="df-cat" onchange="rDash()" style="padding:6px 10px;font-size:12px;min-width:160px;"><option value="">Todas as Categorias</option></select>
             <button class="btn btn-sm" onclick="limparDashFiltros()">✕ Limpar</button>
@@ -978,7 +978,7 @@ async function sbLoad(){
     if(rProd.data?.length)_cache['lb_p']=rProd.data.map(p=>({id:p.id,sku:p.sku,nome:p.nome,tipo:p.tipo||'Importado',ncm:p.ncm||'',peso:parseFloat(p.peso)||0,custo:parseFloat(p.custo)||0,st:parseFloat(p.st)||0,ipi:parseFloat(p.ipi)||0,pis:parseFloat(p.pis)||9.25,icms:parseFloat(p.icms)||0,marca:p.marca||'',categoria:p.categoria||'',meli:!!p.meli,shp:!!p.shp,amz:!!p.amz,tkt:!!p.tkt,mga:!!p.mga,variacao:!!p.variacao,upAt:p.atualizado_em?p.atualizado_em.substring(0,10):'',upBy:p.atualizado_por||''}));
     if(rUsers.data?.length)_cache['lb_u']=rUsers.data.map(u=>({id:u.id,nome:u.nome,user:u.usuario,senha:u.senha,perfil:u.perfil}));
     if(rMkt.data?.length){const mkt={};rMkt.data.forEach(r=>{mkt[r.marketplace+'_'+r.sku]={preco:parseFloat(r.preco)||0,frete:(r.frete!=null&&r.frete!==0)?parseFloat(r.frete):null,tar:parseFloat(r.tar)||0,reb:parseFloat(r.reb)||0,ads:parseFloat(r.ads)||0};});_cache['lb_m']=mkt;}
-    if(rHist.data?.length)_cache['lb_h']=rHist.data.map(h=>{const ant=parseFloat(h.valor_anterior)||0,novo=parseFloat(h.valor_novo)||0;const vp=ant>0?((novo-ant)/ant*100).toFixed(2):'—';const campo=h.campo==='Custo'?'Custo NF':h.campo||'Custo NF';return{id:h.id,sku:h.sku,nome:h.nome||'',campo,ant,novo,var:vp!=='—'?(novo>=ant?'+':'')+vp+'%':'—',user:h.alterado_por||'',data:h.alterado_em?h.alterado_em.substring(0,10):''};});
+    if(rHist.data?.length){const prodMap={};(rProd.data||[]).forEach(p=>prodMap[p.sku]=p.tipo);_cache['lb_h']=rHist.data.map(h=>{const ant=parseFloat(h.valor_anterior)||0,novo=parseFloat(h.valor_novo)||0;const vp=ant>0?((novo-ant)/ant*100).toFixed(2):'—';const campo=h.campo==='Custo'?'Custo NF':(h.campo||'Custo NF');const tipo=prodMap[h.sku]||(campo==='CMV Contábil'?'Terceiro Importado':'Importado');return{id:h.id,sku:h.sku,nome:h.nome||'',campo,tipo,ant,novo,var:vp!=='—'?(novo>=ant?'+':'')+vp+'%':'—',user:h.alterado_por||'',data:h.alterado_em?h.alterado_em.substring(0,10):''};}); }
     if(rMarcas.data?.length)_cache['lb_marcas']=rMarcas.data.map(r=>r.nome);
     if(rCats.data?.length)_cache['lb_cats']=rCats.data.map(r=>r.nome);
     if(rObs.data?.length){const obs={};rObs.data.forEach(r=>{obs[r.marketplace+'_'+r.sku]={tags:r.tags||[],nota:r.nota||''};});_cache['lb_obs']=obs;}
@@ -1167,12 +1167,12 @@ function rDash(){
   if(dm){const cur=dm.value;dm.innerHTML='<option value="">Todas as Marcas</option>'+marcas.map(m=>`<option value="${m}" ${cur===m?'selected':''}>${m}</option>`).join('');dm.value=cur;}
   if(dc){const cur=dc.value;dc.innerHTML='<option value="">Todas as Categorias</option>'+cats.map(m=>`<option value="${m}" ${cur===m?'selected':''}>${m}</option>`).join('');dc.value=cur;}
   let psFilt=ps;
-  if(f.origem)psFilt=psFilt.filter(p=>p.tipo===f.origem);
+  if(f.origem)psFilt=psFilt.filter(p=>f.origem==='Nacional'?(p.tipo==='Nacional'||p.tipo==='Terceiro Importado'):p.tipo===f.origem);
   if(f.marca)psFilt=psFilt.filter(p=>p.marca===f.marca);
   if(f.cat)psFilt=psFilt.filter(p=>p.categoria===f.cat);
   const chips=[];
   if(f.mk)chips.push({lbl:'Marketplace: '+{meli:'Meli',shp:'Shopee',tkt:'TikTok',amz:'Amazon',mga:'Magalu'}[f.mk],id:'df-mk'});
-  if(f.origem)chips.push({lbl:'Origem: '+f.origem,id:'df-origem'});
+  if(f.origem)chips.push({lbl:'Origem: '+(f.origem==='Nacional'?'Nacionais + 3° Imp.':f.origem),id:'df-origem'});
   if(f.marca)chips.push({lbl:'Marca: '+f.marca,id:'df-marca'});
   if(f.cat)chips.push({lbl:'Cat: '+f.cat,id:'df-cat'});
   const chipEl=document.getElementById('dash-filtros-ativos');
@@ -1180,7 +1180,7 @@ function rDash(){
   function getMkList(){return f.mk?[f.mk]:['meli','shp','tkt','amz','mga'];}
   function avgMkFilt(mk){const at=psFilt.filter(p=>p[mk]);const vs=at.map(p=>{const d=mkt[mk+'_'+p.sku]||{};const pr=parseFloat(d.preco)||0;let fr,tar,reb=parseFloat(d.reb)||0,ads=parseFloat(d.ads)||0;if(mk==='meli'){fr=fM(p.peso,pr);tar=parseFloat(d.tar)||0;}else if(mk==='shp'){const sc=fShp(pr);fr=sc.frete;tar=sc.tar;}else if(mk==='tkt'){const tc=fTkt(d,pr);fr=tc.frete;tar=tc.tar;}else if(mk==='mga'){const mc2=fMga(d);fr=mc2.frete;tar=mc2.tar;}else{fr=parseFloat(d.frete)||0;tar=parseFloat(d.tar)||0;}const m=cMarg(p,pr,fr,tar,reb,ads);return m.p===''?null:m.p;}).filter(v=>v!==null);return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}
   const mks=getMkList();
-  const imp=psFilt.filter(p=>p.tipo==='Importado'),nac=psFilt.filter(p=>p.tipo==='Nacional');
+  const imp=psFilt.filter(p=>p.tipo==='Importado'),nac=psFilt.filter(p=>p.tipo==='Nacional'||p.tipo==='Terceiro Importado');
   const tm=psFilt.filter(p=>p.meli).length,ts=psFilt.filter(p=>p.shp).length,ta=psFilt.filter(p=>p.amz).length;
   function getMktFreteTar(k,d,p,pr){let fr,tar;if(k==='meli'){fr=fM(p.peso,pr);tar=parseFloat(d.tar)||0;}else if(k==='shp'){const sc=fShp(pr);fr=sc.frete;tar=sc.tar;}else if(k==='tkt'){const tc=fTkt(d,pr);fr=tc.frete;tar=tc.tar;}else if(k==='mga'){const mc2=fMga(d);fr=mc2.frete;tar=mc2.tar;}else{fr=parseFloat(d.frete)||0;tar=parseFloat(d.tar)||0;}return{fr,tar};}
   function avgTipo(tipo){const at=psFilt.filter(p=>p.tipo===tipo);const vs=[];at.forEach(p=>{mks.forEach(k=>{if(!p[k])return;const d=mkt[k+'_'+p.sku]||{};const pr=parseFloat(d.preco)||0;const{fr,tar}=getMktFreteTar(k,d,p,pr);const m=cMarg(p,pr,fr,tar,parseFloat(d.reb)||0,parseFloat(d.ads)||0);if(m.p!=='')vs.push(m.p);});});return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}
@@ -1251,7 +1251,7 @@ function toggleMktProd(id,mk){const ps=LS.get('lb_p')||[];const idx=ps.findIndex
 function rowB(p){
   const cv=parseFloat(p.custo)||0;const ipi=(parseFloat(p.ipi)||0)/100,pis=(parseFloat(p.pis)||0)/100,icms=(parseFloat(p.icms)||0)/100;
   function mkChip(mk,val){return`<td class="tdc" style="cursor:pointer;" onclick="toggleMktProd(${p.id},'${mk}')" title="Clique para alternar"><span class="chip ${val?'cs':'cn'}" style="cursor:pointer;">${val?'S':'N'}</span></td>`;}
-  const btnPrecoNovo=p.tipo==='Nacional'?`<button class="btn btn-sm btn-g" style="margin-left:4px;" data-pid="${p.id}" onclick="openPrecoNovo(this.dataset.pid)">💰 Preço Novo</button>`:'';return`<tr data-sku="${p.sku}"><td class="tdl"><strong>${p.nome||p.sku}</strong></td><td class="tdc tmu" style="cursor:pointer;text-decoration:underline dotted;color:var(--accent2);" onclick="openPM(${p.id})">${p.sku}</td><td class="tdc"><span class="chip" style="background:#f0f4ff;color:#1d4ed8;font-size:9px;padding:2px 6px;">${regraFiscal(p)}</span></td><td class="tdc tmu">${p.ncm||'—'}</td><td class="tdc">${Math.round(p.peso||0)} g</td><td class="tdc">${fR(cv)}</td><td class="td-imp tdc">${p.st?fR(p.st):'—'}</td><td class="td-imp tdc">${pc(p.ipi)}</td><td class="td-imp tdc">${fR(cv*ipi)}</td><td class="td-imp tdc">${pc(p.pis)}</td><td class="td-imp tdc">${fR(cv*pis)}</td><td class="td-imp tdc">${pc(p.icms)}</td><td class="td-imp tdc">${fR(cv*icms)}</td>${mkChip('meli',p.meli)}${mkChip('shp',p.shp)}${mkChip('tkt',p.tkt)}${mkChip('amz',p.amz)}${mkChip('mga',p.mga)}<td class="tdc tmu">${p.marca||'—'}</td><td class="tdc tmu">${p.categoria||'—'}</td><td class="tdc tmu">${p.upAt||'—'}</td><td class="tdc tmu">${p.upBy||'—'}</td><td class="tdc"><button class="btn btn-sm" onclick="openPM(${p.id})">Editar</button>${btnPrecoNovo}</td></tr>`;
+  const btnPrecoNovo=(p.tipo==='Nacional'||p.tipo==='Terceiro Importado')?`<button class="btn btn-sm btn-g" style="margin-left:4px;" data-pid="${p.id}" onclick="openPrecoNovo(this.dataset.pid)">💰 Preço Novo</button>`:'';return`<tr data-sku="${p.sku}"><td class="tdl"><strong>${p.nome||p.sku}</strong></td><td class="tdc tmu" style="cursor:pointer;text-decoration:underline dotted;color:var(--accent2);" onclick="openPM(${p.id})">${p.sku}</td><td class="tdc"><span class="chip" style="background:#f0f4ff;color:#1d4ed8;font-size:9px;padding:2px 6px;">${regraFiscal(p)}</span></td><td class="tdc tmu">${p.ncm||'—'}</td><td class="tdc">${Math.round(p.peso||0)} g</td><td class="tdc">${fR(cv)}</td><td class="td-imp tdc">${p.st?fR(p.st):'—'}</td><td class="td-imp tdc">${pc(p.ipi)}</td><td class="td-imp tdc">${fR(cv*ipi)}</td><td class="td-imp tdc">${pc(p.pis)}</td><td class="td-imp tdc">${fR(cv*pis)}</td><td class="td-imp tdc">${pc(p.icms)}</td><td class="td-imp tdc">${fR(cv*icms)}</td>${mkChip('meli',p.meli)}${mkChip('shp',p.shp)}${mkChip('tkt',p.tkt)}${mkChip('amz',p.amz)}${mkChip('mga',p.mga)}<td class="tdc tmu">${p.marca||'—'}</td><td class="tdc tmu">${p.categoria||'—'}</td><td class="tdc tmu">${p.upAt||'—'}</td><td class="tdc tmu">${p.upBy||'—'}</td><td class="tdc"><button class="btn btn-sm" onclick="openPM(${p.id})">Editar</button>${btnPrecoNovo}</td></tr>`;
 }
 
 // MARCAS E CATEGORIAS
@@ -1320,7 +1320,7 @@ function saveProd(){
       const skuMudou=skuAntigo&&skuAntigo!==sku;
       // BUG 2 CORRIGIDO: histórico diferenciado por tipo
       if(oProd){
-        if(oProd.tipo==='Nacional'||tipo==='Nacional'){
+        if(oProd.tipo==='Nacional'||oProd.tipo==='Terceiro Importado'||tipo==='Nacional'||tipo==='Terceiro Importado'){
           const cmvAnt=calcCMV(oProd);
           const cmvNovo=calcCMV(nd);
           if(Math.abs(cmvAnt-cmvNovo)>0.001){
@@ -1366,7 +1366,7 @@ function saveProd(){
       ps[idx]=nd;
     }
   }else{nd.id=Date.now();ps.push(nd);}
-  LS.set('lb_p',ps);cM('mprod');rBase();toast('Produto salvo!');const pSaved=ps.find(x=>x.sku===nd.sku);if(pSaved&&pSaved.tipo==='Nacional')sbSalvarCmvNacionais([pSaved]).catch(e=>console.warn('CMV Nac:',e));
+  LS.set('lb_p',ps);cM('mprod');rBase();toast('Produto salvo!');const pSaved=ps.find(x=>x.sku===nd.sku);if(pSaved&&(pSaved.tipo==='Nacional'||pSaved.tipo==='Terceiro Importado'))sbSalvarCmvNacionais([pSaved]).catch(e=>console.warn('CMV Nac:',e));
 }
 
 function delProd(){
@@ -1514,7 +1514,7 @@ function rHist(){
   const ordem=(document.getElementById('hist-ordem')||{value:'recente'}).value;
   const ps=LS.get('lb_p')||[];const tipoMap={};ps.forEach(p=>tipoMap[p.sku]=p.tipo);
   let h=(LS.get('lb_h')||[]).slice();
-  h=h.filter(x=>{const t=x.tipo||(tipoMap[x.sku]||'Importado');const campo=x.campo||'';if(histTab==='imp')return t==='Importado'||(campo==='Custo NF'&&t!=='Nacional'&&t!=='Terceiro Importado');return(t==='Nacional'||t==='Terceiro Importado')||(campo==='CMV Contábil'&&t!=='Importado');});
+  h=h.filter(x=>{const t=x.tipo||(tipoMap[x.sku])||'Importado';if(histTab==='imp')return t==='Importado';return t==='Nacional'||t==='Terceiro Importado';});
   if(de)h=h.filter(x=>x.data&&x.data>=de);
   if(ate)h=h.filter(x=>x.data&&x.data<=ate);
   if(filtro){const cur=filtro.value;const skus=[...new Set(h.map(x=>x.sku))].sort();filtro.innerHTML='<option value="">Todos os produtos</option>'+skus.map(s=>`<option value="${s}" ${cur===s?'selected':''}>${s}</option>`).join('');filtro.value=skus.includes(cur)?cur:'';}
