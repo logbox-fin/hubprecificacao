@@ -661,6 +661,7 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
           <div class="sl">Magalu — Comissão</div>
           <p class="tmu tsm" style="margin-bottom:10px;">Frete calculado automaticamente por peso × preço de venda (tabelas 50% desconto).</p>
           <div class="gr g2">
+            <div class="fg"><label class="fl">Taxa Fixa de Frete (R$)</label><div class="pfx"><span>R$</span><input type="number" id="fc-mga-frete-fixo" step="0.01" class="full"></div><div class="tmu tsm" style="margin-top:4px;">Somado ao frete calculado por peso</div></div>
             <div class="fg"><label class="fl">Comissão Padrão (%)</label><div class="pfx"><span>%</span><input type="number" id="fc-mga-tar" step="0.01" class="full"></div></div>
           </div>
         </div>
@@ -1031,11 +1032,12 @@ const MGA_RS=[
 ];
 function fMgaAuto(peso,preco){
   if(!peso||!preco)return 0;
+  const fc=getFC();const taxa=parseFloat(fc.mgaFreteFixo)||5;
   const pr=parseFloat(preco)||0,pe=parseFloat(peso)||0;
-  if(pr<79)return parseFloat((pr*0.04).toFixed(2));
+  if(pr<79)return parseFloat((pr*0.04+taxa).toFixed(2));
   const tabela=pr<199.01?MGA_AZ:MGA_RS;
   const row=tabela.find(r=>pe<=r.ate)||tabela[tabela.length-1];
-  return row.v;
+  return parseFloat((row.v+taxa).toFixed(2));
 }
 
 // FRETE MELI
@@ -1091,7 +1093,7 @@ function cMarg(p,preco,frete,tarP,reb,adsP){const fc=getFC();if(!preco)return{r:
 // GLOBAIS
 let CU=null;
 const PL={admin:'Administrador',meli:'Resp. Mercado Livre',shp:'Resp. Shopee',amz:'Resp. Amazon',tkt:'Resp. TikTok',mga:'Resp. Magalu'};
-const FC_DEFAULT={icmsImp12:15.5,icmsImp18:18.5,icmsNacST:9.5,icmsNacSem:18.5,pisSaida:9.25,pisFrete:9.25,pisTar:9.25,pisAds:9.25,icmsFrete:12,precoFrete:78.99,pisEntrada:9.25,tktFaixas:[{limiar:50,tar:10,frete:4},{limiar:999999,tar:6,frete:6}],mgaFrete:5,mgaTar:9.9,mgAmarelo:15,mgVerde:18,shpFaixas:[{ate:79.99,frete:4,tar:20},{ate:99.99,frete:16,tar:14},{ate:199.99,frete:20,tar:14},{ate:999999,frete:26,tar:14}]};
+const FC_DEFAULT={icmsImp12:15.5,icmsImp18:18.5,icmsNacST:9.5,icmsNacSem:18.5,pisSaida:9.25,pisFrete:9.25,pisTar:9.25,pisAds:9.25,icmsFrete:12,precoFrete:78.99,pisEntrada:9.25,tktFaixas:[{limiar:50,tar:10,frete:4},{limiar:999999,tar:6,frete:6}],mgaFrete:5,mgaFreteFixo:5,mgaTar:9.9,mgAmarelo:15,mgVerde:18,shpFaixas:[{ate:79.99,frete:4,tar:20},{ate:99.99,frete:16,tar:14},{ate:199.99,frete:20,tar:14},{ate:999999,frete:26,tar:14}]};
 function getFC(){return Object.assign({},FC_DEFAULT,LS.get('lb_fiscal')||{});}
 
 function initData(){
@@ -1176,14 +1178,14 @@ function initFiscal(){
   s('fc-pis-tar').value=fc.pisTar;s('fc-pis-ads').value=fc.pisAds;
   s('fc-icms-frete').value=fc.icmsFrete;s('fc-preco-frete').value=fc.precoFrete;
   s('fc-pis-entrada').value=fc.pisEntrada;const tktF=fc.tktFaixas||FC_DEFAULT.tktFaixas;s('fc-tkt-tar-baixo').value=tktF[0].tar;s('fc-tkt-frete-baixo').value=tktF[0].frete;s('fc-tkt-tar-alto').value=tktF[1].tar;s('fc-tkt-frete-alto').value=tktF[1].frete;
-  s('fc-mga-tar').value=fc.mgaTar;
+  s('fc-mga-frete-fixo').value=fc.mgaFreteFixo||5;s('fc-mga-tar').value=fc.mgaTar;
   s('fc-mg-amarelo').value=fc.mgAmarelo;s('fc-mg-verde').value=fc.mgVerde;
   renderShpFaixas(fc.shpFaixas);
 }
 let _shpFaixas=[];
 function renderShpFaixas(faixas){_shpFaixas=faixas?JSON.parse(JSON.stringify(faixas)):JSON.parse(JSON.stringify(FC_DEFAULT.shpFaixas));const tb=document.getElementById('fc-shp-tbody');if(!tb)return;const tdS='padding:6px 8px;border:1px solid var(--border);';tb.innerHTML=_shpFaixas.map((f,i)=>`<tr><td style="${tdS}"><input type="number" step="0.01" value="${f.ate>=999999?'':f.ate}" placeholder="∞ (última faixa)" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);" onchange="_shpFaixas[${i}].ate=parseFloat(this.value)||999999"></td><td style="${tdS}"><input type="number" step="0.01" value="${f.frete}" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);" onchange="_shpFaixas[${i}].frete=parseFloat(this.value)||0"></td><td style="${tdS}"><input type="number" step="0.01" value="${f.tar}" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);" onchange="_shpFaixas[${i}].tar=parseFloat(this.value)||0"></td><td style="${tdS};text-align:center;"><button class="btn btn-sm btn-d" onclick="_shpFaixas.splice(${i},1);renderShpFaixas(_shpFaixas)">−</button></td></tr>`).join('');}
 function addShpFaixa(){_shpFaixas.push({ate:999999,frete:0,tar:0});renderShpFaixas(_shpFaixas);}
-function saveFiscal(){const g=id=>parseFloat(document.getElementById(id).value)||0;const fc={icmsImp12:g('fc-icms-imp-12'),icmsImp18:g('fc-icms-imp-18'),icmsNacST:g('fc-icms-nac-st'),icmsNacSem:g('fc-icms-nac-sem'),pisSaida:g('fc-pis-saida'),pisFrete:g('fc-pis-frete'),pisTar:g('fc-pis-tar'),pisAds:g('fc-pis-ads'),icmsFrete:g('fc-icms-frete'),precoFrete:g('fc-preco-frete'),pisEntrada:g('fc-pis-entrada'),tktFaixas:[{limiar:50,tar:g('fc-tkt-tar-baixo'),frete:g('fc-tkt-frete-baixo')},{limiar:999999,tar:g('fc-tkt-tar-alto'),frete:g('fc-tkt-frete-alto')}],mgaFrete:5,mgaTar:g('fc-mga-tar'),mgAmarelo:g('fc-mg-amarelo'),mgVerde:g('fc-mg-verde'),shpFaixas:_shpFaixas};LS.set('lb_fiscal',fc);toast('Configurações fiscais salvas!');}
+function saveFiscal(){const g=id=>parseFloat(document.getElementById(id).value)||0;const fc={icmsImp12:g('fc-icms-imp-12'),icmsImp18:g('fc-icms-imp-18'),icmsNacST:g('fc-icms-nac-st'),icmsNacSem:g('fc-icms-nac-sem'),pisSaida:g('fc-pis-saida'),pisFrete:g('fc-pis-frete'),pisTar:g('fc-pis-tar'),pisAds:g('fc-pis-ads'),icmsFrete:g('fc-icms-frete'),precoFrete:g('fc-preco-frete'),pisEntrada:g('fc-pis-entrada'),tktFaixas:[{limiar:50,tar:g('fc-tkt-tar-baixo'),frete:g('fc-tkt-frete-baixo')},{limiar:999999,tar:g('fc-tkt-tar-alto'),frete:g('fc-tkt-frete-alto')}],mgaFrete:5,mgaFreteFixo:g('fc-mga-frete-fixo'),mgaTar:g('fc-mga-tar'),mgAmarelo:g('fc-mg-amarelo'),mgVerde:g('fc-mg-verde'),shpFaixas:_shpFaixas};LS.set('lb_fiscal',fc);toast('Configurações fiscais salvas!');}
 
 // DASHBOARD
 function limparDashFiltros(){['df-mk','df-origem','df-marca','df-cat'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const m=document.getElementById('df-metrica');if(m)m.value='margem';rDash();}
@@ -1459,7 +1461,8 @@ function filtrarMkt(mk){
   const tb2=document.getElementById('tbb-'+mk);if(tb2)initDrag(tb2);
 }
 function limparMktFiltros(mk){['mkt-busca-','mkt-tipo-','mkt-marca-','mkt-ordem-'].forEach(id=>{const el=document.getElementById(id+mk);if(el)el.value='';});rMkt(mk);}
-function rMkt(mk){const marcas=LS.get('lb_marcas')||[];const sel=document.getElementById('mkt-marca-'+mk);if(sel){const cur=sel.value;sel.innerHTML='<option value="">Todas as marcas</option>'+marcas.map(m=>`<option value="${m}">${m}</option>`).join('');sel.value=cur;}filtrarMkt(mk);}
+function rMkt(mk){const marcas=LS.get('lb_marcas')||[];const sel=document.getElementById('mkt-marca-'+mk);if(sel){const cur=sel.value;sel.innerHTML='<option value="">Todas as marcas</option>'+marcas.map(m=>`<option value="${m}">${m}</option>`).join('');sel.value=cur;}filtrarMkt(mk);// Atualizar cálculos após renderizar
+if(mk==='mga'){const ps=(LS.get('lb_p')||[]).filter(p=>p[mk]);setTimeout(()=>ps.forEach(p=>lU(p.sku,mk)),50);}}
 
 function rowM(p,mk){
   if(!p||!p.sku)return'';
