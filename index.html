@@ -658,9 +658,9 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
           <div class="tmu tsm" style="margin-top:4px;">Vigente a partir de 15/07/2026 — Faixa baseada no preço final ao comprador</div>
         </div>
         <div class="card" style="margin-bottom:16px;">
-          <div class="sl">Magalu — Padrões</div>
+          <div class="sl">Magalu — Comissão</div>
+          <p class="tmu tsm" style="margin-bottom:10px;">Frete calculado automaticamente por peso × preço de venda (tabelas 50% desconto).</p>
           <div class="gr g2">
-            <div class="fg"><label class="fl">Frete Padrão (R$)</label><div class="pfx"><span>R$</span><input type="number" id="fc-mga-frete" step="0.01" class="full"></div></div>
             <div class="fg"><label class="fl">Comissão Padrão (%)</label><div class="pfx"><span>%</span><input type="number" id="fc-mga-tar" step="0.01" class="full"></div></div>
           </div>
         </div>
@@ -951,7 +951,7 @@ const LS={
   get:k=>{if(_cache[k]!==undefined)return JSON.parse(JSON.stringify(_cache[k]));try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}},
   set:(k,v)=>{_cache[k]=JSON.parse(JSON.stringify(v));try{localStorage.setItem(k,JSON.stringify(v));}catch{}sbPersist(k,v).catch(e=>console.warn('Supabase sync error:',k,e));}
 };
-async function sbPersistMktItem(sku,mk,d){const isTkt=mk==='tkt';const{error}=await SB.from('marketplace_dados').upsert({marketplace:mk,sku,preco:d.preco||0,frete:isTkt?null:((d.frete!=null&&d.frete!==0)?d.frete:null),tar:isTkt?null:(d.tar||0),reb:d.reb||0,ads:d.ads||0,atualizado_por:(typeof CU!=='undefined'&&CU)?CU.user:null,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'});if(error)throw error;}
+async function sbPersistMktItem(sku,mk,d){const isTktOrMga=mk==='tkt'||mk==='mga';const{error}=await SB.from('marketplace_dados').upsert({marketplace:mk,sku,preco:d.preco||0,frete:isTktOrMga?null:((d.frete!=null&&d.frete!==0)?d.frete:null),tar:isTktOrMga?null:(d.tar||0),reb:d.reb||0,ads:d.ads||0,atualizado_por:(typeof CU!=='undefined'&&CU)?CU.user:null,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'});if(error)throw error;}
 async function sbPersist(k,v){
   if(k==='lb_p'){if(!Array.isArray(v))return;const rows=v.map(p=>({sku:p.sku,nome:p.nome,tipo:p.tipo||'Importado',ncm:p.ncm||null,peso:p.peso||0,custo:p.custo||0,st:p.st||0,ipi:p.ipi||0,pis:p.pis||9.25,icms:p.icms||0,marca:p.marca||null,categoria:p.categoria||null,meli:!!p.meli,shp:!!p.shp,amz:!!p.amz,tkt:!!p.tkt,mga:!!p.mga,variacao:!!p.variacao,atualizado_em:new Date().toISOString(),atualizado_por:p.upBy||null}));for(let i=0;i<rows.length;i+=50){await SB.from('produtos').upsert(rows.slice(i,i+50),{onConflict:'sku'});}}
   else if(k==='lb_u'){if(!Array.isArray(v))return;for(const u of v)await SB.from('usuarios').upsert({nome:u.nome,usuario:u.user,senha:u.senha,perfil:u.perfil||'meli',atualizado_em:new Date().toISOString()},{onConflict:'usuario'});}
@@ -1008,6 +1008,36 @@ async function sbLoad(){
 function showLoadingOverlay(msg){let el=document.getElementById('sb-loading');if(!el){el=document.createElement('div');el.id='sb-loading';el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;';el.innerHTML='<div style="width:44px;height:44px;border:4px solid #334155;border-top:4px solid #2563eb;border-radius:50%;animation:spin 0.8s linear infinite;"></div><div style="color:#fff;font-size:14px;font-weight:600;" id="sb-loading-msg"></div><style>@keyframes spin{to{transform:rotate(360deg)}}<\/style>';document.body.appendChild(el);}document.getElementById('sb-loading-msg').textContent=msg||'Carregando...';}
 function hideLoadingOverlay(){const el=document.getElementById('sb-loading');if(el)el.remove();}
 
+// FRETE MAGALU
+// Tabela azul: R$ 79 a R$ 199 — 50% desconto
+const MGA_AZ=[
+  {ate:500,v:17.95},{ate:1000,v:20.45},{ate:2000,v:21.45},{ate:5000,v:25.45},
+  {ate:9000,v:38.95},{ate:13000,v:49.45},{ate:17000,v:55.95},{ate:23000,v:67.45},
+  {ate:30000,v:74.45},{ate:40000,v:79.95},{ate:50000,v:94.95},{ate:60000,v:98.95},
+  {ate:70000,v:103.45},{ate:80000,v:107.95},{ate:90000,v:112.95},{ate:100000,v:117.95},
+  {ate:110000,v:122.95},{ate:120000,v:128.45},{ate:130000,v:133.95},{ate:140000,v:139.95},
+  {ate:150000,v:145.95},{ate:160000,v:152.45},{ate:170000,v:158.95},{ate:180000,v:165.95},
+  {ate:190000,v:172.95},{ate:200000,v:180.45},{ate:999999,v:187.95}
+];
+// Tabela rosa: acima de R$ 199 — 50% desconto
+const MGA_RS=[
+  {ate:500,v:19.45},{ate:1000,v:22.45},{ate:2000,v:23.45},{ate:5000,v:27.45},
+  {ate:9000,v:42.45},{ate:13000,v:53.45},{ate:17000,v:60.45},{ate:23000,v:72.95},
+  {ate:30000,v:80.45},{ate:40000,v:86.45},{ate:50000,v:102.95},{ate:60000,v:106.95},
+  {ate:70000,v:111.95},{ate:80000,v:116.95},{ate:90000,v:121.95},{ate:100000,v:127.45},
+  {ate:110000,v:132.95},{ate:120000,v:138.95},{ate:130000,v:144.95},{ate:140000,v:151.45},
+  {ate:150000,v:157.95},{ate:160000,v:164.95},{ate:170000,v:171.95},{ate:180000,v:179.45},
+  {ate:190000,v:186.95},{ate:200000,v:194.95},{ate:999999,v:202.95}
+];
+function fMgaAuto(peso,preco){
+  if(!peso||!preco)return 0;
+  const pr=parseFloat(preco)||0,pe=parseFloat(peso)||0;
+  if(pr<79)return parseFloat((pr*0.04).toFixed(2));
+  const tabela=pr<199.01?MGA_AZ:MGA_RS;
+  const row=tabela.find(r=>pe<=r.ate)||tabela[tabela.length-1];
+  return row.v;
+}
+
 // FRETE MELI
 const FT=[{a:300,v:[5.65,6.55,7.75,12.35,14.35,16.45,18.45,20.95]},{a:500,v:[5.95,6.65,7.85,13.25,15.45,17.65,19.85,22.55]},{a:1000,v:[6.05,6.75,7.95,13.85,16.15,18.45,20.75,23.65]},{a:1500,v:[6.15,6.85,8.05,14.15,16.45,18.85,21.15,24.65]},{a:2000,v:[6.25,6.95,8.15,14.45,16.85,19.25,21.65,24.65]},{a:3000,v:[6.35,7.95,8.55,15.75,18.35,21.05,23.65,26.25]},{a:4000,v:[6.45,8.15,8.95,17.05,19.85,22.65,25.55,28.35]},{a:5000,v:[6.55,8.35,9.75,18.45,21.55,24.65,27.75,30.75]},{a:6000,v:[6.65,8.55,9.95,25.45,28.55,32.65,35.75,39.75]},{a:7000,v:[6.75,8.75,10.15,27.05,31.05,36.05,40.05,44.05]},{a:8000,v:[6.85,8.95,10.35,28.85,33.65,38.45,43.25,48.05]},{a:9000,v:[6.95,9.15,10.55,29.65,34.55,39.55,44.45,49.35]},{a:11000,v:[7.05,9.55,10.95,41.25,48.05,54.95,61.75,68.65]},{a:13000,v:[7.15,9.95,11.35,42.15,49.25,56.25,63.25,70.25]},{a:15000,v:[7.25,10.15,11.55,45.05,52.45,59.95,67.05,74.95]},{a:17000,v:[7.35,10.35,11.75,48.55,56.05,63.55,70.75,78.65]},{a:20000,v:[7.45,10.55,11.95,54.75,63.85,72.95,82.05,91.15]},{a:25000,v:[7.65,10.95,12.15,64.05,75.05,84.75,95.35,105.95]},{a:30000,v:[7.75,11.15,12.35,65.95,75.45,85.55,96.25,106.95]},{a:40000,v:[7.85,11.35,12.55,67.75,78.95,88.95,99.15,107.05]},{a:50000,v:[7.95,11.55,12.75,70.25,81.05,92.05,102.55,110.75]},{a:60000,v:[8.05,11.75,12.95,74.95,86.45,98.15,109.35,118.15]},{a:70000,v:[8.15,11.95,13.15,80.25,92.95,105.05,117.15,126.55]},{a:80000,v:[8.25,12.15,13.35,83.95,97.05,109.85,122.45,132.25]},{a:90000,v:[8.35,12.35,13.55,93.25,107.45,122.05,136.05,146.95]},{a:100000,v:[8.45,12.55,13.75,106.55,123.95,139.55,155.55,167.95]},{a:125000,v:[8.55,12.75,13.95,119.25,138.05,156.05,173.95,187.95]},{a:150000,v:[8.65,12.75,14.15,126.55,146.15,165.65,184.65,199.45]},{a:999999,v:[8.75,12.75,14.35,166.15,192.45,217.55,242.55,261.95]}];
 const FP=[0,19,49,79,100,120,150,200];
@@ -1042,12 +1072,12 @@ function td(){return new Date().toLocaleDateString('pt-BR').split('/').reverse()
 function mc(p){const fc=getFC();const am=fc.mgAmarelo||15,vd=fc.mgVerde||18;return p===''?'':(p<0?'mg-zero':p<am?'mg-r':p<vd?'mg-y':'mg-g');}
 function fShp(preco){const fc=getFC();const p=parseFloat(preco)||0;if(p<=0)return{frete:0,tar:0};const faixas=(fc.shpFaixas&&fc.shpFaixas.length)?fc.shpFaixas:FC_DEFAULT.shpFaixas;const fx=faixas.find(f=>p<=f.ate)||faixas[faixas.length-1];return{frete:fx.frete||0,tar:fx.tar||0};}
 function fTkt(d,preco){const fc=getFC();const faixas=fc.tktFaixas||FC_DEFAULT.tktFaixas;const pr=parseFloat(preco)||0;const fx=pr>0?(faixas.find(f=>pr<f.limiar)||faixas[faixas.length-1]):faixas[faixas.length-1];const frPadrao=fx.frete,tarPadrao=fx.tar;return{frete:parseFloat((d&&d.frete!=null)?d.frete:frPadrao)||frPadrao,tar:parseFloat((d&&d.tar!=null&&d.tar!==0)?d.tar:tarPadrao)||tarPadrao};}
-function fMga(d){const fc=getFC();return{frete:parseFloat((d&&d.frete!=null)?d.frete:fc.mgaFrete)||fc.mgaFrete||5,tar:parseFloat((d&&d.tar!=null&&d.tar!==0)?d.tar:fc.mgaTar)||fc.mgaTar||9.9};}
+function fMga(d,peso,preco){const fc=getFC();const fr=fMgaAuto(peso||0,preco||0)||0;return{frete:fr,tar:parseFloat((d&&d.tar!=null&&d.tar!==0)?d.tar:fc.mgaTar)||fc.mgaTar||9.9};}
 function gM(sku,mk){const all=LS.get('lb_m')||{};return all[mk+'_'+sku]||{};}
 function sM(sku,mk,field,val){const all=LS.get('lb_m')||{};const k=mk+'_'+sku;if(!all[k])all[k]={};all[k][field]=parseFloat(val)||0;
   // Garantir que tar e frete sempre refletem o padrão fiscal quando não definidos explicitamente
   // TikTok: tar e frete são calculados dinamicamente por faixa de preço — não salvar no Supabase
-  if(mk==='mga'){const mc2=fMga(all[k]);if(!all[k].tar||all[k].tar===0)all[k].tar=mc2.tar;if(!all[k].frete||all[k].frete===0)all[k].frete=mc2.frete;}
+  // Magalu: frete calculado automaticamente, não salvar no Supabase
   _cache['lb_m']=JSON.parse(JSON.stringify(all));try{localStorage.setItem('lb_m',JSON.stringify(all));}catch{}sbPersistMktItem(sku,mk,all[k]).catch(e=>{console.warn('Supabase sync error lb_m:',e);if(typeof toast==='function')toast('Erro ao salvar no servidor','e');});}
 function cM(id){const el=document.getElementById(id);if(el)el.classList.remove('open');}
 function toast(msg,type='ok'){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.style.borderColor=type==='e'?'var(--red)':'var(--green)';t.style.color=type==='e'?'var(--red)':'var(--green)';t.style.display='block';setTimeout(()=>t.style.display='none',3000);}
@@ -1146,14 +1176,14 @@ function initFiscal(){
   s('fc-pis-tar').value=fc.pisTar;s('fc-pis-ads').value=fc.pisAds;
   s('fc-icms-frete').value=fc.icmsFrete;s('fc-preco-frete').value=fc.precoFrete;
   s('fc-pis-entrada').value=fc.pisEntrada;const tktF=fc.tktFaixas||FC_DEFAULT.tktFaixas;s('fc-tkt-tar-baixo').value=tktF[0].tar;s('fc-tkt-frete-baixo').value=tktF[0].frete;s('fc-tkt-tar-alto').value=tktF[1].tar;s('fc-tkt-frete-alto').value=tktF[1].frete;
-  s('fc-mga-frete').value=fc.mgaFrete;s('fc-mga-tar').value=fc.mgaTar;
+  s('fc-mga-tar').value=fc.mgaTar;
   s('fc-mg-amarelo').value=fc.mgAmarelo;s('fc-mg-verde').value=fc.mgVerde;
   renderShpFaixas(fc.shpFaixas);
 }
 let _shpFaixas=[];
 function renderShpFaixas(faixas){_shpFaixas=faixas?JSON.parse(JSON.stringify(faixas)):JSON.parse(JSON.stringify(FC_DEFAULT.shpFaixas));const tb=document.getElementById('fc-shp-tbody');if(!tb)return;const tdS='padding:6px 8px;border:1px solid var(--border);';tb.innerHTML=_shpFaixas.map((f,i)=>`<tr><td style="${tdS}"><input type="number" step="0.01" value="${f.ate>=999999?'':f.ate}" placeholder="∞ (última faixa)" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);" onchange="_shpFaixas[${i}].ate=parseFloat(this.value)||999999"></td><td style="${tdS}"><input type="number" step="0.01" value="${f.frete}" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);" onchange="_shpFaixas[${i}].frete=parseFloat(this.value)||0"></td><td style="${tdS}"><input type="number" step="0.01" value="${f.tar}" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);" onchange="_shpFaixas[${i}].tar=parseFloat(this.value)||0"></td><td style="${tdS};text-align:center;"><button class="btn btn-sm btn-d" onclick="_shpFaixas.splice(${i},1);renderShpFaixas(_shpFaixas)">−</button></td></tr>`).join('');}
 function addShpFaixa(){_shpFaixas.push({ate:999999,frete:0,tar:0});renderShpFaixas(_shpFaixas);}
-function saveFiscal(){const g=id=>parseFloat(document.getElementById(id).value)||0;const fc={icmsImp12:g('fc-icms-imp-12'),icmsImp18:g('fc-icms-imp-18'),icmsNacST:g('fc-icms-nac-st'),icmsNacSem:g('fc-icms-nac-sem'),pisSaida:g('fc-pis-saida'),pisFrete:g('fc-pis-frete'),pisTar:g('fc-pis-tar'),pisAds:g('fc-pis-ads'),icmsFrete:g('fc-icms-frete'),precoFrete:g('fc-preco-frete'),pisEntrada:g('fc-pis-entrada'),tktFaixas:[{limiar:50,tar:g('fc-tkt-tar-baixo'),frete:g('fc-tkt-frete-baixo')},{limiar:999999,tar:g('fc-tkt-tar-alto'),frete:g('fc-tkt-frete-alto')}],mgaFrete:g('fc-mga-frete'),mgaTar:g('fc-mga-tar'),mgAmarelo:g('fc-mg-amarelo'),mgVerde:g('fc-mg-verde'),shpFaixas:_shpFaixas};LS.set('lb_fiscal',fc);toast('Configurações fiscais salvas!');}
+function saveFiscal(){const g=id=>parseFloat(document.getElementById(id).value)||0;const fc={icmsImp12:g('fc-icms-imp-12'),icmsImp18:g('fc-icms-imp-18'),icmsNacST:g('fc-icms-nac-st'),icmsNacSem:g('fc-icms-nac-sem'),pisSaida:g('fc-pis-saida'),pisFrete:g('fc-pis-frete'),pisTar:g('fc-pis-tar'),pisAds:g('fc-pis-ads'),icmsFrete:g('fc-icms-frete'),precoFrete:g('fc-preco-frete'),pisEntrada:g('fc-pis-entrada'),tktFaixas:[{limiar:50,tar:g('fc-tkt-tar-baixo'),frete:g('fc-tkt-frete-baixo')},{limiar:999999,tar:g('fc-tkt-tar-alto'),frete:g('fc-tkt-frete-alto')}],mgaFrete:5,mgaTar:g('fc-mga-tar'),mgAmarelo:g('fc-mg-amarelo'),mgVerde:g('fc-mg-verde'),shpFaixas:_shpFaixas};LS.set('lb_fiscal',fc);toast('Configurações fiscais salvas!');}
 
 // DASHBOARD
 function limparDashFiltros(){['df-mk','df-origem','df-marca','df-cat'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const m=document.getElementById('df-metrica');if(m)m.value='margem';rDash();}
@@ -1178,11 +1208,11 @@ function rDash(){
   const chipEl=document.getElementById('dash-filtros-ativos');
   if(chipEl)chipEl.innerHTML=chips.map(ch=>`<span style="display:inline-block;background:var(--accent2);color:#fff;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;margin:2px;cursor:pointer;" onclick="document.getElementById('${ch.id}').value='';rDash()">✕ ${ch.lbl}</span>`).join('');
   function getMkList(){return f.mk?[f.mk]:['meli','shp','tkt','amz','mga'];}
-  function avgMkFilt(mk){const at=psFilt.filter(p=>p[mk]);const vs=at.map(p=>{const d=mkt[mk+'_'+p.sku]||{};const pr=parseFloat(d.preco)||0;let fr,tar,reb=parseFloat(d.reb)||0,ads=parseFloat(d.ads)||0;if(mk==='meli'){fr=fM(p.peso,pr);tar=parseFloat(d.tar)||0;}else if(mk==='shp'){const sc=fShp(pr);fr=sc.frete;tar=sc.tar;}else if(mk==='tkt'){const tc=fTkt(d,pr);fr=tc.frete;tar=tc.tar;}else if(mk==='mga'){const mc2=fMga(d);fr=mc2.frete;tar=mc2.tar;}else{fr=parseFloat(d.frete)||0;tar=parseFloat(d.tar)||0;}const m=cMarg(p,pr,fr,tar,reb,ads);return m.p===''?null:m.p;}).filter(v=>v!==null);return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}
+  function avgMkFilt(mk){const at=psFilt.filter(p=>p[mk]);const vs=at.map(p=>{const d=mkt[mk+'_'+p.sku]||{};const pr=parseFloat(d.preco)||0;let fr,tar,reb=parseFloat(d.reb)||0,ads=parseFloat(d.ads)||0;if(mk==='meli'){fr=fM(p.peso,pr);tar=parseFloat(d.tar)||0;}else if(mk==='shp'){const sc=fShp(pr);fr=sc.frete;tar=sc.tar;}else if(mk==='tkt'){const tc=fTkt(d,pr);fr=tc.frete;tar=tc.tar;}else if(mk==='mga'){const mc2=fMga(d,p.peso,pr);fr=mc2.frete;tar=mc2.tar;}else{fr=parseFloat(d.frete)||0;tar=parseFloat(d.tar)||0;}const m=cMarg(p,pr,fr,tar,reb,ads);return m.p===''?null:m.p;}).filter(v=>v!==null);return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}
   const mks=getMkList();
   const imp=psFilt.filter(p=>p.tipo==='Importado'),nac=psFilt.filter(p=>p.tipo==='Nacional'||p.tipo==='Terceiro Importado');
   const tm=psFilt.filter(p=>p.meli).length,ts=psFilt.filter(p=>p.shp).length,ta=psFilt.filter(p=>p.amz).length;
-  function getMktFreteTar(k,d,p,pr){let fr,tar;if(k==='meli'){fr=fM(p.peso,pr);tar=parseFloat(d.tar)||0;}else if(k==='shp'){const sc=fShp(pr);fr=sc.frete;tar=sc.tar;}else if(k==='tkt'){const tc=fTkt(d,pr);fr=tc.frete;tar=tc.tar;}else if(k==='mga'){const mc2=fMga(d);fr=mc2.frete;tar=mc2.tar;}else{fr=parseFloat(d.frete)||0;tar=parseFloat(d.tar)||0;}return{fr,tar};}
+  function getMktFreteTar(k,d,p,pr){let fr,tar;if(k==='meli'){fr=fM(p.peso,pr);tar=parseFloat(d.tar)||0;}else if(k==='shp'){const sc=fShp(pr);fr=sc.frete;tar=sc.tar;}else if(k==='tkt'){const tc=fTkt(d,pr);fr=tc.frete;tar=tc.tar;}else if(k==='mga'){const mc2=fMga(d,p.peso,pr);fr=mc2.frete;tar=mc2.tar;}else{fr=parseFloat(d.frete)||0;tar=parseFloat(d.tar)||0;}return{fr,tar};}
   function avgTipo(tipo){const at=psFilt.filter(p=>p.tipo===tipo);const vs=[];at.forEach(p=>{mks.forEach(k=>{if(!p[k])return;const d=mkt[k+'_'+p.sku]||{};const pr=parseFloat(d.preco)||0;const{fr,tar}=getMktFreteTar(k,d,p,pr);const m=cMarg(p,pr,fr,tar,parseFloat(d.reb)||0,parseFloat(d.ads)||0);if(m.p!=='')vs.push(m.p);});});return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}
   function avgGeral(){const vs=[];psFilt.forEach(p=>{mks.forEach(k=>{if(!p[k])return;const d=mkt[k+'_'+p.sku]||{};const pr=parseFloat(d.preco)||0;const{fr,tar}=getMktFreteTar(k,d,p,pr);const m=cMarg(p,pr,fr,tar,parseFloat(d.reb)||0,parseFloat(d.ads)||0);if(m.p!=='')vs.push(m.p);});});return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}
   const amMeli=avgMkFilt('meli'),amShp=avgMkFilt('shp'),amAmz=avgMkFilt('amz'),amMga=avgMkFilt('mga');
@@ -1439,7 +1469,7 @@ function rowM(p,mk){
   let frete,tar,reb,ads;
   if(isShp){const sc=fShp(preco);frete=sc.frete;tar=sc.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
   else if(isTkt){const tc=fTkt(d,preco);frete=tc.frete;tar=tc.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
-  else if(isMga){const mc2=fMga(d);frete=mc2.frete;tar=mc2.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
+  else if(isMga){const mc2=fMga(d,p.peso,preco);frete=mc2.frete;tar=mc2.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
   else{frete=isMeli?fM(p.peso,preco):(parseFloat(d.frete)||0);tar=parseFloat(d.tar)||0;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
   const aj=cAj(p,frete,tar,reb,ads,preco);
   const m=cMarg(p,preco,frete,tar,reb,ads),mC=mc(m.p);
@@ -1474,7 +1504,7 @@ function lU(sku,mk){
   let frete,tar,reb,ads;
   if(mk==='shp'){const sc=fShp(preco);frete=sc.frete;tar=sc.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
   else if(mk==='tkt'){const tc=fTkt(d,preco);frete=tc.frete;tar=tc.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
-  else if(mk==='mga'){const mc2=fMga(d);frete=mc2.frete;tar=mc2.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
+  else if(mk==='mga'){const mc2=fMga(d,p.peso,preco);frete=mc2.frete;tar=mc2.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
   else{tar=parseFloat(d.tar)||0;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;frete=mk==='meli'?fM(p.peso,preco):(parseFloat(d.frete)||0);}
   const aj=cAj(p,frete,tar,reb,ads,preco);
   const m=cMarg(p,preco,frete,tar,reb,ads),mC=mc(m.p);
@@ -1562,8 +1592,8 @@ function setRap(t){
   ['meli','shp','tkt','amz','mga'].forEach(x=>{const el=document.getElementById('rt-'+x);if(el)el.className='btn'+(x===t?' btn-p':'');});
   const iM=t==='meli',iS=t==='shp',iT=t==='tkt',iG=t==='mga';
   const rpw=document.getElementById('rpw');if(rpw)rpw.style.display=iM?'block':'none';
-  const rfl=document.getElementById('rfl');if(rfl)rfl.textContent=iM?'Frete (automático)':iS?'Frete (automático)':iT?'Frete (R$ 4,00 padrão)':iG?'Frete (R$ 5,00 padrão)':'Frete (R$)';
-  const rf=document.getElementById('rf');if(rf){rf.readOnly=(iM||iS);rf.style.opacity=(iM||iS)?'0.5':'1';}
+  const rfl=document.getElementById('rfl');if(rfl)rfl.textContent=iM?'Frete (automático)':iS?'Frete (automático)':iT?'Frete (R$ 4,00 padrão)':iG?'Frete (automático por peso)':'Frete (R$)';
+  const isMgaRap=t==='mga';const rf=document.getElementById('rf');if(rf){rf.readOnly=(iM||iS||isMgaRap);rf.style.opacity=(iM||iS||isMgaRap)?'0.5':'1';}
   const rtEl=document.getElementById('rt');if(rtEl){rtEl.readOnly=iS;rtEl.style.opacity=iS?'0.5':'1';}
   const rtLbl=document.getElementById('rtlbl');if(rtLbl)rtLbl.textContent=iS?'Tarifa % (automático)':iT?'Tarifa % (padrão 6%)':iG?'Tarifa % (padrão 9,9%)':'Tarifa %';
   cRap();
@@ -1585,9 +1615,9 @@ function cRap(){
     const rf=document.getElementById('rf');if(rf&&!rf.value)rf.value=fn(tcRap.frete);
     const rt=document.getElementById('rt');if(rt&&!rt.value)rt.value=String(tcRap.tar);
   }else if(rapT==='mga'){
-    tar=g('rt')>0?g('rt'):9.9;frete=g('rf')||5;
-    const rf=document.getElementById('rf');if(rf&&!rf.value)rf.value=fn(5);
-    const rt=document.getElementById('rt');if(rt&&!rt.value)rt.value='9.9';
+    const pesoRap=g('rpeso');const precoRap=g('rp');frete=fMgaAuto(pesoRap,precoRap);const mgaTarDef=getFC().mgaTar||9.9;tar=g('rt')>0?g('rt'):mgaTarDef;
+    const rf=document.getElementById('rf');if(rf)rf.value=fn(frete);
+    const rt=document.getElementById('rt');if(rt&&!rt.value)rt.value=String(mgaTarDef);
   }else if(rapT==='meli'){
     tar=g('rt');frete=fM(peso,preco);
     const rf=document.getElementById('rf');if(rf)rf.value=preco&&peso?fn(frete):'';
@@ -1855,7 +1885,7 @@ function openMgDetail(sku,mk){
   if(mk==='meli'){frete=fM(p.peso,preco);tar=parseFloat(d.tar)||0;}
   else if(mk==='shp'){const sc=fShp(preco);frete=sc.frete;tar=sc.tar;}
   else if(mk==='tkt'){const tc=fTkt(d,preco);frete=tc.frete;tar=tc.tar;}
-  else if(mk==='mga'){const mc2=fMga(d);frete=mc2.frete;tar=mc2.tar;}
+  else if(mk==='mga'){const mc2=fMga(d,p.peso,preco);frete=mc2.frete;tar=mc2.tar;}
   else{frete=parseFloat(d.frete)||0;tar=parseFloat(d.tar)||0;}
   // Base fiscal: Custo NF para Importados, CMV calculado para Nacionais
   const cmv=p.tipo==='Importado'?(parseFloat(p.custo)||0):calcCMV(p);
