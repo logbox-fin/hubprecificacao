@@ -371,7 +371,7 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
       <!-- SHOPEE -->
       <div class="screen" id="screen-shp">
         <div class="sticky-bar" style="padding-top:0;">
-        <div class="ph" style="margin-bottom:8px;"><div class="pt" style="color:var(--shp);">Shopee</div><span class="tsm tmu">Frete informado pela plataforma</span></div>
+        <div class="ph" style="margin-bottom:8px;"><div class="pt" style="color:var(--shp);">Shopee</div><span class="tsm tmu">Frete informado pela plataforma</span><div class="ml-auto"><button class="btn btn-sm" onclick="abrirTributos()" style="border-color:var(--shp);color:#9a3412;background:var(--shpbg);">📊 % Tributos</button></div></div>
         <div class="flex fc g8" style="margin-bottom:8px;flex-wrap:wrap;">
           <input type="text" id="mkt-busca-shp" placeholder="Buscar SKU..." style="width:180px;" oninput="filtrarMkt('shp')">
           <select id="mkt-tipo-shp" onchange="filtrarMkt('shp')" style="padding:6px 10px;font-size:12px;"><option value="">Todos os tipos</option><option value="Importado">Importados</option><option value="Nacional">Nacionais + 3° Imp.</option></select>
@@ -437,6 +437,7 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
             <th rowspan="2" class="thg-aj">Custo Ajustado</th><th rowspan="2" class="thg-preco">Preço de Venda</th>
             <th rowspan="2" class="thg-frete">Frete (R$)</th><th class="thg-tarifa" colspan="3">Tarifas</th>
             <th class="thg-ads" colspan="2">ADS</th><th class="thg-mg" colspan="2">Margem de Contribuição</th>
+            <th rowspan="2" class="th-sku">Modalidade</th>
             <th rowspan="2" class="th-sku">Tags / Obs</th>
           </tr><tr>
             <th class="thg-tarifa">%</th><th class="thg-tarifa">R$</th><th class="thg-tarifa">Rebate (R$)</th>
@@ -817,6 +818,25 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
 <div class="mov" id="mod-organizador"><div class="mod" style="width:560px;"><div class="mt">&#9776; Organizador de Containers</div><div id="org-tabela" style="margin-bottom:14px;"></div><div class="mf" style="justify-content:space-between;"><button class="btn btn-p btn-sm" onclick="orgNovoClb()">+ Novo Container</button><button class="btn" onclick="cM('mod-organizador')">Fechar</button></div></div></div>
 <div class="mov" id="mod-cmv-prod"><div class="mod" style="width:500px;"><div class="mt" id="mod-cmv-title">CMV do Produto</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;padding:12px;background:var(--bg3);border-radius:var(--r);"><div><div class="fl">SKU</div><div id="cmv-prod-sku" style="font-weight:700;"></div></div><div><div class="fl">Container</div><div id="cmv-prod-clb" style="font-weight:700;"></div></div><div><div class="fl">CMV Anterior (auto)</div><div id="cmv-prod-ant" style="font-weight:700;color:var(--text2);"></div></div><div><div class="fl">CMV Médio Calculado</div><div id="cmv-prod-med" style="font-weight:700;color:var(--green);"></div></div></div><div class="gr g2"><div class="fg"><label class="fl">Estoque no Galpão</label><input type="number" class="full" id="cmv-estoque" step="1" min="0" oninput="calcCmvModal()"></div><div class="fg"><label class="fl">CMV (R$)</label><input type="number" class="full" id="cmv-valor" step="0.01" oninput="calcCmvModal()"></div></div><div class="fg"><label class="fl">Quantidade neste Container</label><input type="number" class="full" id="cmv-qtd" step="1" min="0" oninput="calcCmvModal()"></div><div class="mf"><button class="btn" onclick="cM('mod-cmv-prod')">Cancelar</button><button class="btn btn-p" onclick="saveCmvProd()">Salvar</button></div></div></div>
 <div class="mov" id="mod-cmv-exp"><div class="mod" style="width:380px;"><div class="mt">Exportar Relatório CMV</div><div class="fg"><label class="fl">Data de referência</label><input type="date" class="full" id="exp-data"></div><p class="tmu tsm" style="margin-top:6px;">O sistema usará o CMV médio do último container que chegou até esta data.</p><div class="mf"><button class="btn" onclick="cM('mod-cmv-exp')">Cancelar</button><button class="btn btn-p" onclick="gerarRelatorio()">Exportar XLS</button></div></div></div>
+<div class="mov" id="mod-tributos">
+  <div class="mod" style="width:700px;">
+    <div class="mt">📊 % Tributos por Produto</div>
+    <p class="tmu tsm" style="margin-bottom:12px;">Soma das alíquotas de impostos por produto ativo na Shopee.</p>
+    <div class="tw"><table>
+      <thead><tr>
+        <th class="th-sku" style="text-align:left;">Nome</th>
+        <th class="th-sku">SKU</th>
+        <th class="th-sku">Tipo</th>
+        <th class="thg-imp">ICMS %</th>
+        <th class="thg-imp">IPI %</th>
+        <th class="thg-imp">PIS/COFINS %</th>
+        <th class="thg-mg">Total %</th>
+      </tr></thead>
+      <tbody id="trib-tbody"></tbody>
+    </table></div>
+    <div class="mf"><button class="btn" onclick="cM('mod-tributos')">Fechar</button></div>
+  </div>
+</div>
 <div class="mov" id="mod-obs"><div class="mod" style="width:500px;"><div class="mt">Tags e Observações</div><div style="margin-bottom:12px;"><div class="fl">Observação</div><textarea id="obs-nota" style="width:100%;height:80px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px;color:var(--text);resize:vertical;" placeholder="Anotações sobre este produto..."></textarea></div><div class="sl">Tags</div><div id="obs-tags-list" style="margin-bottom:12px;min-height:32px;"></div><div class="flex fc g8" style="margin-bottom:8px;"><input type="text" id="obs-nova-tag" placeholder="Nome da tag" style="flex:1;"><input type="color" id="obs-tag-cor" value="#3b82f6" style="width:40px;height:36px;padding:2px;border-radius:var(--r);border:1px solid var(--border);cursor:pointer;"><button class="btn btn-sm btn-p" onclick="addObsTag()">+ Tag</button></div><div class="mf"><button class="btn" onclick="cM('mod-obs')">Cancelar</button><button class="btn btn-p" onclick="saveObs()">Salvar</button></div></div></div>
 <div class="mov" id="mhist"><div class="mod" style="width:460px;"><div class="mt">Registrar alteração no histórico?</div><p class="tmu tsm" style="margin-bottom:12px;">Produto: <strong id="hcsku" style="color:var(--text);"></strong></p><div id="hcch" style="background:var(--bg3);border-radius:var(--r);padding:12px;font-size:12px;margin-bottom:4px;"></div><div class="mf"><button class="btn" onclick="cM('mhist');pH=null;">Não registrar</button><button class="btn btn-g" onclick="confH()">Sim, registrar</button></div></div></div>
 <div class="mov" id="mod-graf-cmv"><div class="mod" style="width:600px;"><div class="mt" id="graf-cmv-title">Evolução do CMV</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;"><div class="sc"><div class="sc-l">Mediana CMV</div><div id="graf-cmv-med" class="sc-v" style="font-size:15px;color:var(--accent2);">—</div></div><div class="sc"><div class="sc-l">CMV Atual</div><div id="graf-cmv-atual" class="sc-v" style="font-size:15px;color:var(--green);">—</div></div><div class="sc"><div class="sc-l">Variação Total</div><div id="graf-cmv-var" class="sc-v" style="font-size:15px;">—</div></div></div><div style="position:relative;width:100%;height:220px;"><canvas id="canvas-cmv"></canvas></div><div class="mf"><button class="btn" onclick="cM('mod-graf-cmv')">Fechar</button></div></div></div>
@@ -847,6 +867,39 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
   </div>
 </div>
 
+<div class="mov" id="mod-custo-novo">
+  <div class="mod" style="width:440px;">
+    <div class="mt">💰 Custo Novo — Importado</div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;padding:12px 14px;background:var(--bg3);border-radius:var(--r);align-items:center;">
+      <div style="flex:1;">
+        <div class="fl">Produto</div>
+        <div id="cn-nome" style="font-weight:700;font-size:13px;color:var(--text);">—</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="fl">Custo NF Atual</div>
+        <div id="cn-custo-atual" style="font-size:20px;font-weight:700;color:var(--accent2);">—</div>
+      </div>
+    </div>
+    <div class="dv"></div>
+    <div class="sl">Novo Custo de Precificação</div>
+    <div class="gr g2">
+      <div class="fg"><label class="fl">Novo Custo NF (R$)</label><div class="pfx"><span>R$</span><input type="number" id="cn-custo" step="0.01" class="full" oninput="calcCustoNovo()"></div></div>
+      <div class="fg"><label class="fl">ST (R$)</label><div class="pfx"><span>R$</span><input type="number" id="cn-st" step="0.01" class="full"></div></div>
+    </div>
+    <div class="gr g3">
+      <div class="fg"><label class="fl">IPI %</label><div class="pfx"><span>%</span><input type="number" id="cn-ipi" step="0.01" class="full"></div></div>
+      <div class="fg"><label class="fl">ICMS %</label><div class="pfx"><span>%</span><input type="number" id="cn-icms" step="0.01" class="full"></div></div>
+    </div>
+    <div id="cn-preview" style="display:none;background:#e0f2fe;border:1.5px solid #0284c7;border-radius:var(--r2);padding:12px 16px;margin-top:12px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#0284c7;margin-bottom:8px;">Novo Custo de Precificação</div>
+      <div style="font-size:22px;font-weight:700;color:#0284c7;" id="cn-novo-val">—</div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="cM('mod-custo-novo')">Cancelar</button>
+      <button class="btn btn-p" id="cn-btn-salvar" style="display:none;" onclick="salvarCustoNovo()">✅ Confirmar e Salvar</button>
+    </div>
+  </div>
+</div>
 <div class="mov" id="mod-preco-novo">
   <div class="mod" style="width:520px;">
     <div class="mt">💰 Preço Novo — Custo Médio Ponderado</div>
@@ -1010,8 +1063,8 @@ function showLoadingOverlay(msg){let el=document.getElementById('sb-loading');if
 function hideLoadingOverlay(){const el=document.getElementById('sb-loading');if(el)el.remove();}
 
 // FRETE MAGALU
-// Tabela azul: R$ 79 a R$ 199 — 50% desconto
-const MGA_AZ=[
+// Tabela azul: R$ 79 a R$ 199
+const MGA_AZ_50=[
   {ate:500,v:17.95},{ate:1000,v:20.45},{ate:2000,v:21.45},{ate:5000,v:25.45},
   {ate:9000,v:38.95},{ate:13000,v:49.45},{ate:17000,v:55.95},{ate:23000,v:67.45},
   {ate:30000,v:74.45},{ate:40000,v:79.95},{ate:50000,v:94.95},{ate:60000,v:98.95},
@@ -1020,8 +1073,20 @@ const MGA_AZ=[
   {ate:150000,v:145.95},{ate:160000,v:152.45},{ate:170000,v:158.95},{ate:180000,v:165.95},
   {ate:190000,v:172.95},{ate:200000,v:180.45},{ate:999999,v:187.95}
 ];
-// Tabela rosa: acima de R$ 199 — 50% desconto
-const MGA_RS=[
+const MGA_AZ_FULL=[
+  {ate:500,v:8.98},{ate:1000,v:10.23},{ate:2000,v:10.73},{ate:5000,v:12.73},
+  {ate:9000,v:19.48},{ate:13000,v:24.73},{ate:17000,v:27.98},{ate:23000,v:33.73},
+  {ate:30000,v:37.23},{ate:40000,v:39.98},{ate:50000,v:47.48},{ate:60000,v:49.48},
+  {ate:70000,v:51.73},{ate:80000,v:53.98},{ate:90000,v:56.48},{ate:100000,v:58.98},
+  {ate:110000,v:61.48},{ate:120000,v:64.23},{ate:130000,v:66.98},{ate:140000,v:69.98},
+  {ate:150000,v:72.98},{ate:160000,v:76.23},{ate:170000,v:79.48},{ate:180000,v:82.98},
+  {ate:190000,v:86.48},{ate:200000,v:90.23},{ate:999999,v:93.98}
+];
+// Tabela azul: R$ 79 a R$ 199 — 50% desconto (alias para compatibilidade)
+const MGA_AZ=MGA_AZ_50;
+// Tabela rosa: acima de R$ 199
+// Tabela rosa Full
+const MGA_RS_50=[
   {ate:500,v:19.45},{ate:1000,v:22.45},{ate:2000,v:23.45},{ate:5000,v:27.45},
   {ate:9000,v:42.45},{ate:13000,v:53.45},{ate:17000,v:60.45},{ate:23000,v:72.95},
   {ate:30000,v:80.45},{ate:40000,v:86.45},{ate:50000,v:102.95},{ate:60000,v:106.95},
@@ -1030,12 +1095,23 @@ const MGA_RS=[
   {ate:150000,v:157.95},{ate:160000,v:164.95},{ate:170000,v:171.95},{ate:180000,v:179.45},
   {ate:190000,v:186.95},{ate:200000,v:194.95},{ate:999999,v:202.95}
 ];
-function fMgaAuto(peso,preco){
+const MGA_RS_FULL=[
+  {ate:500,v:11.67},{ate:1000,v:13.47},{ate:2000,v:14.07},{ate:5000,v:16.47},
+  {ate:9000,v:25.47},{ate:13000,v:32.07},{ate:17000,v:36.27},{ate:23000,v:43.77},
+  {ate:30000,v:48.27},{ate:40000,v:51.87},{ate:50000,v:61.77},{ate:60000,v:64.17},
+  {ate:70000,v:67.17},{ate:80000,v:70.17},{ate:90000,v:73.17},{ate:100000,v:76.47},
+  {ate:110000,v:79.77},{ate:120000,v:83.37},{ate:130000,v:86.97},{ate:140000,v:90.87},
+  {ate:150000,v:94.77},{ate:160000,v:98.97},{ate:170000,v:103.17},{ate:180000,v:107.67},
+  {ate:190000,v:112.17},{ate:200000,v:116.97},{ate:999999,v:121.77}
+];
+const MGA_RS=MGA_RS_50;
+function fMgaAuto(peso,preco,modalidade){
   if(!peso||!preco)return 0;
   const fc=getFC();const taxa=parseFloat(fc.mgaFreteFixo)||5;
   const pr=parseFloat(preco)||0,pe=parseFloat(peso)||0;
-  if(pr<79)return parseFloat((pr*0.04+taxa).toFixed(2));
-  const tabela=pr<199.01?MGA_AZ:MGA_RS;
+  const isFull=(modalidade||'coleta')==='full';
+  if(pr<79)return parseFloat(((isFull?pr*0.03:pr*0.04)+taxa).toFixed(2));
+  const tabela=pr<199.01?(isFull?MGA_AZ_FULL:MGA_AZ_50):(isFull?MGA_RS_FULL:MGA_RS_50);
   const row=tabela.find(r=>pe<=r.ate)||tabela[tabela.length-1];
   return parseFloat((row.v+taxa).toFixed(2));
 }
@@ -1105,7 +1181,7 @@ function td(){return new Date().toLocaleDateString('pt-BR').split('/').reverse()
 function mc(p){const fc=getFC();const am=fc.mgAmarelo||15,vd=fc.mgVerde||18;return p===''?'':(p<0?'mg-zero':p<am?'mg-r':p<vd?'mg-y':'mg-g');}
 function fShp(preco){const fc=getFC();const p=parseFloat(preco)||0;if(p<=0)return{frete:0,tar:0};const faixas=(fc.shpFaixas&&fc.shpFaixas.length)?fc.shpFaixas:FC_DEFAULT.shpFaixas;const fx=faixas.find(f=>p<=f.ate)||faixas[faixas.length-1];return{frete:fx.frete||0,tar:fx.tar||0};}
 function fTkt(d,preco){const fc=getFC();const faixas=fc.tktFaixas||FC_DEFAULT.tktFaixas;const pr=parseFloat(preco)||0;const fx=pr>0?(faixas.find(f=>pr<f.limiar)||faixas[faixas.length-1]):faixas[faixas.length-1];const frPadrao=fx.frete,tarPadrao=fx.tar;return{frete:parseFloat((d&&d.frete!=null)?d.frete:frPadrao)||frPadrao,tar:parseFloat((d&&d.tar!=null&&d.tar!==0)?d.tar:tarPadrao)||tarPadrao};}
-function fMga(d,peso,preco){const fc=getFC();const fr=fMgaAuto(peso||0,preco||0)||0;return{frete:fr,tar:parseFloat((d&&d.tar!=null&&d.tar!==0)?d.tar:fc.mgaTar)||fc.mgaTar||9.9};}
+function fMga(d,peso,preco){const fc=getFC();const mod=d?d.mgaMod||'coleta':'coleta';const fr=fMgaAuto(peso||0,preco||0,mod)||0;return{frete:fr,tar:parseFloat((d&&d.tar!=null&&d.tar!==0)?d.tar:fc.mgaTar)||fc.mgaTar||9.9};}
 function gM(sku,mk){const all=LS.get('lb_m')||{};return all[mk+'_'+sku]||{};}
 function sM(sku,mk,field,val){const all=LS.get('lb_m')||{};const k=mk+'_'+sku;if(!all[k])all[k]={};all[k][field]=parseFloat(val)||0;
   // Garantir que tar e frete sempre refletem o padrão fiscal quando não definidos explicitamente
@@ -1314,7 +1390,7 @@ function toggleMktProd(id,mk){const ps=LS.get('lb_p')||[];const idx=ps.findIndex
 function rowB(p){
   const cv=parseFloat(p.custo)||0;const ipi=(parseFloat(p.ipi)||0)/100,pis=(parseFloat(p.pis)||0)/100,icms=(parseFloat(p.icms)||0)/100;
   function mkChip(mk,val){return`<td class="tdc" style="cursor:pointer;" onclick="toggleMktProd(${p.id},'${mk}')" title="Clique para alternar"><span class="chip ${val?'cs':'cn'}" style="cursor:pointer;">${val?'S':'N'}</span></td>`;}
-  const btnPrecoNovo=(p.tipo==='Nacional'||p.tipo==='Terceiro Importado')?`<button class="btn btn-sm btn-g" style="margin-left:4px;" data-pid="${p.id}" onclick="openPrecoNovo(this.dataset.pid)">💰 Preço Novo</button>`:'';return`<tr data-sku="${p.sku}"><td class="tdl"><strong>${p.nome||p.sku}</strong></td><td class="tdc tmu" style="cursor:pointer;text-decoration:underline dotted;color:var(--accent2);" onclick="openPM(${p.id})">${p.sku}</td><td class="tdc"><span class="chip" style="background:#f0f4ff;color:#1d4ed8;font-size:9px;padding:2px 6px;">${regraFiscal(p)}</span></td><td class="tdc tmu">${p.ncm||'—'}</td><td class="tdc">${Math.round(p.peso||0)} g</td><td class="tdc">${fR(cv)}</td><td class="td-imp tdc">${p.st?fR(p.st):'—'}</td><td class="td-imp tdc">${pc(p.ipi)}</td><td class="td-imp tdc">${fR(cv*ipi)}</td><td class="td-imp tdc">${pc(p.pis)}</td><td class="td-imp tdc">${fR(cv*pis)}</td><td class="td-imp tdc">${pc(p.icms)}</td><td class="td-imp tdc">${fR(cv*icms)}</td>${mkChip('meli',p.meli)}${mkChip('shp',p.shp)}${mkChip('tkt',p.tkt)}${mkChip('amz',p.amz)}${mkChip('mga',p.mga)}<td class="tdc tmu">${p.marca||'—'}</td><td class="tdc tmu">${p.categoria||'—'}</td><td class="tdc tmu">${p.upAt||'—'}</td><td class="tdc tmu">${p.upBy||'—'}</td><td class="tdc"><button class="btn btn-sm" onclick="openPM(${p.id})">Editar</button>${btnPrecoNovo}</td></tr>`;
+  const btnPrecoNovo=p.tipo==='Importado'?`<button class="btn btn-sm" style="margin-left:4px;background:#e0f2fe;border-color:#0284c7;color:#0284c7;" data-pid="${p.id}" onclick="openCustoNovo(this.dataset.pid)">💰 Custo Novo</button>`:`<button class="btn btn-sm btn-g" style="margin-left:4px;" data-pid="${p.id}" onclick="openPrecoNovo(this.dataset.pid)">💰 Preço Novo</button>`;return`<tr data-sku="${p.sku}"><td class="tdl"><strong>${p.nome||p.sku}</strong></td><td class="tdc tmu" style="cursor:pointer;text-decoration:underline dotted;color:var(--accent2);" onclick="openPM(${p.id})">${p.sku}</td><td class="tdc"><span class="chip" style="background:#f0f4ff;color:#1d4ed8;font-size:9px;padding:2px 6px;">${regraFiscal(p)}</span></td><td class="tdc tmu">${p.ncm||'—'}</td><td class="tdc">${Math.round(p.peso||0)} g</td><td class="tdc">${fR(cv)}</td><td class="td-imp tdc">${p.st?fR(p.st):'—'}</td><td class="td-imp tdc">${pc(p.ipi)}</td><td class="td-imp tdc">${fR(cv*ipi)}</td><td class="td-imp tdc">${pc(p.pis)}</td><td class="td-imp tdc">${fR(cv*pis)}</td><td class="td-imp tdc">${pc(p.icms)}</td><td class="td-imp tdc">${fR(cv*icms)}</td>${mkChip('meli',p.meli)}${mkChip('shp',p.shp)}${mkChip('tkt',p.tkt)}${mkChip('amz',p.amz)}${mkChip('mga',p.mga)}<td class="tdc tmu">${p.marca||'—'}</td><td class="tdc tmu">${p.categoria||'—'}</td><td class="tdc tmu">${p.upAt||'—'}</td><td class="tdc tmu">${p.upBy||'—'}</td><td class="tdc"><button class="btn btn-sm" onclick="openPM(${p.id})">Editar</button>${btnPrecoNovo}</td></tr>`;
 }
 
 // MARCAS E CATEGORIAS
@@ -1516,7 +1592,7 @@ function rowM(p,mk){
   const fCell=(isMeli||isShp)?`<td class="tdc col-frete" id="fr-${mk}-${p.sku}">${preco?fR(frete):'—'}</td>`:editCell('fr-'+mk+'-'+p.sku,(isTkt?frete:isMga?fMga(d).frete:(d.frete||0)),'val','frete','80px','col-frete');
   const tarCell=isShp?`<td class="tdc col-tarifa" id="cell-tar-${mk}-${p.sku}">${pc(tar)}</td>`:editCell('tar-'+mk+'-'+p.sku,(isTkt?tar:isMga?(d.tar||9.9):(d.tar||0)),'pct','tar','64px','col-tarifa');
   const rebCell=editCell('reb-'+mk+'-'+p.sku,d.reb||0,'val','reb','80px','col-tarifa');
-  return`<tr id="mr-${mk}-${p.sku}" data-sku="${p.sku}"><td class="tdc" onclick="openDet('${p.sku}','${mk}')" style="cursor:pointer;text-decoration:underline dotted;color:var(--accent2);font-weight:700;">${p.sku}</td><td class="tdc" style="cursor:pointer;" onclick="openGrafCusto('${p.sku}','${mk}')" title="Ver histórico de custo">${p.tipo==='Nacional'?fR(cmvNac):fR(p.custo)}</td><td class="tdc col-aj" id="aj-${mk}-${p.sku}">${fR(aj)}</td>${editCell('pr-'+mk+'-'+p.sku,d.preco||0,'val','preco','90px','col-preco')}${fCell}${tarCell}<td class="tdc col-tarifa" id="tr-${mk}-${p.sku}">${preco&&tar?fR(tarR):'—'}</td>${rebCell}${editCell('ads-'+mk+'-'+p.sku,d.ads||0,'pct','ads','64px','col-ads')}<td class="tdc col-ads" id="ar-${mk}-${p.sku}">${preco&&ads?fR(adsR):'—'}</td><td class="tdc col-mg ${mC}" id="mgR-${mk}-${p.sku}">${m.r===''?'—':fR(m.r)}</td><td class="tdc col-mg ${mC}" id="mgP-${mk}-${p.sku}" style="cursor:pointer;text-decoration:underline dotted;" data-mgsku="${p.sku}" data-mgmk="${mk}" onclick="openMgDetail(this.dataset.mgsku,this.dataset.mgmk)" title="Ver detalhes da margem">${m.p===''?'—':pc(m.p)}</td>${obsCell}</tr>`;
+  const modCell=isMga?`<td class="tdc"><select style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--font);background:var(--bg2);" onchange="setMgaMod('${p.sku}',this.value)" id="mod-mga-${p.sku}"><option value="coleta" ${(d.mgaMod||'coleta')==='coleta'?'selected':''}>Coleta</option><option value="full" ${d.mgaMod==='full'?'selected':''}>Full</option></select></td>`:'';  return`<tr id="mr-${mk}-${p.sku}" data-sku="${p.sku}"><td class="tdc" onclick="openDet('${p.sku}','${mk}')" style="cursor:pointer;text-decoration:underline dotted;color:var(--accent2);font-weight:700;">${p.sku}</td><td class="tdc" style="cursor:pointer;" onclick="openGrafCusto('${p.sku}','${mk}')" title="Ver histórico de custo">${p.tipo==='Nacional'||p.tipo==='Terceiro Importado'?fR(cmvNac):fR(p.custo)}</td><td class="tdc col-aj" id="aj-${mk}-${p.sku}">${fR(aj)}</td>${editCell('pr-'+mk+'-'+p.sku,d.preco||0,'val','preco','90px','col-preco')}${fCell}${tarCell}<td class="tdc col-tarifa" id="tr-${mk}-${p.sku}">${preco&&tar?fR(tarR):'—'}</td>${rebCell}${editCell('ads-'+mk+'-'+p.sku,d.ads||0,'pct','ads','64px','col-ads')}<td class="tdc col-ads" id="ar-${mk}-${p.sku}">${preco&&ads?fR(adsR):'—'}</td><td class="tdc col-mg ${mC}" id="mgR-${mk}-${p.sku}">${m.r===''?'—':fR(m.r)}</td><td class="tdc col-mg ${mC}" id="mgP-${mk}-${p.sku}" style="cursor:pointer;text-decoration:underline dotted;" data-mgsku="${p.sku}" data-mgmk="${mk}" onclick="openMgDetail(this.dataset.mgsku,this.dataset.mgmk)" title="Ver detalhes da margem">${m.p===''?'—':pc(m.p)}</td>${modCell}${obsCell}</tr>`;
 }
 
 function ativaEdit(cellId,field,sku,mk,fmt){
@@ -1909,6 +1985,34 @@ function initRealtime(){if(_rtChannel)return;_rtChannel=SB.channel('lb_realtime'
 let _presenceChannel=null;
 function initPresence(){if(_presenceChannel)return;_presenceChannel=SB.channel('lb_presence',{config:{presence:{key:CU.user}}}).on('presence',{event:'sync'},()=>{const state=_presenceChannel.presenceState();const others=Object.keys(state).filter(k=>k!==CU.user);const el=document.getElementById('sb-presence');if(el)el.textContent=others.length?'🟢 '+others.join(', '):''}).subscribe(async status=>{if(status==='SUBSCRIBED')await _presenceChannel.track({online_at:new Date().toISOString(),user:CU.user});});}
 
+// % TRIBUTOS SHOPEE
+function abrirTributos(){
+  const ps=LS.get('lb_p')||[];
+  const ativos=ps.filter(p=>p.shp).sort((a,b)=>(a.sku||'').localeCompare(b.sku||'','pt-BR',{numeric:true,sensitivity:'base'}));
+  const tb=document.getElementById('trib-tbody');
+  if(!tb)return;
+  tb.innerHTML=ativos.length?ativos.map(p=>{
+    const icms=parseFloat(p.icms)||0;
+    const ipi=p.tipo==='Importado'?parseFloat(p.ipi)||0:0;
+    const piscof=9.25;
+    const total=icms+ipi+piscof;
+    const tipoChip=p.tipo==='Importado'?'ci':p.tipo==='Terceiro Importado'?'cw':'cna';
+    const tipoLabel=p.tipo==='Terceiro Importado'?'3° Imp.':p.tipo;
+    return`<tr><td class="tdl"><strong>${p.nome||p.sku}</strong></td><td class="tdc tmu">${p.sku}</td><td class="tdc"><span class="chip ${tipoChip}">${tipoLabel}</span></td><td class="tdc td-imp">${pc(icms)}</td><td class="tdc td-imp">${p.tipo==='Importado'?pc(ipi):'—'}</td><td class="tdc td-imp">${pc(piscof)}</td><td class="tdc td-res">${pc(total)}</td></tr>`;
+  }).join(''):'<tr><td colspan="7" class="nd">Nenhum produto ativo na Shopee.</td></tr>';
+  document.getElementById('mod-tributos').classList.add('open');
+}
+
+// MODALIDADE MAGALU
+function setMgaMod(sku,mod){
+  const all=LS.get('lb_m')||{};const k='mga_'+sku;
+  if(!all[k])all[k]={};
+  all[k].mgaMod=mod;
+  _cache['lb_m']=JSON.parse(JSON.stringify(all));
+  try{localStorage.setItem('lb_m',JSON.stringify(all));}catch{}
+  lU(sku,'mga');
+}
+
 // DETALHE DE MARGEM
 function openMgDetail(sku,mk){
   const p=(LS.get('lb_p')||[]).find(x=>x.sku===sku);if(!p)return;
@@ -1957,6 +2061,52 @@ function openMgDetail(sku,mk){
   document.getElementById('mgd-fis-p').style.color=preco?corMg(mFisP):'var(--text3)';
   document.getElementById('mgd-fis-r').textContent=preco?fR(parseFloat(mFisR.toFixed(2))):'—';
   document.getElementById('mod-mg-detail').classList.add('open');
+}
+
+// CUSTO NOVO — IMPORTADOS (apenas custo NF de precificação)
+let _cnProdId=null;
+function openCustoNovo(pid){
+  const ps=LS.get('lb_p')||[];
+  const p=ps.find(x=>String(x.id)===String(pid));
+  if(!p||p.tipo!=='Importado'){toast('Apenas produtos Importados','e');return;}
+  _cnProdId=pid;
+  document.getElementById('cn-nome').textContent=p.sku+' — '+(p.nome||'');
+  document.getElementById('cn-custo-atual').textContent=fR(p.custo||0);
+  document.getElementById('cn-custo').value=p.custo||'';
+  document.getElementById('cn-st').value=p.st||'';
+  document.getElementById('cn-ipi').value=p.ipi||'';
+  document.getElementById('cn-icms').value=p.icms||'';
+  document.getElementById('cn-preview').style.display='none';
+  document.getElementById('cn-btn-salvar').style.display='none';
+  document.getElementById('mod-custo-novo').classList.add('open');
+}
+function calcCustoNovo(){
+  const custo=parseFloat(document.getElementById('cn-custo').value)||0;
+  if(!custo){document.getElementById('cn-preview').style.display='none';document.getElementById('cn-btn-salvar').style.display='none';return;}
+  document.getElementById('cn-novo-val').textContent=fR(custo);
+  document.getElementById('cn-preview').style.display='block';
+  document.getElementById('cn-btn-salvar').style.display='inline-flex';
+}
+function salvarCustoNovo(){
+  if(!_cnProdId)return;
+  const ps=LS.get('lb_p')||[];
+  const idx=ps.findIndex(x=>String(x.id)===String(_cnProdId));
+  if(idx<0)return;
+  const p=ps[idx];
+  const custoAnt=parseFloat(p.custo)||0;
+  const custoNovo=parseFloat(document.getElementById('cn-custo').value)||0;
+  const stNovo=parseFloat(document.getElementById('cn-st').value)||0;
+  const ipiNovo=parseFloat(document.getElementById('cn-ipi').value)||0;
+  const icmsNovo=parseFloat(document.getElementById('cn-icms').value)||0;
+  // Registrar no histórico como Custo NF
+  if(Math.abs(custoAnt-custoNovo)>0.001){
+    trgH(p.sku,p.nome||p.sku,[{campo:'Custo NF',ant:custoAnt,novo:custoNovo,labelAnt:'Custo NF Anterior',labelNovo:'Custo NF Novo'}]);
+  }
+  ps[idx]={...p,custo:custoNovo,st:stNovo,ipi:ipiNovo,icms:icmsNovo,upAt:td(),upBy:CU?CU.user:'sistema'};
+  _cache['lb_p']=JSON.parse(JSON.stringify(ps));
+  try{localStorage.setItem('lb_p',JSON.stringify(ps));}catch{}
+  SB.from('produtos').upsert({sku:p.sku,nome:p.nome,tipo:p.tipo,ncm:p.ncm||null,peso:p.peso||0,custo:custoNovo,st:stNovo,ipi:ipiNovo,pis:9.25,icms:icmsNovo,marca:p.marca||null,categoria:p.categoria||null,meli:!!p.meli,shp:!!p.shp,amz:!!p.amz,tkt:!!p.tkt,mga:!!p.mga,variacao:!!p.variacao,atualizado_em:new Date().toISOString(),atualizado_por:CU?CU.user:'sistema'},{onConflict:'sku'}).then(({error})=>{if(error)console.warn('Erro:',error);});
+  cM('mod-custo-novo');rBase();toast('Custo NF atualizado!');
 }
 
 // CUSTO MÉDIO PONDERADO — NACIONAIS
