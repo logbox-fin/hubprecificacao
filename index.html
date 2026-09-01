@@ -259,7 +259,9 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;" id="base-stats"></div>
         <div class="ph" style="flex-wrap:wrap;gap:8px;">
           <div class="pt">Produtos Cadastrados</div>
-          <input type="text" id="busca-base" placeholder="Buscar SKU ou nome..." style="width:220px;" oninput="buscaBase(this.value)">
+          <input type="text" id="busca-base" placeholder="Buscar SKU ou nome..." style="width:200px;" oninput="buscaBase(this.value)">
+          <select id="base-filtro-marca" onchange="rBase()" style="padding:6px 10px;font-size:12px;min-width:130px;"><option value="">Todas as Marcas</option></select>
+          <select id="base-filtro-cat" onchange="rBase()" style="padding:6px 10px;font-size:12px;min-width:150px;"><option value="">Todas as Categorias</option></select>
           <div class="ml-auto flex g8">
             <select id="base-ordem" onchange="rBase()" style="padding:6px 10px;font-size:12px;"><option value="">Ordenar por...</option><option value="nome-az">Nome A→Z</option><option value="sku-az" selected>SKU A→Z</option><option value="sku-za">SKU Z→A</option></select>
             <button class="btn" onclick="baixarPlanilha()">&#8659; Baixar Modelo</button>
@@ -819,18 +821,27 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
 <div class="mov" id="mod-cmv-prod"><div class="mod" style="width:500px;"><div class="mt" id="mod-cmv-title">CMV do Produto</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;padding:12px;background:var(--bg3);border-radius:var(--r);"><div><div class="fl">SKU</div><div id="cmv-prod-sku" style="font-weight:700;"></div></div><div><div class="fl">Container</div><div id="cmv-prod-clb" style="font-weight:700;"></div></div><div><div class="fl">CMV Anterior (auto)</div><div id="cmv-prod-ant" style="font-weight:700;color:var(--text2);"></div></div><div><div class="fl">CMV Médio Calculado</div><div id="cmv-prod-med" style="font-weight:700;color:var(--green);"></div></div></div><div class="gr g2"><div class="fg"><label class="fl">Estoque no Galpão</label><input type="number" class="full" id="cmv-estoque" step="1" min="0" oninput="calcCmvModal()"></div><div class="fg"><label class="fl">CMV (R$)</label><input type="number" class="full" id="cmv-valor" step="0.01" oninput="calcCmvModal()"></div></div><div class="fg"><label class="fl">Quantidade neste Container</label><input type="number" class="full" id="cmv-qtd" step="1" min="0" oninput="calcCmvModal()"></div><div class="mf"><button class="btn" onclick="cM('mod-cmv-prod')">Cancelar</button><button class="btn btn-p" onclick="saveCmvProd()">Salvar</button></div></div></div>
 <div class="mov" id="mod-cmv-exp"><div class="mod" style="width:380px;"><div class="mt">Exportar Relatório CMV</div><div class="fg"><label class="fl">Data de referência</label><input type="date" class="full" id="exp-data"></div><p class="tmu tsm" style="margin-top:6px;">O sistema usará o CMV médio do último container que chegou até esta data.</p><div class="mf"><button class="btn" onclick="cM('mod-cmv-exp')">Cancelar</button><button class="btn btn-p" onclick="gerarRelatorio()">Exportar XLS</button></div></div></div>
 <div class="mov" id="mod-tributos">
-  <div class="mod" style="width:700px;">
+  <div class="mod" style="width:660px;max-width:96vw;">
     <div class="mt">📊 % Tributos por Produto</div>
     <p class="tmu tsm" style="margin-bottom:12px;">Soma das alíquotas de impostos por produto ativo na Shopee.</p>
-    <div class="tw"><table>
+    <div style="overflow-y:auto;max-height:60vh;border-radius:var(--r);"><table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;">
+      <colgroup>
+        <col style="width:34%">
+        <col style="width:16%">
+        <col style="width:14%">
+        <col style="width:10%">
+        <col style="width:8%">
+        <col style="width:10%">
+        <col style="width:8%">
+      </colgroup>
       <thead><tr>
-        <th class="th-sku" style="text-align:left;">Nome</th>
-        <th class="th-sku">SKU</th>
-        <th class="th-sku">Tipo</th>
-        <th class="thg-imp">ICMS %</th>
-        <th class="thg-imp">IPI %</th>
-        <th class="thg-imp">PIS/COFINS %</th>
-        <th class="thg-mg">Total %</th>
+        <th class="th-sku" style="text-align:left;padding:7px 8px;">Nome</th>
+        <th class="th-sku" style="padding:7px 8px;">SKU</th>
+        <th class="th-sku" style="padding:7px 8px;">Tipo</th>
+        <th class="thg-imp" style="padding:7px 6px;">ICMS%</th>
+        <th class="thg-imp" style="padding:7px 6px;">IPI%</th>
+        <th class="thg-imp" style="padding:7px 6px;">PIS/COF%</th>
+        <th class="thg-mg" style="padding:7px 6px;">Total%</th>
       </tr></thead>
       <tbody id="trib-tbody"></tbody>
     </table></div>
@@ -1355,7 +1366,18 @@ function rBase(){
   const ps=LS.get('lb_p')||[];
   const busca=(document.getElementById('busca-base')||{value:''}).value.toLowerCase();
   const ordem=(document.getElementById('base-ordem')||{value:''}).value;
-  const filtrados=busca?ps.filter(p=>(p.sku||'').toLowerCase().includes(busca)||(p.nome||'').toLowerCase().includes(busca)):ps;
+  const filtMarca=(document.getElementById('base-filtro-marca')||{value:''}).value;
+  const filtCat=(document.getElementById('base-filtro-cat')||{value:''}).value;
+  // Popular selects de marca e categoria
+  const marcas=LS.get('lb_marcas')||[];const cats=LS.get('lb_cats')||[];
+  const smBase=document.getElementById('base-filtro-marca');
+  if(smBase){const curM=smBase.value;smBase.innerHTML='<option value="">Todas as Marcas</option>'+marcas.map(m=>`<option value="${m}" ${curM===m?'selected':''}>${m}</option>`).join('');smBase.value=curM;}
+  const scBase=document.getElementById('base-filtro-cat');
+  if(scBase){const curC=scBase.value;scBase.innerHTML='<option value="">Todas as Categorias</option>'+cats.map(c=>`<option value="${c}" ${curC===c?'selected':''}>${c}</option>`).join('');scBase.value=curC;}
+  let filtrados=ps;
+  if(busca)filtrados=filtrados.filter(p=>(p.sku||'').toLowerCase().includes(busca)||(p.nome||'').toLowerCase().includes(busca));
+  if(filtMarca)filtrados=filtrados.filter(p=>p.marca===filtMarca);
+  if(filtCat)filtrados=filtrados.filter(p=>p.categoria===filtCat);
   // Ordenar todos os produtos filtrados primeiro
   const sortNat=(a,b)=>(a.sku||'').localeCompare(b.sku||'','pt-BR',{numeric:true,sensitivity:'base'});
   const sortNome=(a,b)=>(a.nome||a.sku).localeCompare(b.nome||b.sku,'pt-BR',{numeric:true});
@@ -1997,8 +2019,8 @@ function abrirTributos(){
     const piscof=9.25;
     const total=icms+ipi+piscof;
     const tipoChip=p.tipo==='Importado'?'ci':p.tipo==='Terceiro Importado'?'cw':'cna';
-    const tipoLabel=p.tipo==='Terceiro Importado'?'3° Imp.':p.tipo;
-    return`<tr><td class="tdl"><strong>${p.nome||p.sku}</strong></td><td class="tdc tmu">${p.sku}</td><td class="tdc"><span class="chip ${tipoChip}">${tipoLabel}</span></td><td class="tdc td-imp">${pc(icms)}</td><td class="tdc td-imp">${p.tipo==='Importado'?pc(ipi):'—'}</td><td class="tdc td-imp">${pc(piscof)}</td><td class="tdc td-res">${pc(total)}</td></tr>`;
+    const tipoLabel=p.tipo==='Terceiro Importado'?'3° Imp.':p.tipo==='Importado'?'Imp.':'Nac.';
+    return`<tr><td class="tdl" style="padding:6px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:0;"><strong>${p.nome||p.sku}</strong></td><td class="tdc tmu" style="padding:6px 6px;font-size:11px;">${p.sku}</td><td class="tdc" style="padding:6px 4px;"><span class="chip ${tipoChip}" style="font-size:10px;padding:2px 5px;">${tipoLabel}</span></td><td class="tdc td-imp" style="padding:6px 4px;">${pc(icms)}</td><td class="tdc td-imp" style="padding:6px 4px;">${p.tipo==='Importado'?pc(ipi):'—'}</td><td class="tdc td-imp" style="padding:6px 4px;">${pc(piscof)}</td><td class="tdc td-res" style="padding:6px 4px;">${pc(total)}</td></tr>`;
   }).join(''):'<tr><td colspan="7" class="nd">Nenhum produto ativo na Shopee.</td></tr>';
   document.getElementById('mod-tributos').classList.add('open');
 }
