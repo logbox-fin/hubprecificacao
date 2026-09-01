@@ -2232,7 +2232,7 @@ function salvarPrecoNovo(){
 // SALVAR CMV NACIONAIS NO SUPABASE
 async function sbSalvarCmvNacionais(prods){
   if(!prods||!prods.length)return;
-  const nac=prods.filter(p=>p.tipo==='Nacional');
+  const nac=prods.filter(p=>p.tipo==='Nacional'||p.tipo==='Terceiro Importado');
   if(!nac.length)return;
   const rows=nac.map(p=>({
     sku:p.sku,
