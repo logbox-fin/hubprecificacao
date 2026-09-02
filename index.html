@@ -1119,12 +1119,8 @@ function saveMeliPix(){
   const desc=parseFloat(document.getElementById('det-pix-desc').value)||0;
   const vend=parseFloat(document.getElementById('det-pix-vend').value)||0;
   setMeliPix(sku,desc,vend);
-  // Atualizar linha na tabela Meli
-  const p=(LS.get('lb_p')||[]).find(x=>x.sku===sku);if(!p)return;
-  const d=gM(sku,'meli');const preco=parseFloat(d.preco)||0;
-  const pvP=pvPix(preco,desc);const pvM=pvMedio(preco,desc,vend);
-  const pvPixCell=document.getElementById('pv-pix-'+sku);if(pvPixCell)pvPixCell.textContent=preco&&desc?fR(pvP):'—';
-  lU(sku,'meli');
+  // Re-renderizar tabela Meli para mostrar seta e colunas PIX atualizadas
+  filtrarMkt('meli');
 }
 
 // FRETE MAGALU
@@ -1745,8 +1741,12 @@ function lU(sku,mk){
   else if(mk==='tkt'){const tc=fTkt(d,preco);frete=tc.frete;tar=tc.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
   else if(mk==='mga'){const mc2=fMga(d,p.peso,preco);frete=mc2.frete;tar=mc2.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
   else{tar=parseFloat(d.tar)||0;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;frete=mk==='meli'?fM(p.peso,preco):(parseFloat(d.frete)||0);}
-  const aj=cAj(p,frete,tar,reb,ads,preco);
-  const m=cMarg(p,preco,frete,tar,reb,ads),mC=mc(m.p);
+  const pixD=mk==='meli'?getMeliPix(sku):{desc:0,vend:0};
+  const precoPix=mk==='meli'&&pixD.desc?pvPix(preco,pixD.desc):preco;
+  const precoMedio=mk==='meli'&&pixD.desc&&pixD.vend?pvMedio(preco,pixD.desc,pixD.vend):preco;
+  const precoCalc=mk==='meli'?precoMedio:preco;
+  const aj=cAj(p,frete,tar,reb,ads,precoCalc);
+  const m=cMarg(p,precoCalc,frete,tar,reb,ads),mC=mc(m.p);
   const elAJ=document.getElementById('aj-'+mk+'-'+sku);if(elAJ)elAJ.textContent=fR(aj);
   const eR=document.getElementById('mgR-'+mk+'-'+sku),eP=document.getElementById('mgP-'+mk+'-'+sku);
   const eTR=document.getElementById('tr-'+mk+'-'+sku),eAR=document.getElementById('ar-'+mk+'-'+sku);
