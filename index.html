@@ -1055,7 +1055,7 @@ async function sbLoad(){
     ]);
     if(rProd.data?.length)_cache['lb_p']=rProd.data.map(p=>({id:p.id,sku:p.sku,nome:p.nome,tipo:p.tipo||'Importado',ncm:p.ncm||'',peso:parseFloat(p.peso)||0,custo:parseFloat(p.custo)||0,st:parseFloat(p.st)||0,ipi:parseFloat(p.ipi)||0,pis:parseFloat(p.pis)||9.25,icms:parseFloat(p.icms)||0,marca:p.marca||'',categoria:p.categoria||'',meli:!!p.meli,shp:!!p.shp,amz:!!p.amz,tkt:!!p.tkt,mga:!!p.mga,variacao:!!p.variacao,upAt:p.atualizado_em?p.atualizado_em.substring(0,10):'',upBy:p.atualizado_por||''}));
     if(rUsers.data?.length)_cache['lb_u']=rUsers.data.map(u=>({id:u.id,nome:u.nome,user:u.usuario,senha:u.senha,perfil:u.perfil}));
-    if(rMkt.data?.length){const mkt={};rMkt.data.forEach(r=>{mkt[r.marketplace+'_'+r.sku]={preco:parseFloat(r.preco)||0,frete:(r.frete!=null&&r.frete!==0)?parseFloat(r.frete):null,tar:parseFloat(r.tar)||0,reb:parseFloat(r.reb)||0,ads:parseFloat(r.ads)||0};});_cache['lb_m']=mkt;}
+    if(rMkt.data?.length){const mkt={};rMkt.data.forEach(r=>{mkt[r.marketplace+'_'+r.sku]={preco:parseFloat(r.preco)||0,frete:(r.frete!=null&&r.frete!==0)?parseFloat(r.frete):null,tar:parseFloat(r.tar)||0,reb:parseFloat(r.reb)||0,ads:parseFloat(r.ads)||0,pix_desc:parseFloat(r.pix_desc)||0,pix_vend:parseFloat(r.pix_vend)||0,mgaMod:r.mga_mod||'coleta'};});_cache['lb_m']=mkt;}
     if(rHist.data?.length){const prodMap={};(rProd.data||[]).forEach(p=>prodMap[p.sku]=p.tipo);_cache['lb_h']=rHist.data.map(h=>{const ant=parseFloat(h.valor_anterior)||0,novo=parseFloat(h.valor_novo)||0;const vp=ant>0?((novo-ant)/ant*100).toFixed(2):'—';const campo=h.campo==='Custo'?'Custo NF':(h.campo||'Custo NF');const tipo=prodMap[h.sku]||(campo==='CMV Contábil'?'Terceiro Importado':'Importado');return{id:h.id,sku:h.sku,nome:h.nome||'',campo,tipo,ant,novo,var:vp!=='—'?(novo>=ant?'+':'')+vp+'%':'—',user:h.alterado_por||'',data:h.alterado_em?h.alterado_em.substring(0,10):''};}); }
     if(rMarcas.data?.length)_cache['lb_marcas']=rMarcas.data.map(r=>r.nome);
     if(rCats.data?.length)_cache['lb_cats']=rCats.data.map(r=>r.nome);
@@ -1087,8 +1087,19 @@ function showLoadingOverlay(msg){let el=document.getElementById('sb-loading');if
 function hideLoadingOverlay(){const el=document.getElementById('sb-loading');if(el)el.remove();}
 
 // PIX MELI
-function getMeliPix(sku){const all=LS.get('lb_m')||{};return all['meli_pix_'+sku]||{desc:0,vend:0};}
-function setMeliPix(sku,desc,vend){const all=LS.get('lb_m')||{};all['meli_pix_'+sku]={desc:parseFloat(desc)||0,vend:parseFloat(vend)||0};_cache['lb_m']=JSON.parse(JSON.stringify(all));try{localStorage.setItem('lb_m',JSON.stringify(all));}catch{}}
+function getMeliPix(sku){const d=gM(sku,'meli')||{};return{desc:parseFloat(d.pix_desc)||0,vend:parseFloat(d.pix_vend)||0};}
+function setMeliPix(sku,desc,vend){
+  const d=parseFloat(desc)||0,v=parseFloat(vend)||0;
+  // Atualizar cache lb_m
+  const all=LS.get('lb_m')||{};
+  const k='meli_'+sku;
+  if(!all[k])all[k]={};
+  all[k].pix_desc=d;all[k].pix_vend=v;
+  _cache['lb_m']=JSON.parse(JSON.stringify(all));
+  try{localStorage.setItem('lb_m',JSON.stringify(all));}catch{}
+  // Persistir no Supabase
+  SB.from('marketplace_dados').upsert({marketplace:'meli',sku,pix_desc:d,pix_vend:v,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'}).then(({error})=>{if(error)console.warn('PIX save:',error);});
+}
 function pvPix(pv,desc){return parseFloat((pv*(1-desc/100)).toFixed(2));}
 function pvMedio(pv,desc,vend){const pvD=pvPix(pv,desc);return parseFloat((pv*(1-vend/100)+pvD*(vend/100)).toFixed(2));}
 function calcDetPix(){
@@ -1236,7 +1247,7 @@ function mc(p){const fc=getFC();const am=fc.mgAmarelo||15,vd=fc.mgVerde||18;retu
 function fShp(preco){const fc=getFC();const p=parseFloat(preco)||0;if(p<=0)return{frete:0,tar:0};const faixas=(fc.shpFaixas&&fc.shpFaixas.length)?fc.shpFaixas:FC_DEFAULT.shpFaixas;const fx=faixas.find(f=>p<=f.ate)||faixas[faixas.length-1];return{frete:fx.frete||0,tar:fx.tar||0};}
 function fTkt(d,preco){const fc=getFC();const faixas=fc.tktFaixas||FC_DEFAULT.tktFaixas;const pr=parseFloat(preco)||0;const fx=pr>0?(faixas.find(f=>pr<f.limiar)||faixas[faixas.length-1]):faixas[faixas.length-1];const frPadrao=fx.frete,tarPadrao=fx.tar;return{frete:parseFloat((d&&d.frete!=null)?d.frete:frPadrao)||frPadrao,tar:parseFloat((d&&d.tar!=null&&d.tar!==0)?d.tar:tarPadrao)||tarPadrao};}
 function fMga(d,peso,preco){const fc=getFC();const mod=d?d.mgaMod||'coleta':'coleta';const fr=fMgaAuto(peso||0,preco||0,mod)||0;return{frete:fr,tar:parseFloat((d&&d.tar!=null&&d.tar!==0)?d.tar:fc.mgaTar)||fc.mgaTar||9.9};}
-function gM(sku,mk){const all=LS.get('lb_m')||{};return all[mk+'_'+sku]||{};}
+function gM(sku,mk){const all=LS.get('lb_m')||{};const d=all[mk+'_'+sku]||{};return d;}
 function sM(sku,mk,field,val){const all=LS.get('lb_m')||{};const k=mk+'_'+sku;if(!all[k])all[k]={};all[k][field]=parseFloat(val)||0;
   // Garantir que tar e frete sempre refletem o padrão fiscal quando não definidos explicitamente
   // TikTok: tar e frete são calculados dinamicamente por faixa de preço — não salvar no Supabase
