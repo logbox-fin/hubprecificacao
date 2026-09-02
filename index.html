@@ -331,10 +331,12 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
         </div></div>
         <div class="card card0"><div class="tw-sticky"><table>
           <thead><tr>
+            <th rowspan="2" class="th-sku" style="width:30px;"></th>
             <th rowspan="2" class="th-sku">SKU</th><th rowspan="2" class="th-sku" style="background:#e8eaf0;">Custo</th>
-            <th rowspan="2" class="thg-aj">Custo Ajustado</th><th rowspan="2" class="thg-preco">Preço de Venda</th>
+            <th rowspan="2" class="thg-aj">Custo Ajustado</th><th rowspan="2" class="thg-preco">PV Cadastrado</th>
+            <th rowspan="2" style="background:#fef9c3;color:#a16207;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border:1px solid var(--border);padding:7px 10px;text-align:center;">PV c/ PIX</th>
             <th rowspan="2" class="thg-frete">Frete (R$)</th><th class="thg-tarifa" colspan="3">Tarifas</th>
-            <th class="thg-ads" colspan="2">ADS</th><th class="thg-mg" colspan="2">Margem de Contribuição</th>
+            <th class="thg-ads" colspan="2">ADS</th><th class="thg-mg" colspan="2">MC (PV Médio)</th>
             <th rowspan="2" class="th-sku">Tags / Obs</th>
           </tr><tr>
             <th class="thg-tarifa">%</th><th class="thg-tarifa">R$</th><th class="thg-tarifa">Rebate (R$)</th>
@@ -792,12 +794,22 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
       <div class="sc"><div class="sc-l">Markup Atual</div><div id="det-mk" class="sc-v" style="font-size:16px;color:var(--green);"></div></div>
     </div>
     <div class="dv"></div>
+    <div class="sl">Desconto PIX — Mercado Livre</div>
+    <div class="gr g2" style="margin-bottom:12px;">
+      <div class="fg"><label class="fl">% Desconto PIX</label><div class="pfx"><span>%</span><input type="number" id="det-pix-desc" step="0.1" min="0" max="100" placeholder="Ex: 5" oninput="calcDetPix()"></div></div>
+      <div class="fg"><label class="fl">% Vendas c/ Desconto</label><div class="pfx"><span>%</span><input type="number" id="det-pix-vend" step="0.1" min="0" max="100" placeholder="Ex: 40" oninput="calcDetPix()"></div></div>
+    </div>
+    <div id="det-pix-preview" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--r);padding:10px 14px;margin-bottom:12px;display:flex;gap:16px;align-items:center;">
+      <div><div class="fl">PV c/ PIX</div><div id="det-pix-pv" style="font-weight:700;color:var(--yellow);">—</div></div>
+      <div><div class="fl">PV Médio</div><div id="det-pix-med" style="font-weight:700;color:var(--green);">—</div></div>
+    </div>
+    <div class="dv"></div>
     <div class="sl">Gerar Variação (Kit)</div>
     <div class="flex fc g8">
       <input type="number" id="kit-qtd" min="2" max="100" step="1" placeholder="Quantidade (ex: 2, 3...)" style="width:200px;">
       <button class="btn btn-p" onclick="abrirModalKit()">+ Gerar Kit</button>
     </div>
-    <div class="mf"><button class="btn" onclick="cM('mod-det')">Fechar</button></div>
+    <span id="det-pv-val" style="display:none;"></span><div class="mf"><button class="btn" onclick="saveMeliPix();cM('mod-det')">Fechar</button></div>
   </div>
 </div>
 
@@ -1073,6 +1085,36 @@ async function sbLoad(){
 }
 function showLoadingOverlay(msg){let el=document.getElementById('sb-loading');if(!el){el=document.createElement('div');el.id='sb-loading';el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;';el.innerHTML='<div style="width:44px;height:44px;border:4px solid #334155;border-top:4px solid #2563eb;border-radius:50%;animation:spin 0.8s linear infinite;"></div><div style="color:#fff;font-size:14px;font-weight:600;" id="sb-loading-msg"></div><style>@keyframes spin{to{transform:rotate(360deg)}}<\/style>';document.body.appendChild(el);}document.getElementById('sb-loading-msg').textContent=msg||'Carregando...';}
 function hideLoadingOverlay(){const el=document.getElementById('sb-loading');if(el)el.remove();}
+
+// PIX MELI
+function getMeliPix(sku){const all=LS.get('lb_m')||{};return all['meli_pix_'+sku]||{desc:0,vend:0};}
+function setMeliPix(sku,desc,vend){const all=LS.get('lb_m')||{};all['meli_pix_'+sku]={desc:parseFloat(desc)||0,vend:parseFloat(vend)||0};_cache['lb_m']=JSON.parse(JSON.stringify(all));try{localStorage.setItem('lb_m',JSON.stringify(all));}catch{}}
+function pvPix(pv,desc){return parseFloat((pv*(1-desc/100)).toFixed(2));}
+function pvMedio(pv,desc,vend){const pvD=pvPix(pv,desc);return parseFloat((pv*(1-vend/100)+pvD*(vend/100)).toFixed(2));}
+function calcDetPix(){
+  const pv=parseFloat((document.getElementById('det-pv-val')||{textContent:'0'}).textContent.replace('R$ ','').replace(',','.'))||0;
+  const desc=parseFloat(document.getElementById('det-pix-desc').value)||0;
+  const vend=parseFloat(document.getElementById('det-pix-vend').value)||0;
+  const preview=document.getElementById('det-pix-preview');
+  if(!pv||!desc){if(preview)preview.style.display='none';return;}
+  const pvD=pvPix(pv,desc);const pvM=pvMedio(pv,desc,vend);
+  document.getElementById('det-pix-pv').textContent=fR(pvD);
+  document.getElementById('det-pix-med').textContent=fR(pvM);
+  if(preview)preview.style.display='flex';
+}
+function togglePixRows(sku){const r=document.getElementById('pix-rows-'+sku);if(r){const vis=r.style.display!=='none';r.style.display=vis?'none':'';const btn=document.getElementById('pix-arrow-'+sku);if(btn)btn.textContent=vis?'▶':'▼';}}
+function saveMeliPix(){
+  const sku=detProdSku;if(!sku)return;
+  const desc=parseFloat(document.getElementById('det-pix-desc').value)||0;
+  const vend=parseFloat(document.getElementById('det-pix-vend').value)||0;
+  setMeliPix(sku,desc,vend);
+  // Atualizar linha na tabela Meli
+  const p=(LS.get('lb_p')||[]).find(x=>x.sku===sku);if(!p)return;
+  const d=gM(sku,'meli');const preco=parseFloat(d.preco)||0;
+  const pvP=pvPix(preco,desc);const pvM=pvMedio(preco,desc,vend);
+  const pvPixCell=document.getElementById('pv-pix-'+sku);if(pvPixCell)pvPixCell.textContent=preco&&desc?fR(pvP):'—';
+  lU(sku,'meli');
+}
 
 // FRETE MAGALU
 // Tabela azul: R$ 79 a R$ 199
@@ -1599,23 +1641,64 @@ function rowM(p,mk){
   const d=gM(p.sku,mk)||{};
   const isMeli=mk==='meli',isShp=mk==='shp',isTkt=mk==='tkt',isMga=mk==='mga';
   const preco=parseFloat(d.preco)||0;
+  // PIX Meli
+  const pixD=isMeli?getMeliPix(p.sku):{desc:0,vend:0};
+  const precoPix=isMeli&&pixD.desc?pvPix(preco,pixD.desc):0;
+  const precoMedio=isMeli&&pixD.desc&&pixD.vend?pvMedio(preco,pixD.desc,pixD.vend):preco;
   let frete,tar,reb,ads;
   if(isShp){const sc=fShp(preco);frete=sc.frete;tar=sc.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
   else if(isTkt){const tc=fTkt(d,preco);frete=tc.frete;tar=tc.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
   else if(isMga){const mc2=fMga(d,p.peso,preco);frete=mc2.frete;tar=mc2.tar;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
   else{frete=isMeli?fM(p.peso,preco):(parseFloat(d.frete)||0);tar=parseFloat(d.tar)||0;reb=parseFloat(d.reb)||0;ads=parseFloat(d.ads)||0;}
-  const aj=cAj(p,frete,tar,reb,ads,preco);
-  const m=cMarg(p,preco,frete,tar,reb,ads),mC=mc(m.p);
   const tarR=preco?((preco*tar/100)-reb):0,adsR=preco?(preco*ads/100):0;
-  const cmvNac=p.tipo==='Nacional'?calcCMV(p):null;
+  const cmvNac=(p.tipo==='Nacional'||p.tipo==='Terceiro Importado')?calcCMV(p):null;
   const obs=LS.get('lb_obs')||{};const pObs=obs[mk+'_'+p.sku]||{tags:[],nota:''};
   const tagsHtml=(pObs.tags||[]).map(t=>`<span class="tag-chip" style="background:${t.cor};color:#fff;">${t.nome}</span>`).join('');
   const obsCell=`<td class="obs-cell" onclick="openObs('${p.sku}','${mk}')">${tagsHtml||'<span style="color:#ccc;font-size:11px;">+</span>'}</td>`;
+  // Para Meli: usar precoMedio no cálculo principal
+  const precoCalc=isMeli?precoMedio:preco;
   function editCell(id,val,fmt,field,w,extraClass=''){const disp=val?(fmt==='pct'?pc(val):fR(val)):'—';return`<td class="tdc td-edit ${extraClass}" id="cell-${id}" style="min-width:${w||'80px'};" onclick="ativaEdit('${id}','${field}','${p.sku}','${mk}','${fmt}')">${disp}</td>`;}
   const fCell=(isMeli||isShp)?`<td class="tdc col-frete" id="fr-${mk}-${p.sku}">${preco?fR(frete):'—'}</td>`:editCell('fr-'+mk+'-'+p.sku,(isTkt?frete:isMga?fMga(d).frete:(d.frete||0)),'val','frete','80px','col-frete');
   const tarCell=isShp?`<td class="tdc col-tarifa" id="cell-tar-${mk}-${p.sku}">${pc(tar)}</td>`:editCell('tar-'+mk+'-'+p.sku,(isTkt?tar:isMga?(d.tar||9.9):(d.tar||0)),'pct','tar','64px','col-tarifa');
   const rebCell=editCell('reb-'+mk+'-'+p.sku,d.reb||0,'val','reb','80px','col-tarifa');
-  const modCell=isMga?`<td class="tdc"><select style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--font);background:var(--bg2);" onchange="setMgaMod('${p.sku}',this.value)" id="mod-mga-${p.sku}"><option value="coleta" ${(d.mgaMod||'coleta')==='coleta'?'selected':''}>Coleta</option><option value="full" ${d.mgaMod==='full'?'selected':''}>Full</option></select></td>`:'';  return`<tr id="mr-${mk}-${p.sku}" data-sku="${p.sku}"><td class="tdc" onclick="openDet('${p.sku}','${mk}')" style="cursor:pointer;text-decoration:underline dotted;color:var(--accent2);font-weight:700;">${p.sku}</td><td class="tdc" style="cursor:pointer;" onclick="openGrafCusto('${p.sku}','${mk}')" title="Ver histórico de custo">${p.tipo==='Nacional'||p.tipo==='Terceiro Importado'?fR(cmvNac):fR(p.custo)}</td><td class="tdc col-aj" id="aj-${mk}-${p.sku}">${fR(aj)}</td>${editCell('pr-'+mk+'-'+p.sku,d.preco||0,'val','preco','90px','col-preco')}${fCell}${tarCell}<td class="tdc col-tarifa" id="tr-${mk}-${p.sku}">${preco&&tar?fR(tarR):'—'}</td>${rebCell}${editCell('ads-'+mk+'-'+p.sku,d.ads||0,'pct','ads','64px','col-ads')}<td class="tdc col-ads" id="ar-${mk}-${p.sku}">${preco&&ads?fR(adsR):'—'}</td><td class="tdc col-mg ${mC}" id="mgR-${mk}-${p.sku}">${m.r===''?'—':fR(m.r)}</td><td class="tdc col-mg ${mC}" id="mgP-${mk}-${p.sku}" style="cursor:pointer;text-decoration:underline dotted;" data-mgsku="${p.sku}" data-mgmk="${mk}" onclick="openMgDetail(this.dataset.mgsku,this.dataset.mgmk)" title="Ver detalhes da margem">${m.p===''?'—':pc(m.p)}</td>${modCell}${obsCell}</tr>`;
+  const modCell=isMga?`<td class="tdc"><select style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--font);background:var(--bg2);" onchange="setMgaMod('${p.sku}',this.value)" id="mod-mga-${p.sku}"><option value="coleta" ${(d.mgaMod||'coleta')==='coleta'?'selected':''}>Coleta</option><option value="full" ${d.mgaMod==='full'?'selected':''}>Full</option></select></td>`:'';  // Calcular MC com PV Médio (linha principal)
+  const aj=cAj(p,frete,tar,reb,ads,precoCalc);
+  const m=cMarg(p,precoCalc,frete,tar,reb,ads),mC=mc(m.p);
+  const tarRMed=precoCalc?(precoCalc*tar/100-reb):0;
+  const adsRMed=precoCalc?(precoCalc*ads/100):0;
+  // Linhas extras PIX
+  let pixRowsHtml='';
+  if(isMeli&&pixD.desc){
+    // Linha PV Cadastrado
+    const mPv=cMarg(p,preco,frete,tar,reb,ads);const mCpv=mc(mPv.p);
+    // Linha PV c/ PIX
+    const fretePix=fM(p.peso,preco);// frete sempre pelo PV cadastrado
+    const mPix=cMarg(p,precoPix,fretePix,tar,reb,ads);const mCpix=mc(mPix.p);
+    pixRowsHtml=`<tr id="pix-rows-${p.sku}" style="display:none;background:#fffde7;">
+      <td></td><td class="tdc tmu" style="font-size:10px;color:#a16207;">PV Cadastrado</td>
+      <td class="tdc"></td><td class="tdc col-aj">${fR(cAj(p,frete,tar,reb,ads,preco))}</td>
+      <td class="tdc col-preco">${fR(preco)}</td><td></td>
+      <td class="tdc col-frete">${preco?fR(frete):'—'}</td>
+      <td class="tdc col-tarifa">${pc(tar)}</td><td class="tdc col-tarifa">${preco?fR(preco*tar/100-reb):'—'}</td>
+      <td class="tdc col-tarifa">—</td><td class="tdc col-ads">—</td><td class="tdc col-ads">—</td>
+      <td class="tdc col-mg ${mCpv}">${mPv.r===''?'—':fR(mPv.r)}</td>
+      <td class="tdc col-mg ${mCpv}">${mPv.p===''?'—':pc(mPv.p)}</td><td></td>
+    </tr>
+    <tr style="display:none;background:#fff8e1;" id="pix-rows-${p.sku}">
+      <td></td><td class="tdc tmu" style="font-size:10px;color:#0086FF;">PV c/ PIX</td>
+      <td class="tdc"></td><td class="tdc col-aj">${fR(cAj(p,fretePix,tar,reb,ads,precoPix))}</td>
+      <td class="tdc col-preco">${fR(preco)}</td>
+      <td class="tdc" style="background:#fef9c3;color:#a16207;font-weight:700;">${fR(precoPix)}</td>
+      <td class="tdc col-frete">${preco?fR(fretePix):'—'}</td>
+      <td class="tdc col-tarifa">${pc(tar)}</td><td class="tdc col-tarifa">${precoPix?fR(precoPix*tar/100-reb):'—'}</td>
+      <td class="tdc col-tarifa">—</td><td class="tdc col-ads">—</td><td class="tdc col-ads">—</td>
+      <td class="tdc col-mg ${mCpix}">${mPix.r===''?'—':fR(mPix.r)}</td>
+      <td class="tdc col-mg ${mCpix}">${mPix.p===''?'—':pc(mPix.p)}</td><td></td>
+    </tr>`;
+  }
+  const arrowCell=isMeli&&pixD.desc?`<td class="tdc" style="cursor:pointer;font-size:10px;color:var(--text3);" id="pix-arrow-${p.sku}" onclick="togglePixRows('${p.sku}')">▶</td>`:'<td></td>';
+  const pvPixCell=isMeli?`<td class="tdc" id="pv-pix-${p.sku}" style="background:#fef9c3;color:#a16207;font-weight:700;">${preco&&pixD.desc?fR(precoPix):'—'}</td>`:'';
+  return arrowCell+`<tr id="mr-${mk}-${p.sku}" data-sku="${p.sku}"><td class="tdc" onclick="openDet('${p.sku}','${mk}')" style="cursor:pointer;text-decoration:underline dotted;color:var(--accent2);font-weight:700;">${p.sku}</td><td class="tdc" style="cursor:pointer;" onclick="openGrafCusto('${p.sku}','${mk}')" title="Ver histórico de custo">${p.tipo==='Nacional'||p.tipo==='Terceiro Importado'?fR(cmvNac):fR(p.custo)}</td><td class="tdc col-aj" id="aj-${mk}-${p.sku}">${fR(aj)}</td>${editCell('pr-'+mk+'-'+p.sku,d.preco||0,'val','preco','90px','col-preco')}${pvPixCell}${fCell}${tarCell}<td class="tdc col-tarifa" id="tr-${mk}-${p.sku}">${preco&&tar?fR(tarR):'—'}</td>${rebCell}${editCell('ads-'+mk+'-'+p.sku,d.ads||0,'pct','ads','64px','col-ads')}<td class="tdc col-ads" id="ar-${mk}-${p.sku}">${preco&&ads?fR(adsR):'—'}</td><td class="tdc col-mg ${mC}" id="mgR-${mk}-${p.sku}">${m.r===''?'—':fR(m.r)}</td><td class="tdc col-mg ${mC}" id="mgP-${mk}-${p.sku}" style="cursor:pointer;text-decoration:underline dotted;" data-mgsku="${p.sku}" data-mgmk="${mk}" onclick="openMgDetail(this.dataset.mgsku,this.dataset.mgmk)" title="Ver detalhes da margem">${m.p===''?'—':pc(m.p)}</td>${modCell}${obsCell}</tr>`+pixRowsHtml;
 }
 
 function ativaEdit(cellId,field,sku,mk,fmt){
@@ -1795,6 +1878,14 @@ function openDet(sku,mk){
   se('det-custo',fR(p.custo));se('det-custo-ant',custoAnt);
   se('det-be',breakEven?fR(breakEven):'—');se('det-mk',markup?fn(markup)+'%':'—');
   const kq=document.getElementById('kit-qtd');if(kq)kq.value='';
+  // Carregar dados PIX
+  const pixD=getMeliPix(sku);
+  const dPix=document.getElementById('det-pix-desc');if(dPix)dPix.value=pixD.desc||'';
+  const vPix=document.getElementById('det-pix-vend');if(vPix)vPix.value=pixD.vend||'';
+  // Guardar PV atual para calcDetPix
+  const dMkt=gM(sku,'meli');const prMeli=parseFloat(dMkt.preco)||0;
+  const dvPv=document.getElementById('det-pv-val');if(dvPv)dvPv.textContent=fR(prMeli);
+  setTimeout(calcDetPix,50);
   document.getElementById('mod-det').classList.add('open');
 }
 function abrirModalKit(){
