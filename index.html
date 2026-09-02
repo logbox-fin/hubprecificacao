@@ -1855,7 +1855,7 @@ function rCmv(){
   const visClbs=clbsOrd.filter(c=>!cmvColsOcultas[c.nome]);
   // Thead
   const thead=document.getElementById('cmv-thead');
-  if(thead){const CLB_H_COLORS=['#c0392b','#1a6fa8','#1e8449','#b7950b','#6c3483','#a93226','#117a65'];const thCols=visClbs.map((c,ci)=>{const hBg=CLB_H_COLORS[ci%CLB_H_COLORS.length];const hBgSub=hBg+'22';return '<th colspan="3" style="cursor:pointer;background:'+hBg+';color:#fff;padding:7px 10px;border:1px solid rgba(0,0,0,0.15);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;text-align:center;" onclick="toggleCmvCol(this.dataset.clb)" data-clb="'+c.nome+'">'+c.nome+'</th>';}).join('');const thSub=visClbs.map((c,ci)=>{const hBg=CLB_H_COLORS[ci%CLB_H_COLORS.length]+'33';return '<th style="background:'+hBg+';border:1px solid var(--border);padding:6px 8px;font-size:10px;font-weight:700;text-align:center;">Qtd</th><th style="background:'+hBg+';border:1px solid var(--border);padding:6px 8px;font-size:10px;font-weight:700;text-align:center;">CMV (R$)</th><th style="background:'+hBg+';border:1px solid var(--border);padding:6px 8px;font-size:10px;font-weight:700;text-align:center;">CMV Méd.</th>';}).join('');thead.innerHTML='<tr><th class="th-sku" rowspan="2" style="text-align:left;min-width:130px;">SKU</th>'+thCols+'<th class="thg-mg" rowspan="2">CMV Médio</th><th class="thg-mg" rowspan="2">Estoque</th></tr><tr>'+thSub+'</tr>';}
+  if(thead){const CLB_H_COLORS=['#c0392b','#1a6fa8','#1e8449','#b7950b','#6c3483','#a93226','#117a65'];const thCols=visClbs.map((c,ci)=>{const hBg=CLB_H_COLORS[ci%CLB_H_COLORS.length];const hBgSub=hBg+'22';return '<th colspan="3" style="cursor:pointer;background:'+hBg+';color:#fff;padding:7px 10px;border:1px solid rgba(0,0,0,0.15);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;text-align:center;" onclick="toggleCmvCol(this.dataset.clb)" data-clb="'+c.nome+'">'+c.nome+'</th>';}).join('');const thSub=visClbs.map((c,ci)=>{const hBg=CLB_H_COLORS[ci%CLB_H_COLORS.length]+'33';return '<th style="background:'+hBg+';border:1px solid var(--border);padding:6px 8px;font-size:10px;font-weight:700;text-align:center;">Qtd</th><th style="background:'+hBg+';border:1px solid var(--border);padding:6px 8px;font-size:10px;font-weight:700;text-align:center;">CMV (R$)</th><th style="background:'+hBg+';border:1px solid var(--border);padding:6px 8px;font-size:10px;font-weight:700;text-align:center;">CMV Méd.</th>';}).join('');thead.innerHTML='<tr><th class="th-sku" rowspan="2" style="text-align:left;min-width:130px;">SKU</th>'+thCols+'<th class="thg-mg" rowspan="2">CMV Médio</th></tr><tr>'+thSub+'</tr>';}
   // Tbody
   const tbody=document.getElementById('cmv-tbody');if(!tbody)return;
   if(!skuSorted.length){tbody.innerHTML='<tr><td colspan="'+(2+visClbs.length*3)+'" class="nd">Nenhum produto adicionado. Clique em "+ Produto" para adicionar.</td></tr>';return;}
@@ -1864,7 +1864,7 @@ function rCmv(){
     // CORREÇÃO 4: CMV médio calculado apenas com containers até a data filtrada
     const med=calcCmvMed(sku,clbsOrd);
     // Estoque total considerando todos os containers (não filtrado por data)
-    const estoque=Object.values(pData).reduce((s,d)=>s+parseFloat(d.est||0),0);
+
     const CLB_COLORS=['#fff5f5','#f0f7ff','#f0fff4','#fffbeb','#f5f0ff','#fff0fb','#f0fbff'];
     const cellsCols=visClbs.map((c,ci)=>{
       const d=pData[c.nome]||{};
@@ -1879,7 +1879,7 @@ function rCmv(){
       return tdQ+tdC+tdM;
     }).join('');
     const tdMed='<td class="tdc td-res" style="cursor:pointer;" onclick="openGrafCmv(this.dataset.sku)" data-sku="'+sku+'">'+(med?fR(med):'—')+'</td>';
-    const tdEst='<td class="tdc" style="font-weight:700;">'+(estoque||'—')+'</td>';
+    const tdEst='';
     const tdNome='<td class="tdl" style="min-width:130px;"><div style="display:flex;align-items:center;gap:6px;"><span id="cmv-sku-label-'+sku+'" style="cursor:pointer;font-weight:700;color:var(--accent2);text-decoration:underline dotted;" onclick="openGrafCmv(this.dataset.sku)" data-sku="'+sku+'" title="Ver gráfico">'+sku+'</span><button class="btn btn-sm" style="padding:2px 6px;font-size:10px;" onclick="editarSkuCmv(this.dataset.sku)" data-sku="'+sku+'" title="Editar SKU">✎</button></div><div class="tsm tmu">'+nome+'</div><button class="btn btn-sm btn-d" style="margin-top:4px;font-size:10px;" onclick="removerCmvProd(this.dataset.sku)" data-sku="'+sku+'">× Remover</button></td>';
     return '<tr id="cmvr-'+sku+'" data-sku="'+sku+'">'+tdNome+cellsCols+tdMed+tdEst+'</tr>';
   }).join('');
@@ -1925,7 +1925,31 @@ document.getElementById('cmv-prod-ant').textContent=d.cmvAnt?fR(d.cmvAnt):'—';
 document.getElementById('cmv-prod-med').textContent=med?fR(med):'—';
 document.getElementById('mod-cmv-title').textContent='CMV — '+sku+' · '+clb;
 document.getElementById('mod-cmv-prod').classList.add('open');}
-function calcCmvModal(){/* live calc só exibe, não altera */}
+function calcCmvModal(){
+  const sku=document.getElementById('cmv-prod-sku').textContent;
+  const clb=document.getElementById('cmv-prod-clb').textContent;
+  const estAtual=parseFloat(document.getElementById('cmv-estoque').value)||0;
+  const cvNovo=parseFloat(document.getElementById('cmv-valor').value)||0;
+  const qtdNova=parseFloat(document.getElementById('cmv-qtd').value)||0;
+  if(!cvNovo&&!qtdNova)return;
+  // Calcular média ponderada: containers salvos + novo container
+  const clbs=LS.get('lb_clbs')||[];
+  const allD=LS.get('lb_cmv_data')||{};
+  const pData=allD[sku]||{};
+  let totalEst=0,totalVal=0;
+  clbs.forEach(c=>{
+    if(c.nome===clb)return; // ignorar o container atual (será substituído)
+    const d=pData[c.nome]||{};
+    const q=parseFloat(d.est||0),cv=parseFloat(d.cmv||0);
+    if(q>0&&cv>0){totalEst+=q;totalVal+=q*cv;}
+  });
+  // Adicionar: estoque atual × CMV anterior + qtd nova × CMV novo
+  const cmvAnt=calcCmvMed(sku,clbs)||cvNovo;
+  if(estAtual>0&&cmvAnt>0){totalEst+=estAtual;totalVal+=estAtual*cmvAnt;}
+  if(qtdNova>0&&cvNovo>0){totalEst+=qtdNova;totalVal+=qtdNova*cvNovo;}
+  const med=totalEst>0?totalVal/totalEst:cvNovo;
+  document.getElementById('cmv-prod-med').textContent=fR(parseFloat(med.toFixed(4)));
+}
 function saveCmvProd(){const sku=document.getElementById('cmv-prod-sku').textContent,clb=document.getElementById('cmv-prod-clb').textContent;const qtd=parseFloat(document.getElementById('cmv-qtd').value)||0,cv=parseFloat(document.getElementById('cmv-valor').value)||0,est=parseFloat(document.getElementById('cmv-estoque').value)||0;const allD=LS.get('lb_cmv_data')||{};if(!allD[sku])allD[sku]={};const ant=allD[sku][clb]?allD[sku][clb].cmv:null;allD[sku][clb]={qtd,cmv:cv,est,cmvAnt:ant||cv};LS.set('lb_cmv_data',allD);cM('mod-cmv-prod');rCmv();toast('CMV salvo!');}
 function openCmvAddProd(){const ps=LS.get('lb_p')||[];const sel=document.getElementById('cmv-add-sku');if(!sel)return;sel.innerHTML='<option value="">Selecione...</option>'+ps.filter(p=>p.tipo==='Importado').map(p=>`<option value="${p.sku}">${p.sku} — ${p.nome||''}</option>`).join('');document.getElementById('mod-cmv-add-prod').classList.add('open');}
 function cmvAddProdConfirm(){const sku=(document.getElementById('cmv-add-sku')||{value:''}).value;if(!sku){toast('Selecione um produto','e');return;}const order=LS.get('lb_cmv_skus')||[];if(!order.includes(sku)){order.push(sku);LS.set('lb_cmv_skus',order);}cM('mod-cmv-add-prod');rCmv();toast('Produto adicionado!');}
