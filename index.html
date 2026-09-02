@@ -1912,8 +1912,21 @@ function editarSkuCmv(skuAtual){
   toast('SKU atualizado para '+novo+'!');
 }
 function toggleCmvCol(nome){cmvColsOcultas[nome]=!cmvColsOcultas[nome];LS.set('lb_cmv_cols',cmvColsOcultas);rCmv();}
-function calcCmvMed(sku,clbs){const allD=LS.get('lb_cmv_data')||{};const pData=allD[sku]||{};let totalEst=0,totalVal=0,hasAny=false;(clbs||[]).forEach(c=>{const d=pData[c.nome]||{};const q=parseFloat(d.est||0),cv=parseFloat(d.cmv||0);if(cv>0){hasAny=true;if(q>0){totalEst+=q;totalVal+=q*cv;}}});// Se tem CMV mas sem estoque registrado, retorna o último CMV encontrado
-if(hasAny&&totalEst===0){const ultClb=[...(clbs||[])].reverse().find(c=>{const d=pData[c.nome]||{};return parseFloat(d.cmv||0)>0;});return ultClb?parseFloat((pData[ultClb.nome]||{}).cmv||0):null;}return totalEst>0?totalVal/totalEst:null;}
+function calcCmvMed(sku,clbs){
+  const allD=LS.get('lb_cmv_data')||{};const pData=allD[sku]||{};
+  const clbsOrd=[...(clbs||[])].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  let cmvAtual=0,hasAny=false;
+  clbsOrd.forEach(c=>{
+    const d=pData[c.nome]||{};
+    const est=parseFloat(d.est||0),qtd=parseFloat(d.qtd||0),cv=parseFloat(d.cmv||0);
+    if(!cv)return;
+    hasAny=true;
+    const den=est+qtd;
+    if(den>0)cmvAtual=(est*cmvAtual+qtd*cv)/den;
+    else cmvAtual=cv;
+  });
+  return hasAny?parseFloat(cmvAtual.toFixed(4)):null;
+}
 function openCmvProd(sku,clb){const allD=LS.get('lb_cmv_data')||{};const d=(allD[sku]||{})[clb]||{};const med=calcCmvMed(sku,LS.get('lb_clbs')||[]);
 document.getElementById('cmv-prod-sku').textContent=sku;
 document.getElementById('cmv-prod-clb').textContent=clb;
@@ -1932,23 +1945,22 @@ function calcCmvModal(){
   const cvNovo=parseFloat(document.getElementById('cmv-valor').value)||0;
   const qtdNova=parseFloat(document.getElementById('cmv-qtd').value)||0;
   if(!cvNovo&&!qtdNova)return;
-  // Calcular média ponderada: containers salvos + novo container
+  // Recalcular progressivamente todos os containers + o atual com novos valores
   const clbs=LS.get('lb_clbs')||[];
   const allD=LS.get('lb_cmv_data')||{};
   const pData=allD[sku]||{};
-  let totalEst=0,totalVal=0;
-  clbs.forEach(c=>{
-    if(c.nome===clb)return; // ignorar o container atual (será substituído)
-    const d=pData[c.nome]||{};
-    const q=parseFloat(d.est||0),cv=parseFloat(d.cmv||0);
-    if(q>0&&cv>0){totalEst+=q;totalVal+=q*cv;}
+  const clbsOrd=[...clbs].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  let cmvAtual=0;
+  clbsOrd.forEach(c=>{
+    let est,qtd,cv;
+    if(c.nome===clb){est=estAtual;qtd=qtdNova;cv=cvNovo;}
+    else{const d=pData[c.nome]||{};est=parseFloat(d.est||0);qtd=parseFloat(d.qtd||0);cv=parseFloat(d.cmv||0);}
+    if(!cv)return;
+    const den=est+qtd;
+    if(den>0)cmvAtual=(est*cmvAtual+qtd*cv)/den;
+    else cmvAtual=cv;
   });
-  // Adicionar: estoque atual × CMV anterior + qtd nova × CMV novo
-  const cmvAnt=calcCmvMed(sku,clbs)||cvNovo;
-  if(estAtual>0&&cmvAnt>0){totalEst+=estAtual;totalVal+=estAtual*cmvAnt;}
-  if(qtdNova>0&&cvNovo>0){totalEst+=qtdNova;totalVal+=qtdNova*cvNovo;}
-  const med=totalEst>0?totalVal/totalEst:cvNovo;
-  document.getElementById('cmv-prod-med').textContent=fR(parseFloat(med.toFixed(4)));
+  document.getElementById('cmv-prod-med').textContent=fR(parseFloat(cmvAtual.toFixed(4)));
 }
 function saveCmvProd(){const sku=document.getElementById('cmv-prod-sku').textContent,clb=document.getElementById('cmv-prod-clb').textContent;const qtd=parseFloat(document.getElementById('cmv-qtd').value)||0,cv=parseFloat(document.getElementById('cmv-valor').value)||0,est=parseFloat(document.getElementById('cmv-estoque').value)||0;const allD=LS.get('lb_cmv_data')||{};if(!allD[sku])allD[sku]={};const ant=allD[sku][clb]?allD[sku][clb].cmv:null;allD[sku][clb]={qtd,cmv:cv,est,cmvAnt:ant||cv};LS.set('lb_cmv_data',allD);cM('mod-cmv-prod');rCmv();toast('CMV salvo!');}
 function openCmvAddProd(){const ps=LS.get('lb_p')||[];const sel=document.getElementById('cmv-add-sku');if(!sel)return;sel.innerHTML='<option value="">Selecione...</option>'+ps.filter(p=>p.tipo==='Importado').map(p=>`<option value="${p.sku}">${p.sku} — ${p.nome||''}</option>`).join('');document.getElementById('mod-cmv-add-prod').classList.add('open');}
