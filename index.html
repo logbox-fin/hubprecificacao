@@ -1539,7 +1539,7 @@ function saveProd(){
           const cmvAnt=calcCMV(oProd);
           const cmvNovo=calcCMV(nd);
           if(Math.abs(cmvAnt-cmvNovo)>0.001){
-            const tipoAnt=ps[idxP].tipo||'',tipoNov=novoTipo||tipoAnt;
+            const tipoAnt=ps[idx].tipo||'',tipoNov=novoTipo||tipoAnt;
             const campos=[{campo:'CMV Contábil',ant:cmvAnt,novo:cmvNovo,labelAnt:'CMV Contábil Anterior',labelNovo:'CMV Contábil Novo'}];
             if(tipoAnt!==tipoNov)campos.unshift({campo:'Tipo',ant:tipoAnt,novo:tipoNov,labelAnt:'Tipo Anterior',labelNovo:'Tipo Novo'});
             trgH(sku,nome,campos);
