@@ -1098,6 +1098,15 @@ async function sbLoad(){
 function showLoadingOverlay(msg){let el=document.getElementById('sb-loading');if(!el){el=document.createElement('div');el.id='sb-loading';el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;';el.innerHTML='<div style="width:44px;height:44px;border:4px solid #334155;border-top:4px solid #2563eb;border-radius:50%;animation:spin 0.8s linear infinite;"></div><div style="color:#fff;font-size:14px;font-weight:600;" id="sb-loading-msg"></div><style>@keyframes spin{to{transform:rotate(360deg)}}<\/style>';document.body.appendChild(el);}document.getElementById('sb-loading-msg').textContent=msg||'Carregando...';}
 function hideLoadingOverlay(){const el=document.getElementById('sb-loading');if(el)el.remove();}
 
+// STOKBOX — buscar estoque atual
+async function getEstoqueSTOKBOX(sku){
+  try{
+    const{data,error}=await SB.from('estoque_atual').select('saldo').eq('sku',sku);
+    if(error||!data||!data.length)return 0;
+    return data.reduce((s,r)=>s+(parseInt(r.saldo)||0),0);
+  }catch(e){console.warn('Erro STOKBOX:',e);return 0;}
+}
+
 // PIX MELI
 function getMeliPix(sku){const d=gM(sku,'meli')||{};return{desc:parseFloat(d.pix_desc)||0,vend:parseFloat(d.pix_vend)||0};}
 function setMeliPix(sku,desc,vend){
@@ -2063,7 +2072,10 @@ document.getElementById('cmv-prod-clb').textContent=clb;
 // Bug CMV corrigido: pré-preencher apenas com cmv salvo, não com cmvAnt
 document.getElementById('cmv-valor').value=d.cmv||'';
 document.getElementById('cmv-qtd').value=d.qtd||'';
-document.getElementById('cmv-estoque').value=d.est||'';
+// Buscar estoque do STOKBOX se não tiver valor salvo
+const cmvEstEl=document.getElementById('cmv-estoque');
+if(d.est){cmvEstEl.value=d.est;}
+else{cmvEstEl.value='';cmvEstEl.placeholder='Buscando...';getEstoqueSTOKBOX(sku).then(est=>{if(!cmvEstEl.value){cmvEstEl.value=est>0?est:'';cmvEstEl.placeholder='Estoque no galpão';calcCmvModal();}});}
 document.getElementById('cmv-prod-ant').textContent=d.cmvAnt?fR(d.cmvAnt):'—';
 document.getElementById('cmv-prod-med').textContent=med?fR(med):'—';
 document.getElementById('mod-cmv-title').textContent='CMV — '+sku+' · '+clb;
@@ -2310,6 +2322,12 @@ function openCustoNovo(pid){
   document.getElementById('cn-preview').style.display='none';
   document.getElementById('cn-btn-salvar').style.display='none';
   document.getElementById('mod-custo-novo').classList.add('open');
+  // Buscar estoque do STOKBOX
+  const cnEst=document.getElementById('cn-estoque');
+  if(cnEst){cnEst.value='';cnEst.placeholder='Buscando...';}
+  getEstoqueSTOKBOX(p.sku).then(est=>{
+    if(cnEst){cnEst.value=est>0?est:'';cnEst.placeholder='Estoque atual';calcCustoNovo();}
+  });
 }
 function calcCustoNovo(){
   const custoAtual=parseFloat(document.getElementById('cn-custo-atual').textContent.replace('R$ ','').replace(',','.'))||0;
@@ -2369,7 +2387,13 @@ function openPrecoNovo(pid){
   document.getElementById('pn-qtd').value='';
   document.getElementById('pn-preview').style.display='none';
   document.getElementById('pn-btn-salvar').style.display='none';
+  // Buscar estoque do STOKBOX
+  const estEl=document.getElementById('pn-est');
+  if(estEl){estEl.value='';estEl.placeholder='Buscando...';}
   document.getElementById('mod-preco-novo').classList.add('open');
+  getEstoqueSTOKBOX(p.sku).then(est=>{
+    if(estEl){estEl.value=est||'';estEl.placeholder='Estoque atual';calcPrecoNovo();}
+  });
 }
 
 function calcPrecoNovo(){
