@@ -1533,19 +1533,20 @@ function saveProd(){
       nd.id=ePid;
       const skuAntigo=ps[idx].sku;
       const skuMudou=skuAntigo&&skuAntigo!==sku;
-      // BUG 2 CORRIGIDO: histórico diferenciado por tipo
-      if(oProd){
-        if(oProd.tipo==='Nacional'||oProd.tipo==='Terceiro Importado'||tipo==='Nacional'||tipo==='Terceiro Importado'){
-          const cmvAnt=calcCMV(oProd);
+      // Histórico diferenciado por tipo
+      const pAnt=ps[idx];
+      if(pAnt){
+        if(pAnt.tipo==='Nacional'||pAnt.tipo==='Terceiro Importado'||tipo==='Nacional'||tipo==='Terceiro Importado'){
+          const cmvAnt=calcCMV(pAnt);
           const cmvNovo=calcCMV(nd);
           if(Math.abs(cmvAnt-cmvNovo)>0.001){
-            const tipoAnt=ps[idx].tipo||'',tipoNov=novoTipo||tipoAnt;
+            const tipoAnt=pAnt.tipo||'',tipoNov=nd.tipo||tipo||tipoAnt;
             const campos=[{campo:'CMV Contábil',ant:cmvAnt,novo:cmvNovo,labelAnt:'CMV Contábil Anterior',labelNovo:'CMV Contábil Novo'}];
             if(tipoAnt!==tipoNov)campos.unshift({campo:'Tipo',ant:tipoAnt,novo:tipoNov,labelAnt:'Tipo Anterior',labelNovo:'Tipo Novo'});
             trgH(sku,nome,campos);
           }
         }else{
-          const custoAnt=parseFloat(oProd.custo||0);
+          const custoAnt=parseFloat(pAnt.custo||0);
           const custoNovo=parseFloat(nd.custo||0);
           if(Math.abs(custoAnt-custoNovo)>0.001){
             trgH(sku,nome,[{campo:'Custo NF',ant:custoAnt,novo:custoNovo,labelAnt:'Custo NF Anterior',labelNovo:'Custo NF Novo'}]);
