@@ -861,6 +861,14 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
     <div class="mf"><button class="btn" onclick="cM('mod-tributos')">Fechar</button></div>
   </div>
 </div>
+<div class="mov" id="mod-incompleto">
+  <div class="mod" style="width:560px;max-width:96vw;">
+    <div class="mt">⚠️ Cadastros Incompletos</div>
+    <p class="tmu tsm" style="margin-bottom:12px;">Produtos com campos obrigatórios em falta na Base de Dados.</p>
+    <div style="overflow-y:auto;max-height:65vh;" id="inc-body"></div>
+    <div class="mf"><button class="btn" onclick="cM('mod-incompleto')">Fechar</button></div>
+  </div>
+</div>
 <div class="mov" id="mod-obs"><div class="mod" style="width:500px;"><div class="mt">Tags e Observações</div><div style="margin-bottom:12px;"><div class="fl">Observação</div><textarea id="obs-nota" style="width:100%;height:80px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px;color:var(--text);resize:vertical;" placeholder="Anotações sobre este produto..."></textarea></div><div class="sl">Tags</div><div id="obs-tags-list" style="margin-bottom:12px;min-height:32px;"></div><div class="flex fc g8" style="margin-bottom:8px;"><input type="text" id="obs-nova-tag" placeholder="Nome da tag" style="flex:1;"><input type="color" id="obs-tag-cor" value="#3b82f6" style="width:40px;height:36px;padding:2px;border-radius:var(--r);border:1px solid var(--border);cursor:pointer;"><button class="btn btn-sm btn-p" onclick="addObsTag()">+ Tag</button></div><div class="mf"><button class="btn" onclick="cM('mod-obs')">Cancelar</button><button class="btn btn-p" onclick="saveObs()">Salvar</button></div></div></div>
 <div class="mov" id="mhist"><div class="mod" style="width:460px;"><div class="mt">Registrar alteração no histórico?</div><p class="tmu tsm" style="margin-bottom:12px;">Produto: <strong id="hcsku" style="color:var(--text);"></strong></p><div id="hcch" style="background:var(--bg3);border-radius:var(--r);padding:12px;font-size:12px;margin-bottom:4px;"></div><div class="mf"><button class="btn" onclick="cM('mhist');pH=null;">Não registrar</button><button class="btn btn-g" onclick="confH()">Sim, registrar</button></div></div></div>
 <div class="mov" id="mod-graf-cmv"><div class="mod" style="width:600px;"><div class="mt" id="graf-cmv-title">Evolução do CMV</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;"><div class="sc"><div class="sc-l">Mediana CMV</div><div id="graf-cmv-med" class="sc-v" style="font-size:15px;color:var(--accent2);">—</div></div><div class="sc"><div class="sc-l">CMV Atual</div><div id="graf-cmv-atual" class="sc-v" style="font-size:15px;color:var(--green);">—</div></div><div class="sc"><div class="sc-l">Variação Total</div><div id="graf-cmv-var" class="sc-v" style="font-size:15px;">—</div></div></div><div style="position:relative;width:100%;height:220px;"><canvas id="canvas-cmv"></canvas></div><div class="mf"><button class="btn" onclick="cM('mod-graf-cmv')">Fechar</button></div></div></div>
@@ -1457,8 +1465,8 @@ function rBase(){
   if(tb)initDrag(tb);
   const all=LS.get('lb_p')||[];
   const ds=document.getElementById('base-stats');
-  const totalAlerta=all.filter(p=>!p.nome||p.nome===p.sku||!p.ncm||!p.marca||!p.categoria).length;
-  if(ds)ds.innerHTML=`<div class="sc"><div class="sc-l">Total de Produtos</div><div class="sc-v">${all.length}</div></div><div class="sc"><div class="sc-l">Importados</div><div class="sc-v" style="color:#60a5fa;">${all.filter(p=>p.tipo==='Importado').length}</div></div><div class="sc"><div class="sc-l">Nacionais + 3° Imp.</div><div class="sc-v" style="color:#4ade80;">${all.filter(p=>p.tipo==='Nacional'||p.tipo==='Terceiro Importado').length}</div></div><div class="sc"><div class="sc-l">Cadastro Incompleto</div><div class="sc-v" style="color:var(--yellow);">${totalAlerta}</div><div class="sc-s">NCM, marca ou categoria</div></div>`;
+  const totalAlerta=all.filter(p=>!p.sku||!p.nome||p.nome===p.sku||!p.tipo||!p.ncm||!(parseFloat(p.peso)||0)).length;
+  if(ds)ds.innerHTML=`<div class="sc"><div class="sc-l">Total de Produtos</div><div class="sc-v">${all.length}</div></div><div class="sc"><div class="sc-l">Importados</div><div class="sc-v" style="color:#60a5fa;">${all.filter(p=>p.tipo==='Importado').length}</div></div><div class="sc"><div class="sc-l">Nacionais + 3° Imp.</div><div class="sc-v" style="color:#4ade80;">${all.filter(p=>p.tipo==='Nacional'||p.tipo==='Terceiro Importado').length}</div></div><div class="sc" onclick="abrirIncompletos()" style="cursor:pointer;" title="Ver detalhes"><div class="sc-l">Cadastro Incompleto</div><div class="sc-v" style="color:var(--yellow);">${totalAlerta}</div><div class="sc-s">SKU, nome, tipo, NCM, peso</div></div>`;
   rBaseAlertas();
 }
 function buscaBase(v){rBase();}
@@ -2165,6 +2173,41 @@ function initRealtime(){if(_rtChannel)return;_rtChannel=SB.channel('lb_realtime'
 // PRESENÇA
 let _presenceChannel=null;
 function initPresence(){if(_presenceChannel)return;_presenceChannel=SB.channel('lb_presence',{config:{presence:{key:CU.user}}}).on('presence',{event:'sync'},()=>{const state=_presenceChannel.presenceState();const others=Object.keys(state).filter(k=>k!==CU.user);const el=document.getElementById('sb-presence');if(el)el.textContent=others.length?'🟢 '+others.join(', '):''}).subscribe(async status=>{if(status==='SUBSCRIBED')await _presenceChannel.track({online_at:new Date().toISOString(),user:CU.user});});}
+
+// CADASTROS INCOMPLETOS
+function abrirIncompletos(){
+  const ps=LS.get('lb_p')||[];
+  const checks=[
+    {campo:'SKU',fn:p=>!p.sku,label:'Sem SKU'},
+    {campo:'Nome',fn:p=>!p.nome||p.nome===p.sku,label:'Sem nome ou nome igual ao SKU'},
+    {campo:'Tipo',fn:p=>!p.tipo,label:'Sem tipo definido'},
+    {campo:'NCM',fn:p=>!p.ncm,label:'Sem NCM'},
+    {campo:'Peso',fn:p=>!(parseFloat(p.peso)||0),label:'Peso zerado ou não informado'},
+  ];
+  const body=document.getElementById('inc-body');if(!body)return;
+  let html='';
+  let totalErros=0;
+  checks.forEach(ch=>{
+    const prods=ps.filter(ch.fn);
+    if(!prods.length)return;
+    totalErros+=prods.length;
+    html+=`<div style="margin-bottom:16px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">
+      <div style="background:#fef3c7;padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#92400e;border-bottom:1px solid #fde68a;">
+        ⚠️ ${ch.label} — ${prods.length} produto${prods.length>1?'s':''}
+      </div>
+      <div style="padding:8px 12px;">
+        ${prods.map(p=>`<div style="padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;display:flex;gap:8px;align-items:center;">
+          <span style="font-weight:700;color:var(--accent2);min-width:120px;">${p.sku||'(sem SKU)'}</span>
+          <span style="color:var(--text2);">${p.nome||'(sem nome)'}</span>
+          <span class="chip" style="font-size:10px;background:#f0f4ff;color:#1d4ed8;margin-left:auto;">${p.tipo||'(sem tipo)'}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  });
+  if(!html)html='<div class="nd" style="padding:20px;text-align:center;">✅ Todos os produtos estão com cadastro completo!</div>';
+  body.innerHTML=html;
+  document.getElementById('mod-incompleto').classList.add('open');
+}
 
 // % TRIBUTOS SHOPEE
 function abrirTributos(){
