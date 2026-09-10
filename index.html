@@ -606,7 +606,7 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
 
       <!-- FISCAL -->
       <div class="screen" id="screen-fiscal">
-        <div class="ph"><div class="pt">Configurações Fiscais</div><button class="btn btn-p ml-auto" onclick="saveFiscal()">💾 Salvar Alterações</button></div>
+        <div class="ph"><div class="pt">Configurações Fiscais</div><div class="ml-auto" style="display:flex;gap:8px;"><button class="btn" onclick="recalcMcTodosManual()">🔄 Recalcular Margens</button><button class="btn btn-p" onclick="saveFiscal()">💾 Salvar Alterações</button></div></div>
         <div class="card" style="margin-bottom:16px;">
           <div class="sl">Regras de Saída — ICMS</div>
           <div class="gr g3">
@@ -1050,11 +1050,11 @@ const LS={
   get:k=>{if(_cache[k]!==undefined)return JSON.parse(JSON.stringify(_cache[k]));try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}},
   set:(k,v)=>{_cache[k]=JSON.parse(JSON.stringify(v));try{localStorage.setItem(k,JSON.stringify(v));}catch{}sbPersist(k,v).catch(e=>{console.warn('Supabase sync error:',k,e);toast('⚠️ Falha ao salvar no servidor ('+k+'): '+(e?.message||e),'e');});}
 };
-async function sbPersistMktItem(sku,mk,d){const isTktOrMga=mk==='tkt'||mk==='mga';const{error}=await SB.from('marketplace_dados').upsert({marketplace:mk,sku,preco:d.preco||0,frete:isTktOrMga?null:((d.frete!=null&&d.frete!==0)?d.frete:null),tar:isTktOrMga?null:(d.tar||0),reb:d.reb||0,ads:d.ads||0,atualizado_por:(typeof CU!=='undefined'&&CU)?CU.user:null,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'});if(error)throw error;}
+async function sbPersistMktItem(sku,mk,d){const isTktOrMga=mk==='tkt'||mk==='mga';const ps=LS.get('lb_p')||[];const p=ps.find(x=>x.sku===sku);const mcVal=p?calcMC(p,mk,d):null;const{error}=await SB.from('marketplace_dados').upsert({marketplace:mk,sku,preco:d.preco||0,frete:isTktOrMga?null:((d.frete!=null&&d.frete!==0)?d.frete:null),tar:isTktOrMga?null:(d.tar||0),reb:d.reb||0,ads:d.ads||0,mc:mcVal,mc_atualizada_em:mcVal!=null?new Date().toISOString():null,atualizado_por:(typeof CU!=='undefined'&&CU)?CU.user:null,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'});if(error)throw error;}
 async function sbPersist(k,v){
   if(k==='lb_p'){if(!Array.isArray(v))return;const rows=v.map(p=>({sku:p.sku,nome:p.nome,tipo:p.tipo||'Importado',ncm:p.ncm||null,peso:p.peso||0,custo:p.custo||0,st:p.st||0,ipi:p.ipi||0,pis:p.pis||9.25,icms:p.icms||0,marca:p.marca||null,categoria:p.categoria||null,meli:!!p.meli,shp:!!p.shp,amz:!!p.amz,tkt:!!p.tkt,mga:!!p.mga,variacao:!!p.variacao,atualizado_em:new Date().toISOString(),atualizado_por:p.upBy||null}));for(let i=0;i<rows.length;i+=50){await SB.from('produtos').upsert(rows.slice(i,i+50),{onConflict:'sku'});}}
   else if(k==='lb_u'){if(!Array.isArray(v))return;for(const u of v)await SB.from('usuarios').upsert({nome:u.nome,usuario:u.user,senha:u.senha,perfil:u.perfil||'meli',atualizado_em:new Date().toISOString()},{onConflict:'usuario'});}
-  else if(k==='lb_m'){if(typeof v!=='object')return;for(const[key,d]of Object.entries(v)){const parts=key.split('_');if(parts.length<2)continue;const mk=parts[0];const sku=parts.slice(1).join('_');await SB.from('marketplace_dados').upsert({marketplace:mk,sku,preco:d.preco||0,frete:(d.frete!=null&&d.frete!==0)?d.frete:null,tar:d.tar||0,reb:d.reb||0,ads:d.ads||0,atualizado_por:CU?CU.user:null,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'});}}
+  else if(k==='lb_m'){if(typeof v!=='object')return;const psRef=LS.get('lb_p')||[];for(const[key,d]of Object.entries(v)){const parts=key.split('_');if(parts.length<2)continue;const mk=parts[0];const sku=parts.slice(1).join('_');const pRef=psRef.find(x=>x.sku===sku);const mcVal=pRef?calcMC(pRef,mk,d):null;await SB.from('marketplace_dados').upsert({marketplace:mk,sku,preco:d.preco||0,frete:(d.frete!=null&&d.frete!==0)?d.frete:null,tar:d.tar||0,reb:d.reb||0,ads:d.ads||0,mc:mcVal,mc_atualizada_em:mcVal!=null?new Date().toISOString():null,atualizado_por:CU?CU.user:null,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'});}}
   else if(k==='lb_h'){if(!Array.isArray(v))return;const{data:existing}=await SB.from('historico_custos').select('id');const existingIds=new Set((existing||[]).map(r=>String(r.id)));for(const h of v){if(!existingIds.has(String(h.id))){await SB.from('historico_custos').insert({sku:h.sku,nome:h.nome,campo:h.campo||'custo',valor_anterior:h.ant,valor_novo:h.novo,alterado_por:h.user,alterado_em:h.data?new Date(h.data+'T12:00:00').toISOString():new Date().toISOString()});}}}
   else if(k==='lb_marcas'){if(!Array.isArray(v))return;for(const nome of v)await SB.from('marcas').upsert({nome},{onConflict:'nome'});}
   else if(k==='lb_cats'){if(!Array.isArray(v))return;for(const nome of v)await SB.from('categorias').upsert({nome},{onConflict:'nome'});}
@@ -1127,8 +1127,9 @@ function setMeliPix(sku,desc,vend){
   all[k].pix_desc=d;all[k].pix_vend=v;
   _cache['lb_m']=JSON.parse(JSON.stringify(all));
   try{localStorage.setItem('lb_m',JSON.stringify(all));}catch{}
-  // Persistir no Supabase
-  SB.from('marketplace_dados').upsert({marketplace:'meli',sku,pix_desc:d,pix_vend:v,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'}).then(({error})=>{if(error)console.warn('PIX save:',error);});
+  // Persistir no Supabase (PIX muda o PV Médio usado na M.C. do Meli, então recalcula aqui também)
+  const ps=LS.get('lb_p')||[];const p=ps.find(x=>x.sku===sku);const mcVal=p?calcMC(p,'meli',all[k]):null;
+  SB.from('marketplace_dados').upsert({marketplace:'meli',sku,pix_desc:d,pix_vend:v,mc:mcVal,mc_atualizada_em:mcVal!=null?new Date().toISOString():null,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'}).then(({error})=>{if(error)console.warn('PIX save:',error);});
 }
 function pvPix(pv,desc){return parseFloat((pv*(1-desc/100)).toFixed(2));}
 function pvMedio(pv,desc,vend){const pvD=pvPix(pv,desc);return parseFloat((pv*(1-vend/100)+pvD*(vend/100)).toFixed(2));}
@@ -1288,6 +1289,70 @@ const usarRegST=temST||icmsZero;const pis=usarRegST?pisPct*(c+c*ipi):pisPct*(c-c
 function cAj(p,frete,tarP,reb,adsP,preco){const fc=getFC();const base=calcCMV(p),fr=parseFloat(frete)||0,pr=parseFloat(preco)||0,tar=(parseFloat(tarP)||0)/100,rb=parseFloat(reb)||0,ads=(parseFloat(adsP)||0)/100,pisFr=(fc.pisFrete||9.25)/100,pisTr=(fc.pisTar||9.25)/100,pisAd=(fc.pisAds||9.25)/100;return parseFloat((base-fr*pisFr-(pr*tar-rb)*pisTr-(pr*ads)*pisAd).toFixed(4));}
 function cMarg(p,preco,frete,tarP,reb,adsP){const fc=getFC();if(!preco)return{r:'',p:''};const pr=parseFloat(preco)||0,fr=parseFloat(frete)||0,tar=(parseFloat(tarP)||0)/100,rb=parseFloat(reb)||0,ads=(parseFloat(adsP)||0)/100,aj=cAj(p,fr,tarP,rb,adsP,pr),icmsBase=(parseFloat(p.icms)||0),temST=(parseFloat(p.st)||0)>0,icmsZero=!p.tipo==='Importado'&&icmsBase===0,icmsSaidaPct=(temST||(!p.tipo==='Importado'&&icmsBase===0))?(fc.icmsNacST||9.45)/100:(p.tipo==='Importado'?(icmsBase===12?(fc.icmsImp12||15.5)/100:(fc.icmsImp18||18.5)/100):(icmsBase===0?(fc.icmsNacST||9.45)/100:(fc.icmsNacSem||18.5)/100)),icmsSaida=pr*icmsSaidaPct,pisSaida=(fc.pisSaida||9.25)/100*(pr-icmsSaida),ipiSaida=p.tipo==='Importado'?(pr*(parseFloat(p.ipi)||0)/100):0,mR=pr-aj-fr-(pr*tar-rb)-(pr*ads)-pisSaida-icmsSaida-ipiSaida;return{r:parseFloat(mR.toFixed(2)),p:parseFloat(pr>0?(mR/pr*100):0).toFixed(2)*1};}
 
+// === MARGEM DE CONTRIBUIÇÃO — cálculo centralizado p/ persistência (mesma fórmula da tela) ===
+// Roteamento de frete/tarifa por canal (usado na tela e na persistência — fonte única, sem duplicar fórmula)
+function mktFreteTar(mk,d,p,pr){
+  let fr,tar;
+  if(mk==='meli'){fr=fM(p.peso,pr);tar=parseFloat(d.tar)||0;}
+  else if(mk==='shp'){const sc=fShp(pr);fr=sc.frete;tar=sc.tar;}
+  else if(mk==='tkt'){const tc=fTkt(d,pr);fr=tc.frete;tar=tc.tar;}
+  else if(mk==='mga'){const mc2=fMga(d,p.peso,pr);fr=mc2.frete;tar=mc2.tar;}
+  else{fr=parseFloat(d.frete)||0;tar=parseFloat(d.tar)||0;}
+  return{fr,tar};
+}
+// Calcula a M.C.% exatamente como exibida na tela (inclui PV Médio c/ PIX pro Meli) — usado só p/ gravar no banco
+function calcMC(p,mk,d){
+  if(!p||!d)return null;
+  const preco=parseFloat(d.preco)||0;
+  if(!preco)return null;
+  const{fr,tar}=mktFreteTar(mk,d,p,preco);
+  let precoCalc=preco;
+  if(mk==='meli'){
+    const desc=parseFloat(d.pix_desc)||0,vend=parseFloat(d.pix_vend)||0;
+    if(desc&&vend)precoCalc=pvMedio(preco,desc,vend);
+  }
+  const reb=parseFloat(d.reb)||0,ads=parseFloat(d.ads)||0;
+  const m=cMarg(p,precoCalc,fr,tar,reb,ads);
+  return(m&&m.p!=='')?parseFloat(m.p):null;
+}
+// Recalcula e grava a M.C. de todos os marketplaces ativos de 1 SKU (chamado ao salvar produto/custo/fiscal do item)
+function recalcMcSku(sku){
+  const ps=LS.get('lb_p')||[];const p=ps.find(x=>x.sku===sku);if(!p)return;
+  const mkt=LS.get('lb_m')||{};
+  ['meli','shp','tkt','amz','mga'].forEach(mk=>{
+    if(!p[mk])return;
+    const d=mkt[mk+'_'+sku];
+    if(!d||!d.preco)return;
+    sbPersistMktItem(sku,mk,d).catch(e=>console.warn('recalcMcSku:',mk,sku,e));
+  });
+}
+// Recalcula e grava a M.C. de TODOS os itens com preço cadastrado (chamado ao salvar config fiscal global ou pelo botão manual)
+async function recalcMcTodos(){
+  const ps=LS.get('lb_p')||[];const psBySku={};ps.forEach(p=>psBySku[p.sku]=p);
+  const mkt=LS.get('lb_m')||{};
+  const rows=[];
+  Object.entries(mkt).forEach(([key,d])=>{
+    const idx=key.indexOf('_');if(idx<0)return;
+    const mk=key.slice(0,idx),sku=key.slice(idx+1);
+    const p=psBySku[sku];
+    if(!p||!p[mk])return;
+    const mcVal=calcMC(p,mk,d);
+    if(mcVal==null)return;
+    rows.push({marketplace:mk,sku,mc:mcVal,mc_atualizada_em:new Date().toISOString()});
+  });
+  for(let i=0;i<rows.length;i+=50){
+    const{error}=await SB.from('marketplace_dados').upsert(rows.slice(i,i+50),{onConflict:'marketplace,sku'});
+    if(error)console.warn('recalcMcTodos batch error:',error);
+  }
+  return rows.length;
+}
+async function recalcMcTodosManual(){
+  if(!confirm('Isso vai recalcular e salvar a Margem de Contribuição de todos os itens com preço cadastrado. Pode levar alguns segundos. Continuar?'))return;
+  toast('Recalculando margens de todos os itens...');
+  const n=await recalcMcTodos();
+  toast('Margens recalculadas: '+n+' item(ns) atualizado(s)!');
+}
+
 // GLOBAIS
 let CU=null;
 const PL={admin:'Administrador',meli:'Resp. Mercado Livre',shp:'Resp. Shopee',amz:'Resp. Amazon',tkt:'Resp. TikTok',mga:'Resp. Magalu'};
@@ -1383,7 +1448,7 @@ function initFiscal(){
 let _shpFaixas=[];
 function renderShpFaixas(faixas){_shpFaixas=faixas?JSON.parse(JSON.stringify(faixas)):JSON.parse(JSON.stringify(FC_DEFAULT.shpFaixas));const tb=document.getElementById('fc-shp-tbody');if(!tb)return;const tdS='padding:6px 8px;border:1px solid var(--border);';tb.innerHTML=_shpFaixas.map((f,i)=>`<tr><td style="${tdS}"><input type="number" step="0.01" value="${f.ate>=999999?'':f.ate}" placeholder="∞ (última faixa)" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);" onchange="_shpFaixas[${i}].ate=parseFloat(this.value)||999999"></td><td style="${tdS}"><input type="number" step="0.01" value="${f.frete}" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);" onchange="_shpFaixas[${i}].frete=parseFloat(this.value)||0"></td><td style="${tdS}"><input type="number" step="0.01" value="${f.tar}" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);" onchange="_shpFaixas[${i}].tar=parseFloat(this.value)||0"></td><td style="${tdS};text-align:center;"><button class="btn btn-sm btn-d" onclick="_shpFaixas.splice(${i},1);renderShpFaixas(_shpFaixas)">−</button></td></tr>`).join('');}
 function addShpFaixa(){_shpFaixas.push({ate:999999,frete:0,tar:0});renderShpFaixas(_shpFaixas);}
-function saveFiscal(){const g=id=>parseFloat(document.getElementById(id).value)||0;const fc={icmsImp12:g('fc-icms-imp-12'),icmsImp18:g('fc-icms-imp-18'),icmsNacST:g('fc-icms-nac-st'),icmsNacSem:g('fc-icms-nac-sem'),pisSaida:g('fc-pis-saida'),pisFrete:g('fc-pis-frete'),pisTar:g('fc-pis-tar'),pisAds:g('fc-pis-ads'),icmsFrete:g('fc-icms-frete'),precoFrete:g('fc-preco-frete'),pisEntrada:g('fc-pis-entrada'),tktFaixas:[{limiar:50,tar:g('fc-tkt-tar-baixo'),frete:g('fc-tkt-frete-baixo')},{limiar:999999,tar:g('fc-tkt-tar-alto'),frete:g('fc-tkt-frete-alto')}],mgaFrete:5,mgaFreteFixo:g('fc-mga-frete-fixo'),mgaTar:g('fc-mga-tar'),mgAmarelo:g('fc-mg-amarelo'),mgVerde:g('fc-mg-verde'),shpFaixas:_shpFaixas};LS.set('lb_fiscal',fc);toast('Configurações fiscais salvas!');}
+async function saveFiscal(){const g=id=>parseFloat(document.getElementById(id).value)||0;const fc={icmsImp12:g('fc-icms-imp-12'),icmsImp18:g('fc-icms-imp-18'),icmsNacST:g('fc-icms-nac-st'),icmsNacSem:g('fc-icms-nac-sem'),pisSaida:g('fc-pis-saida'),pisFrete:g('fc-pis-frete'),pisTar:g('fc-pis-tar'),pisAds:g('fc-pis-ads'),icmsFrete:g('fc-icms-frete'),precoFrete:g('fc-preco-frete'),pisEntrada:g('fc-pis-entrada'),tktFaixas:[{limiar:50,tar:g('fc-tkt-tar-baixo'),frete:g('fc-tkt-frete-baixo')},{limiar:999999,tar:g('fc-tkt-tar-alto'),frete:g('fc-tkt-frete-alto')}],mgaFrete:5,mgaFreteFixo:g('fc-mga-frete-fixo'),mgaTar:g('fc-mga-tar'),mgAmarelo:g('fc-mg-amarelo'),mgVerde:g('fc-mg-verde'),shpFaixas:_shpFaixas};LS.set('lb_fiscal',fc);toast('Configurações fiscais salvas! Recalculando margens...');const n=await recalcMcTodos();toast('Margens recalculadas em '+n+' item(ns)!');}
 
 // DASHBOARD
 function limparDashFiltros(){['df-mk','df-origem','df-marca','df-cat'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const m=document.getElementById('df-metrica');if(m)m.value='margem';rDash();}
@@ -1612,6 +1677,7 @@ function saveProd(){
     }
   }else{nd.id=Date.now();ps.push(nd);}
   LS.set('lb_p',ps);cM('mprod');rBase();toast('Produto salvo!');const pSaved=ps.find(x=>x.sku===nd.sku);if(pSaved&&(pSaved.tipo==='Nacional'||pSaved.tipo==='Terceiro Importado'))sbSalvarCmvNacionais([pSaved]).catch(e=>console.warn('CMV Nac:',e));
+  recalcMcSku(nd.sku);
 }
 
 function delProd(){
@@ -2189,7 +2255,7 @@ function toggleSidebar(){const sb=document.getElementById('sidebar');if(sb)sb.cl
 
 // REALTIME
 let _rtChannel=null;
-function initRealtime(){if(_rtChannel)return;_rtChannel=SB.channel('lb_realtime').on('postgres_changes',{event:'*',schema:'public',table:'produtos'},payload=>{if(payload.new&&payload.new.atualizado_por&&payload.new.atualizado_por!==CU.user){const ps=LS.get('lb_p')||[];const idx=ps.findIndex(p=>p.sku===payload.new.sku);const novo={id:payload.new.id,sku:payload.new.sku,nome:payload.new.nome,tipo:payload.new.tipo,ncm:payload.new.ncm||'',peso:parseFloat(payload.new.peso)||0,custo:parseFloat(payload.new.custo)||0,st:parseFloat(payload.new.st)||0,ipi:parseFloat(payload.new.ipi)||0,pis:parseFloat(payload.new.pis)||9.25,icms:parseFloat(payload.new.icms)||0,marca:payload.new.marca||'',categoria:payload.new.categoria||'',meli:!!payload.new.meli,shp:!!payload.new.shp,amz:!!payload.new.amz,tkt:!!payload.new.tkt,mga:!!payload.new.mga,upAt:payload.new.atualizado_em?payload.new.atualizado_em.substring(0,10):'',upBy:payload.new.atualizado_por||''};if(idx>=0)ps[idx]=novo;else ps.push(novo);_cache['lb_p']=ps;try{localStorage.setItem('lb_p',JSON.stringify(ps));}catch{}toast('🔄 '+payload.new.sku+' atualizado por '+payload.new.atualizado_por);}}).on('postgres_changes',{event:'*',schema:'public',table:'marketplace_dados'},payload=>{if(payload.new&&payload.new.atualizado_por&&payload.new.atualizado_por!==CU.user){const mkt=LS.get('lb_m')||{};const k=payload.new.marketplace+'_'+payload.new.sku;const novoD={preco:parseFloat(payload.new.preco)||0,frete:(payload.new.frete!=null&&payload.new.frete!==0)?parseFloat(payload.new.frete):null,tar:parseFloat(payload.new.tar)||0,reb:parseFloat(payload.new.reb)||0,ads:parseFloat(payload.new.ads)||0};mkt[k]=novoD;_cache['lb_m']=JSON.parse(JSON.stringify(mkt));try{localStorage.setItem('lb_m',JSON.stringify(mkt));}catch{}lU(payload.new.sku,payload.new.marketplace);}}).subscribe();}
+function initRealtime(){if(_rtChannel)return;_rtChannel=SB.channel('lb_realtime').on('postgres_changes',{event:'*',schema:'public',table:'produtos'},payload=>{if(payload.new&&payload.new.atualizado_por&&payload.new.atualizado_por!==CU.user){const ps=LS.get('lb_p')||[];const idx=ps.findIndex(p=>p.sku===payload.new.sku);const novo={id:payload.new.id,sku:payload.new.sku,nome:payload.new.nome,tipo:payload.new.tipo,ncm:payload.new.ncm||'',peso:parseFloat(payload.new.peso)||0,custo:parseFloat(payload.new.custo)||0,st:parseFloat(payload.new.st)||0,ipi:parseFloat(payload.new.ipi)||0,pis:parseFloat(payload.new.pis)||9.25,icms:parseFloat(payload.new.icms)||0,marca:payload.new.marca||'',categoria:payload.new.categoria||'',meli:!!payload.new.meli,shp:!!payload.new.shp,amz:!!payload.new.amz,tkt:!!payload.new.tkt,mga:!!payload.new.mga,upAt:payload.new.atualizado_em?payload.new.atualizado_em.substring(0,10):'',upBy:payload.new.atualizado_por||''};if(idx>=0)ps[idx]=novo;else ps.push(novo);_cache['lb_p']=ps;try{localStorage.setItem('lb_p',JSON.stringify(ps));}catch{}toast('🔄 '+payload.new.sku+' atualizado por '+payload.new.atualizado_por);}}).on('postgres_changes',{event:'*',schema:'public',table:'marketplace_dados'},payload=>{if(payload.new&&payload.new.atualizado_por&&payload.new.atualizado_por!==CU.user){const mkt=LS.get('lb_m')||{};const k=payload.new.marketplace+'_'+payload.new.sku;const anterior=mkt[k]||{};const novoD={preco:parseFloat(payload.new.preco)||0,frete:(payload.new.frete!=null&&payload.new.frete!==0)?parseFloat(payload.new.frete):null,tar:parseFloat(payload.new.tar)||0,reb:parseFloat(payload.new.reb)||0,ads:parseFloat(payload.new.ads)||0};const mudouCampoVisivel=(parseFloat(anterior.preco)||0)!==novoD.preco||(anterior.frete??null)!==novoD.frete||(parseFloat(anterior.tar)||0)!==novoD.tar||(parseFloat(anterior.reb)||0)!==novoD.reb||(parseFloat(anterior.ads)||0)!==novoD.ads;mkt[k]=novoD;_cache['lb_m']=JSON.parse(JSON.stringify(mkt));try{localStorage.setItem('lb_m',JSON.stringify(mkt));}catch{}lU(payload.new.sku,payload.new.marketplace);if(mudouCampoVisivel)toast('🔄 '+payload.new.sku+' atualizado por '+payload.new.atualizado_por);}}).subscribe();}
 
 // PRESENÇA
 let _presenceChannel=null;
@@ -2280,8 +2346,9 @@ function setMgaMod(sku,mod){
   all[k].mgaMod=mod;
   _cache['lb_m']=JSON.parse(JSON.stringify(all));
   try{localStorage.setItem('lb_m',JSON.stringify(all));}catch{}
-  // Persistir no Supabase
-  SB.from('marketplace_dados').upsert({marketplace:'mga',sku,mga_mod:mod,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'}).then(({error})=>{if(error)console.warn('mgaMod save:',error);});
+  // Persistir no Supabase (modalidade afeta o frete calculado, então a M.C. precisa ser recalculada aqui também)
+  const ps=LS.get('lb_p')||[];const p=ps.find(x=>x.sku===sku);const mcVal=p?calcMC(p,'mga',all[k]):null;
+  SB.from('marketplace_dados').upsert({marketplace:'mga',sku,mga_mod:mod,mc:mcVal,mc_atualizada_em:mcVal!=null?new Date().toISOString():null,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'}).then(({error})=>{if(error)console.warn('mgaMod save:',error);});
   lU(sku,'mga');
 }
 
