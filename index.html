@@ -833,17 +833,26 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
 <div class="mov" id="mod-cmv-prod"><div class="mod" style="width:500px;"><div class="mt" id="mod-cmv-title">CMV do Produto</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;padding:12px;background:var(--bg3);border-radius:var(--r);"><div><div class="fl">SKU</div><div id="cmv-prod-sku" style="font-weight:700;"></div></div><div><div class="fl">Container</div><div id="cmv-prod-clb" style="font-weight:700;"></div></div><div><div class="fl">CMV Anterior (auto)</div><div id="cmv-prod-ant" style="font-weight:700;color:var(--text2);"></div></div><div><div class="fl">CMV Médio Calculado</div><div id="cmv-prod-med" style="font-weight:700;color:var(--green);"></div></div></div><div class="gr g2"><div class="fg"><label class="fl">Estoque no Galpão</label><input type="number" class="full" id="cmv-estoque" step="1" min="0" oninput="calcCmvModal()"></div><div class="fg"><label class="fl">CMV (R$)</label><input type="number" class="full" id="cmv-valor" step="0.01" oninput="calcCmvModal()"></div></div><div class="fg"><label class="fl">Quantidade neste Container</label><input type="number" class="full" id="cmv-qtd" step="1" min="0" oninput="calcCmvModal()"></div><div class="mf"><button class="btn" onclick="cM('mod-cmv-prod')">Cancelar</button><button class="btn btn-p" onclick="saveCmvProd()">Salvar</button></div></div></div>
 <div class="mov" id="mod-cmv-exp"><div class="mod" style="width:380px;"><div class="mt">Exportar Relatório CMV</div><div class="fg"><label class="fl">Data de referência</label><input type="date" class="full" id="exp-data"></div><p class="tmu tsm" style="margin-top:6px;">O sistema usará o CMV médio do último container que chegou até esta data.</p><div class="mf"><button class="btn" onclick="cM('mod-cmv-exp')">Cancelar</button><button class="btn btn-p" onclick="gerarRelatorio()">Exportar XLS</button></div></div></div>
 <div class="mov" id="mod-tributos">
-  <div class="mod" style="width:520px;max-width:96vw;">
+  <div class="mod" style="width:780px;max-width:96vw;">
     <div class="mt">📊 % Tributos — Shopee</div>
-    <div style="overflow-y:auto;max-height:65vh;border-radius:var(--r);border:1px solid var(--border);">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+      <input type="text" class="full" id="trib-busca" placeholder="Buscar SKU..." style="flex:1;min-width:160px;" oninput="renderTributos()">
+      <div id="trib-filtro" style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button type="button" class="btn btn-sm trib-filtro-btn" data-tipo="todos" onclick="setTribFiltro('todos')">Todos</button>
+        <button type="button" class="btn btn-sm trib-filtro-btn" data-tipo="Importado" onclick="setTribFiltro('Importado')">Importado</button>
+        <button type="button" class="btn btn-sm trib-filtro-btn" data-tipo="Terceiro Importado" onclick="setTribFiltro('Terceiro Importado')">Terceiro Importado</button>
+        <button type="button" class="btn btn-sm trib-filtro-btn" data-tipo="Nacional" onclick="setTribFiltro('Nacional')">Nacional</button>
+      </div>
+    </div>
+    <div style="overflow-y:auto;max-height:60vh;border-radius:var(--r);border:1px solid var(--border);">
       <table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;">
         <colgroup>
-          <col style="width:26%">
-          <col style="width:18%">
-          <col style="width:14%">
+          <col style="width:16%">
+          <col style="width:34%">
+          <col style="width:12%">
+          <col style="width:12%">
           <col style="width:12%">
           <col style="width:14%">
-          <col style="width:16%">
         </colgroup>
         <thead>
           <tr>
@@ -1039,7 +1048,7 @@ const SB=supabase.createClient(SUPA_URL,SUPA_KEY);
 const _cache={};
 const LS={
   get:k=>{if(_cache[k]!==undefined)return JSON.parse(JSON.stringify(_cache[k]));try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}},
-  set:(k,v)=>{_cache[k]=JSON.parse(JSON.stringify(v));try{localStorage.setItem(k,JSON.stringify(v));}catch{}sbPersist(k,v).catch(e=>console.warn('Supabase sync error:',k,e));}
+  set:(k,v)=>{_cache[k]=JSON.parse(JSON.stringify(v));try{localStorage.setItem(k,JSON.stringify(v));}catch{}sbPersist(k,v).catch(e=>{console.warn('Supabase sync error:',k,e);toast('⚠️ Falha ao salvar no servidor ('+k+'): '+(e?.message||e),'e');});}
 };
 async function sbPersistMktItem(sku,mk,d){const isTktOrMga=mk==='tkt'||mk==='mga';const{error}=await SB.from('marketplace_dados').upsert({marketplace:mk,sku,preco:d.preco||0,frete:isTktOrMga?null:((d.frete!=null&&d.frete!==0)?d.frete:null),tar:isTktOrMga?null:(d.tar||0),reb:d.reb||0,ads:d.ads||0,atualizado_por:(typeof CU!=='undefined'&&CU)?CU.user:null,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'});if(error)throw error;}
 async function sbPersist(k,v){
@@ -2222,9 +2231,28 @@ function abrirIncompletos(){
 }
 
 // % TRIBUTOS SHOPEE
+let _tribFiltro='todos';
+function setTribFiltro(tipo){
+  _tribFiltro=tipo;
+  document.querySelectorAll('.trib-filtro-btn').forEach(b=>b.classList.toggle('btn-p',b.dataset.tipo===tipo));
+  renderTributos();
+}
 function abrirTributos(){
+  _tribFiltro='todos';
+  const busca=document.getElementById('trib-busca');
+  if(busca)busca.value='';
+  document.getElementById('mod-tributos').classList.add('open');
+  renderTributos();
+  document.querySelectorAll('.trib-filtro-btn').forEach(b=>b.classList.toggle('btn-p',b.dataset.tipo==='todos'));
+}
+function renderTributos(){
   const ps=LS.get('lb_p')||[];
-  const ativos=ps.filter(p=>p.shp).sort((a,b)=>(a.sku||'').localeCompare(b.sku||'','pt-BR',{numeric:true,sensitivity:'base'}));
+  const buscaEl=document.getElementById('trib-busca');
+  const busca=(buscaEl?buscaEl.value:'').trim().toLowerCase();
+  let ativos=ps.filter(p=>p.shp);
+  if(_tribFiltro!=='todos')ativos=ativos.filter(p=>p.tipo===_tribFiltro);
+  if(busca)ativos=ativos.filter(p=>(p.sku||'').toLowerCase().includes(busca));
+  ativos.sort((a,b)=>(a.sku||'').localeCompare(b.sku||'','pt-BR',{numeric:true,sensitivity:'base'}));
   const tb=document.getElementById('trib-tbody');
   if(!tb)return;
   tb.innerHTML=ativos.length?ativos.map((p,i)=>{
@@ -2241,9 +2269,8 @@ function abrirTributos(){
     const tdS=`style="${bg};${bdr};padding:8px 10px;font-size:12px;"`;
     const tdC=`style="${bg};${bdr};padding:8px 8px;font-size:12px;text-align:center;"`;
     const totalColor=total>30?'color:#dc2626;font-weight:700':total>25?'color:#b45309;font-weight:700':'color:#15803d;font-weight:700';
-    return`<tr><td ${tdS}><strong style="color:var(--accent2);font-size:11px;">${p.sku}</strong></td><td ${tdC}><span style="background:#f0f4ff;color:#1d4ed8;font-size:10px;padding:2px 6px;border-radius:20px;font-weight:700;white-space:nowrap;">${rf}</span></td><td ${tdC}>${icms>0?pc(icms):'<span style="color:var(--text3);">0%</span>'}</td><td ${tdC}>${ipi>0?pc(ipi):'<span style="color:var(--text3);">—</span>'}</td><td ${tdC}>${pc(piscof)}</td><td style="${bg};${bdr};padding:8px 8px;text-align:center;${totalColor}">${pc(total)}</td></tr>`;
-  }).join(''):'<tr><td colspan="6" class="nd">Nenhum produto ativo na Shopee.</td></tr>';
-  document.getElementById('mod-tributos').classList.add('open');
+    return`<tr><td ${tdS}><strong style="color:var(--accent2);font-size:11px;">${p.sku}</strong></td><td ${tdC}><span style="display:inline-block;background:#f0f4ff;color:#1d4ed8;font-size:10px;line-height:1.4;padding:3px 8px;border-radius:10px;font-weight:700;white-space:normal;word-break:break-word;">${rf}</span></td><td ${tdC}>${icms>0?pc(icms):'<span style="color:var(--text3);">0%</span>'}</td><td ${tdC}>${ipi>0?pc(ipi):'<span style="color:var(--text3);">—</span>'}</td><td ${tdC}>${pc(piscof)}</td><td style="${bg};${bdr};padding:8px 8px;text-align:center;${totalColor}">${pc(total)}</td></tr>`;
+  }).join(''):'<tr><td colspan="6" class="nd">Nenhum produto encontrado.</td></tr>';
 }
 
 // MODALIDADE MAGALU
