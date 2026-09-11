@@ -1031,7 +1031,7 @@ async function sbPersist(k,v){
   if(k==='lb_p'){if(!Array.isArray(v))return;const rows=v.map(p=>({sku:p.sku,nome:p.nome,tipo:p.tipo||'Importado',ncm:p.ncm||null,peso:p.peso||0,custo:p.custo||0,st:p.st||0,ipi:p.ipi||0,pis:p.pis||9.25,icms:p.icms||0,marca:p.marca||null,categoria:p.categoria||null,meli:!!p.meli,shp:!!p.shp,amz:!!p.amz,tkt:!!p.tkt,mga:!!p.mga,variacao:!!p.variacao,atualizado_em:new Date().toISOString(),atualizado_por:p.upBy||null}));for(let i=0;i<rows.length;i+=50){await SB.from('produtos').upsert(rows.slice(i,i+50),{onConflict:'sku'});}}
   else if(k==='lb_u'){if(!Array.isArray(v))return;for(const u of v)await SB.from('usuarios').upsert({nome:u.nome,usuario:u.user,senha:u.senha,perfil:u.perfil||'meli',atualizado_em:new Date().toISOString()},{onConflict:'usuario'});}
   else if(k==='lb_m'){if(typeof v!=='object')return;const psRef=LS.get('lb_p')||[];for(const[key,d]of Object.entries(v)){const parts=key.split('_');if(parts.length<2)continue;const mk=parts[0];const sku=parts.slice(1).join('_');const pRef=psRef.find(x=>x.sku===sku);const mcVal=pRef?calcMC(pRef,mk,d):null;await SB.from('marketplace_dados').upsert({marketplace:mk,sku,preco:d.preco||0,frete:(d.frete!=null&&d.frete!==0)?d.frete:null,tar:d.tar||0,reb:d.reb||0,ads:d.ads||0,mc:mcVal,mc_atualizada_em:mcVal!=null?new Date().toISOString():null,atualizado_por:CU?CU.user:null,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'});}}
-  else if(k==='lb_h'){if(!Array.isArray(v))return;const{data:existing}=await SB.from('historico_custos').select('id');const existingIds=new Set((existing||[]).map(r=>String(r.id)));for(const h of v){if(!existingIds.has(String(h.id))){await SB.from('historico_custos').insert({sku:h.sku,nome:h.nome,campo:h.campo||'custo',valor_anterior:h.ant,valor_novo:h.novo,alterado_por:h.user,alterado_em:h.data?new Date(h.data+'T12:00:00').toISOString():new Date().toISOString()});}}}
+  else if(k==='lb_h'){if(!Array.isArray(v))return;const{data:existing}=await SB.from('historico_custos').select('id');const existingIds=new Set((existing||[]).map(r=>String(r.id)));for(const h of v){if(!existingIds.has(String(h.id))){await SB.from('historico_custos').insert({sku:h.sku,nome:h.nome,campo:h.campo||'custo',valor_anterior:h.isTxt?null:h.ant,valor_novo:h.isTxt?null:h.novo,valor_anterior_txt:h.isTxt?String(h.ant):null,valor_novo_txt:h.isTxt?String(h.novo):null,alterado_por:h.user,alterado_em:h.data?new Date(h.data+'T12:00:00').toISOString():new Date().toISOString()});}}}
   else if(k==='lb_marcas'){if(!Array.isArray(v))return;for(const nome of v)await SB.from('marcas').upsert({nome},{onConflict:'nome'});}
   else if(k==='lb_cats'){if(!Array.isArray(v))return;for(const nome of v)await SB.from('categorias').upsert({nome},{onConflict:'nome'});}
   else if(k==='lb_obs'){if(typeof v!=='object')return;for(const[key,d]of Object.entries(v)){const parts=key.split('_');if(parts.length<2)continue;const mk=parts[0];const sku=parts.slice(1).join('_');await SB.from('observacoes').upsert({marketplace:mk,sku,tags:d.tags||[],nota:d.nota||'',atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'});}}
@@ -1053,7 +1053,7 @@ async function sbLoad(){
     if(rProd.data?.length)_cache['lb_p']=rProd.data.map(p=>({id:p.id,sku:p.sku,nome:p.nome,tipo:p.tipo||'Importado',ncm:p.ncm||'',peso:parseFloat(p.peso)||0,custo:parseFloat(p.custo)||0,st:parseFloat(p.st)||0,ipi:parseFloat(p.ipi)||0,pis:parseFloat(p.pis)||9.25,icms:parseFloat(p.icms)||0,marca:p.marca||'',categoria:p.categoria||'',meli:!!p.meli,shp:!!p.shp,amz:!!p.amz,tkt:!!p.tkt,mga:!!p.mga,variacao:!!p.variacao,upAt:p.atualizado_em?p.atualizado_em.substring(0,10):'',upBy:p.atualizado_por||''}));
     if(rUsers.data?.length)_cache['lb_u']=rUsers.data.map(u=>({id:u.id,nome:u.nome,user:u.usuario,senha:u.senha,perfil:u.perfil}));
     if(rMkt.data?.length){const mkt={};rMkt.data.forEach(r=>{mkt[r.marketplace+'_'+r.sku]={preco:parseFloat(r.preco)||0,frete:(r.frete!=null&&r.frete!==0)?parseFloat(r.frete):null,tar:parseFloat(r.tar)||0,reb:parseFloat(r.reb)||0,ads:parseFloat(r.ads)||0,pix_desc:parseFloat(r.pix_desc)||0,pix_vend:parseFloat(r.pix_vend)||0,mgaMod:r.mga_mod||'coleta',mga_mod:r.mga_mod||'coleta'};});_cache['lb_m']=mkt;}
-    if(rHist.data?.length){const prodMap={};(rProd.data||[]).forEach(p=>prodMap[p.sku]=p.tipo);_cache['lb_h']=rHist.data.map(h=>{const ant=parseFloat(h.valor_anterior)||0,novo=parseFloat(h.valor_novo)||0;const vp=ant>0?((novo-ant)/ant*100).toFixed(2):'—';const campo=h.campo==='Custo'?'Custo NF':(h.campo||'Custo NF');const tipo=prodMap[h.sku]||(campo==='CMV Contábil'?'Terceiro Importado':'Importado');return{id:h.id,sku:h.sku,nome:h.nome||'',campo,tipo,ant,novo,var:vp!=='—'?(novo>=ant?'+':'')+vp+'%':'—',user:h.alterado_por||'',data:h.alterado_em?h.alterado_em.substring(0,10):''};}); }
+    if(rHist.data?.length){const prodMap={};(rProd.data||[]).forEach(p=>prodMap[p.sku]=p.tipo);_cache['lb_h']=rHist.data.map(h=>{const isTxt=h.valor_anterior_txt!=null||h.valor_novo_txt!=null;const ant=isTxt?h.valor_anterior_txt:(parseFloat(h.valor_anterior)||0);const novo=isTxt?h.valor_novo_txt:(parseFloat(h.valor_novo)||0);const vp=(!isTxt&&ant>0)?((novo-ant)/ant*100).toFixed(2):'—';const campo=h.campo==='Custo'?'Custo NF':(h.campo||'Custo NF');const tipo=prodMap[h.sku]||(campo==='CMV Contábil'?'Terceiro Importado':'Importado');return{id:h.id,sku:h.sku,nome:h.nome||'',campo,tipo,ant,novo,isTxt,var:vp!=='—'?(novo>=ant?'+':'')+vp+'%':'—',user:h.alterado_por||'',data:h.alterado_em?h.alterado_em.substring(0,10):''};}); }
     if(rMarcas.data?.length)_cache['lb_marcas']=rMarcas.data.map(r=>r.nome);
     if(rCats.data?.length)_cache['lb_cats']=rCats.data.map(r=>r.nome);
     if(rObs.data?.length){const obs={};rObs.data.forEach(r=>{obs[r.marketplace+'_'+r.sku]={tags:r.tags||[],nota:r.nota||''};});_cache['lb_obs']=obs;}
@@ -1873,7 +1873,7 @@ function rHist(){
     const pos=x.var&&x.var.startsWith('+'),neg=x.var&&x.var.startsWith('-');
     const tipo=x.tipo||(tipoMap[x.sku]||'—');
     const dataFmt=x.data?x.data.split('-').reverse().join('/'):'—';
-    return`<tr><td class="tdc tmu">${dataFmt}</td><td class="tdc"><strong>${x.sku}</strong></td><td class="tdl">${x.nome||'—'}</td><td class="tdc"><span class="chip ${tipo==='Importado'?'ci':'cna'}">${tipo}</span></td><td class="tdc" style="color:var(--red);font-weight:700;">${x.ant!=null?'R$ '+fn(x.ant):'—'}</td><td class="tdc" style="color:var(--green);font-weight:700;">${x.novo!=null?'R$ '+fn(x.novo):'—'}</td><td class="tdc ${pos?'hp':neg?'hn':''}" style="font-weight:700;">${x.var||'—'}</td><td class="tdc tmu">${x.user||'—'}</td><td class="tdc"><button class="btn btn-sm btn-d" onclick="delHist('${x.id}')">Excluir</button></td></tr>`;
+    return`<tr><td class="tdc tmu">${dataFmt}</td><td class="tdc"><strong>${x.sku}</strong></td><td class="tdl">${x.nome||'—'}</td><td class="tdc"><span class="chip ${tipo==='Importado'?'ci':'cna'}">${tipo}</span></td><td class="tdc" style="color:var(--red);font-weight:700;">${x.isTxt?(x.ant||'—'):(x.ant!=null?'R$ '+fn(x.ant):'—')}</td><td class="tdc" style="color:var(--green);font-weight:700;">${x.isTxt?(x.novo||'—'):(x.novo!=null?'R$ '+fn(x.novo):'—')}</td><td class="tdc ${pos?'hp':neg?'hn':''}" style="font-weight:700;">${x.var||'—'}</td><td class="tdc tmu">${x.user||'—'}</td><td class="tdc"><button class="btn btn-sm btn-d" onclick="delHist('${x.id}')">Excluir</button></td></tr>`;
   }).join(''):`<tr><td colspan="9" class="nd">Nenhum registro encontrado.</td></tr>`;
 }
 function delHist(id){if(!confirm('Excluir este registro?'))return;LS.set('lb_h',(LS.get('lb_h')||[]).filter(h=>String(h.id)!==String(id)));SB.from('historico_custos').delete().eq('id',id).then(({error})=>{if(error)console.warn('Erro:',error);});rHist();toast('Removido.');}
@@ -1883,7 +1883,12 @@ let pH=null;
 function trgH(sku,nome,changes){
   pH={sku,nome,changes};
   document.getElementById('hcsku').textContent=sku+' — '+nome;
-  document.getElementById('hcch').innerHTML=changes.map(c=>`<div class="flex fc g8" style="margin-bottom:6px;"><span style="color:var(--text2);min-width:160px;">${c.campo}</span><span style="color:var(--red);">R$ ${fn(c.ant)}</span><span style="color:var(--text3);">→</span><span style="color:var(--green);">R$ ${fn(c.novo)}</span></div>`).join('');
+  document.getElementById('hcch').innerHTML=changes.map(c=>{
+    const isTxt=isNaN(parseFloat(c.ant))||isNaN(parseFloat(c.novo));
+    const antDisp=isTxt?c.ant:('R$ '+fn(c.ant));
+    const novoDisp=isTxt?c.novo:('R$ '+fn(c.novo));
+    return`<div class="flex fc g8" style="margin-bottom:6px;"><span style="color:var(--text2);min-width:160px;">${c.campo}</span><span style="color:var(--red);">${antDisp}</span><span style="color:var(--text3);">→</span><span style="color:var(--green);">${novoDisp}</span></div>`;
+  }).join('');
   document.getElementById('mhist').classList.add('open');
 }
 function confH(){
@@ -1893,9 +1898,14 @@ function confH(){
   const prod=ps.find(p=>p.sku===pH.sku);
   const tipo=prod?prod.tipo:'';
   pH.changes.forEach(c=>{
-    const a=parseFloat(c.ant)||0,n=parseFloat(c.novo)||0;
-    const vp=a>0?((n-a)/a*100).toFixed(2):'—';
-    h.push({id:Date.now()+Math.random(),data:td(),sku:pH.sku,nome:pH.nome,tipo,campo:c.campo,ant:a,novo:n,var:vp!=='—'?(n>=a?'+':'')+vp+'%':'—',user:CU?CU.user:'—'});
+    const isTxt=isNaN(parseFloat(c.ant))||isNaN(parseFloat(c.novo));
+    if(isTxt){
+      h.push({id:Date.now()+Math.random(),data:td(),sku:pH.sku,nome:pH.nome,tipo,campo:c.campo,ant:c.ant,novo:c.novo,isTxt:true,var:'—',user:CU?CU.user:'—'});
+    }else{
+      const a=parseFloat(c.ant)||0,n=parseFloat(c.novo)||0;
+      const vp=a>0?((n-a)/a*100).toFixed(2):'—';
+      h.push({id:Date.now()+Math.random(),data:td(),sku:pH.sku,nome:pH.nome,tipo,campo:c.campo,ant:a,novo:n,var:vp!=='—'?(n>=a?'+':'')+vp+'%':'—',user:CU?CU.user:'—'});
+    }
   });
   LS.set('lb_h',h);pH=null;cM('mhist');toast('Registrado no histórico!');
 }
