@@ -1327,6 +1327,7 @@ async function recalcMcTodosManual(){
   toast('Recalculando margens de todos os itens...');
   const n=await recalcMcTodos();
   toast('Margens recalculadas: '+n+' item(ns) atualizado(s)!');
+  refreshTelaAtual();
 }
 
 // GLOBAIS
@@ -1424,7 +1425,16 @@ function initFiscal(){
 let _shpFaixas=[];
 function renderShpFaixas(faixas){_shpFaixas=faixas?JSON.parse(JSON.stringify(faixas)):JSON.parse(JSON.stringify(FC_DEFAULT.shpFaixas));const tb=document.getElementById('fc-shp-tbody');if(!tb)return;const tdS='padding:6px 8px;border:1px solid var(--border);';tb.innerHTML=_shpFaixas.map((f,i)=>`<tr><td style="${tdS}"><input type="number" step="0.01" value="${f.ate>=999999?'':f.ate}" placeholder="∞ (última faixa)" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);" onchange="_shpFaixas[${i}].ate=parseFloat(this.value)||999999"></td><td style="${tdS}"><input type="number" step="0.01" value="${f.frete}" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);" onchange="_shpFaixas[${i}].frete=parseFloat(this.value)||0"></td><td style="${tdS}"><input type="number" step="0.01" value="${f.tar}" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);" onchange="_shpFaixas[${i}].tar=parseFloat(this.value)||0"></td><td style="${tdS};text-align:center;"><button class="btn btn-sm btn-d" onclick="_shpFaixas.splice(${i},1);renderShpFaixas(_shpFaixas)">−</button></td></tr>`).join('');}
 function addShpFaixa(){_shpFaixas.push({ate:999999,frete:0,tar:0});renderShpFaixas(_shpFaixas);}
-async function saveFiscal(){const g=id=>parseFloat(document.getElementById(id).value)||0;const fc={icmsImp12:g('fc-icms-imp-12'),icmsImp18:g('fc-icms-imp-18'),icmsNacST:g('fc-icms-nac-st'),icmsNacSem:g('fc-icms-nac-sem'),pisSaida:g('fc-pis-saida'),pisFrete:g('fc-pis-frete'),pisTar:g('fc-pis-tar'),pisAds:g('fc-pis-ads'),icmsFrete:g('fc-icms-frete'),precoFrete:g('fc-preco-frete'),pisEntrada:g('fc-pis-entrada'),tktFaixas:[{limiar:50,tar:g('fc-tkt-tar-baixo'),frete:g('fc-tkt-frete-baixo')},{limiar:999999,tar:g('fc-tkt-tar-alto'),frete:g('fc-tkt-frete-alto')}],mgaFrete:5,mgaFreteFixo:g('fc-mga-frete-fixo'),mgaTar:g('fc-mga-tar'),mgAmarelo:g('fc-mg-amarelo'),mgVerde:g('fc-mg-verde'),shpFaixas:_shpFaixas};LS.set('lb_fiscal',fc);toast('Configurações fiscais salvas! Recalculando margens...');const n=await recalcMcTodos();toast('Margens recalculadas em '+n+' item(ns)!');}
+async function saveFiscal(){const g=id=>parseFloat(document.getElementById(id).value)||0;const fc={icmsImp12:g('fc-icms-imp-12'),icmsImp18:g('fc-icms-imp-18'),icmsNacST:g('fc-icms-nac-st'),icmsNacSem:g('fc-icms-nac-sem'),pisSaida:g('fc-pis-saida'),pisFrete:g('fc-pis-frete'),pisTar:g('fc-pis-tar'),pisAds:g('fc-pis-ads'),icmsFrete:g('fc-icms-frete'),precoFrete:g('fc-preco-frete'),pisEntrada:g('fc-pis-entrada'),tktFaixas:[{limiar:50,tar:g('fc-tkt-tar-baixo'),frete:g('fc-tkt-frete-baixo')},{limiar:999999,tar:g('fc-tkt-tar-alto'),frete:g('fc-tkt-frete-alto')}],mgaFrete:5,mgaFreteFixo:g('fc-mga-frete-fixo'),mgaTar:g('fc-mga-tar'),mgAmarelo:g('fc-mg-amarelo'),mgVerde:g('fc-mg-verde'),shpFaixas:_shpFaixas};LS.set('lb_fiscal',fc);toast('Configurações fiscais salvas! Recalculando margens...');const n=await recalcMcTodos();toast('Margens recalculadas em '+n+' item(ns)!');refreshTelaAtual();}
+function refreshTelaAtual(){
+  const ativa=document.querySelector('.screen.active');
+  if(!ativa)return;
+  const id=ativa.id.replace('screen-','');
+  if(id==='dash')rDash();
+  else if(id==='base')rBase();
+  else if(['meli','shp','tkt','amz','mga'].includes(id))rMkt(id);
+  else if(id==='rap')cRap();
+}
 
 // DASHBOARD
 function limparDashFiltros(){['df-mk','df-origem','df-marca','df-cat'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const m=document.getElementById('df-metrica');if(m)m.value='margem';rDash();}
