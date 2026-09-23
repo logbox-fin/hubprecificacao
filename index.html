@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LogBox — Hub de Precificação</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf-autotable.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 :root{
@@ -320,7 +322,7 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
         <div class="ph" style="margin-bottom:8px;">
           <div class="pt" style="color:var(--meli);">Mercado Livre</div>
           <span class="tsm tmu">Frete calculado automaticamente por peso × preço de venda</span>
-          <div class="ml-auto"><button class="btn btn-sm" onclick="renderModalFrete();document.getElementById('mod-frete-meli').classList.add('open')" style="border-color:var(--meli);color:#92400e;background:var(--mlbg);">📦 Tabela de Frete</button></div>
+          <div class="ml-auto flex fc g8"><button class="btn btn-sm" onclick="abrirExportPdf('meli')" style="border-color:#94a3b8;color:#334155;">📄 Exportar PDF</button><button class="btn btn-sm" onclick="renderModalFrete();document.getElementById('mod-frete-meli').classList.add('open')" style="border-color:var(--meli);color:#92400e;background:var(--mlbg);">📦 Tabela de Frete</button></div>
         </div>
         <div class="flex fc g8" style="margin-bottom:8px;flex-wrap:wrap;">
           <input type="text" id="mkt-busca-meli" placeholder="Buscar SKU..." style="width:180px;" oninput="filtrarMkt('meli')">
@@ -349,7 +351,7 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
       <!-- TIKTOK -->
       <div class="screen" id="screen-tkt">
         <div class="sticky-bar" style="padding-top:0;">
-        <div class="ph" style="margin-bottom:8px;"><div class="pt" style="color:var(--tkt);">TikTok Shop</div><span class="tsm tmu">Frete e tarifa editáveis · Rebate editável</span></div>
+        <div class="ph" style="margin-bottom:8px;"><div class="pt" style="color:var(--tkt);">TikTok Shop</div><span class="tsm tmu">Frete e tarifa editáveis · Rebate editável</span><div class="ml-auto"><button class="btn btn-sm" onclick="abrirExportPdf('tkt')" style="border-color:#94a3b8;color:#334155;">📄 Exportar PDF</button></div></div>
         <div class="flex fc g8" style="margin-bottom:8px;flex-wrap:wrap;">
           <input type="text" id="mkt-busca-tkt" placeholder="Buscar SKU..." style="width:180px;" oninput="filtrarMkt('tkt')">
           <select id="mkt-tipo-tkt" onchange="filtrarMkt('tkt')" style="padding:6px 10px;font-size:12px;"><option value="">Todos os tipos</option><option value="Importado">Importado</option><option value="Nacional">Nacionais + 3° Imp.</option></select>
@@ -375,7 +377,7 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
       <!-- SHOPEE -->
       <div class="screen" id="screen-shp">
         <div class="sticky-bar" style="padding-top:0;">
-        <div class="ph" style="margin-bottom:8px;"><div class="pt" style="color:var(--shp);">Shopee</div><span class="tsm tmu">Frete informado pela plataforma</span><div class="ml-auto"><button class="btn btn-sm" onclick="abrirTributos()" style="border-color:var(--shp);color:#9a3412;background:var(--shpbg);">📊 % Tributos</button></div></div>
+        <div class="ph" style="margin-bottom:8px;"><div class="pt" style="color:var(--shp);">Shopee</div><span class="tsm tmu">Frete informado pela plataforma</span><div class="ml-auto flex fc g8"><button class="btn btn-sm" onclick="abrirExportPdf('shp')" style="border-color:#94a3b8;color:#334155;">📄 Exportar PDF</button><button class="btn btn-sm" onclick="abrirTributos()" style="border-color:var(--shp);color:#9a3412;background:var(--shpbg);">📊 % Tributos</button></div></div>
         <div class="flex fc g8" style="margin-bottom:8px;flex-wrap:wrap;">
           <input type="text" id="mkt-busca-shp" placeholder="Buscar SKU..." style="width:180px;" oninput="filtrarMkt('shp')">
           <select id="mkt-tipo-shp" onchange="filtrarMkt('shp')" style="padding:6px 10px;font-size:12px;"><option value="">Todos os tipos</option><option value="Importado">Importados</option><option value="Nacional">Nacionais + 3° Imp.</option></select>
@@ -401,7 +403,7 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
       <!-- AMAZON -->
       <div class="screen" id="screen-amz">
         <div class="sticky-bar" style="padding-top:0;">
-        <div class="ph" style="margin-bottom:8px;"><div class="pt" style="color:var(--amz);">Amazon</div><span class="tsm tmu">Frete informado pela plataforma</span></div>
+        <div class="ph" style="margin-bottom:8px;"><div class="pt" style="color:var(--amz);">Amazon</div><span class="tsm tmu">Frete informado pela plataforma</span><div class="ml-auto"><button class="btn btn-sm" onclick="abrirExportPdf('amz')" style="border-color:#94a3b8;color:#334155;">📄 Exportar PDF</button></div></div>
         <div class="flex fc g8" style="margin-bottom:8px;flex-wrap:wrap;">
           <input type="text" id="mkt-busca-amz" placeholder="Buscar SKU..." style="width:180px;" oninput="filtrarMkt('amz')">
           <select id="mkt-tipo-amz" onchange="filtrarMkt('amz')" style="padding:6px 10px;font-size:12px;"><option value="">Todos os tipos</option><option value="Importado">Importados</option><option value="Nacional">Nacionais + 3° Imp.</option></select>
@@ -427,7 +429,7 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
       <!-- MAGALU -->
       <div class="screen" id="screen-mga">
         <div class="sticky-bar" style="padding-top:0;">
-        <div class="ph" style="margin-bottom:8px;"><div class="pt" style="color:var(--mga);">Magalu</div><span class="tsm tmu">Frete e tarifa editáveis · Rebate editável</span></div>
+        <div class="ph" style="margin-bottom:8px;"><div class="pt" style="color:var(--mga);">Magalu</div><span class="tsm tmu">Frete e tarifa editáveis · Rebate editável</span><div class="ml-auto"><button class="btn btn-sm" onclick="abrirExportPdf('mga')" style="border-color:#94a3b8;color:#334155;">📄 Exportar PDF</button></div></div>
         <div class="flex fc g8" style="margin-bottom:8px;flex-wrap:wrap;">
           <input type="text" id="mkt-busca-mga" placeholder="Buscar SKU..." style="width:180px;" oninput="filtrarMkt('mga')">
           <select id="mkt-tipo-mga" onchange="filtrarMkt('mga')" style="padding:6px 10px;font-size:12px;"><option value="">Todos os tipos</option><option value="Importado">Importado</option><option value="Nacional">Nacionais + 3° Imp.</option></select>
@@ -908,6 +910,18 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
   </div>
 </div>
 
+<div class="mov" id="mod-export-pdf">
+  <div class="mod" style="width:440px;">
+    <div class="mt" id="exp-titulo">📄 Exportar PDF</div>
+    <div class="sl">Selecione as colunas que quer no PDF</div>
+    <div id="exp-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;"></div>
+    <div class="tsm tmu" style="margin-bottom:8px;">Os produtos serão separados em duas tabelas: Importados / Nacional + Terceiro Importado.</div>
+    <div class="mf">
+      <button class="btn" onclick="cM('mod-export-pdf')">Cancelar</button>
+      <button class="btn btn-p" onclick="gerarPdfMkt()">📄 Gerar PDF</button>
+    </div>
+  </div>
+</div>
 <div class="mov" id="mod-custo-novo">
   <div class="mod" style="width:520px;">
     <div class="mt" id="cn-titulo">💰 Atualizar Custo</div>
@@ -2298,6 +2312,118 @@ function setTribFiltro(tipo){
   _tribFiltro=tipo;
   document.querySelectorAll('.trib-filtro-btn').forEach(b=>b.classList.toggle('btn-p',b.dataset.tipo===tipo));
   renderTributos();
+}
+// EXPORTAR PDF POR MARKETPLACE
+let _expMk=null;
+const EXPORT_COLS=[
+  {key:'sku',label:'SKU'},
+  {key:'nome',label:'Produto'},
+  {key:'custo',label:'Custo'},
+  {key:'custoAj',label:'Custo Ajustado'},
+  {key:'preco',label:'Preço de Venda'},
+  {key:'frete',label:'Frete'},
+  {key:'tarPct',label:'Tarifa %'},
+  {key:'tarR',label:'Tarifa R$'},
+  {key:'reb',label:'Rebate R$'},
+  {key:'adsPct',label:'ADS %'},
+  {key:'adsR',label:'ADS R$'},
+  {key:'mcR',label:'M.C. R$'},
+  {key:'mcP',label:'M.C. %'},
+  {key:'modalidade',label:'Modalidade',onlyMk:'mga'},
+  {key:'tags',label:'Tags/Obs'}
+];
+const EXPORT_MK_NOMES={meli:'Mercado Livre',shp:'Shopee',tkt:'TikTok Shop',amz:'Amazon',mga:'Magalu'};
+function abrirExportPdf(mk){
+  _expMk=mk;
+  document.getElementById('exp-titulo').textContent='📄 Exportar PDF — '+(EXPORT_MK_NOMES[mk]||mk);
+  const cont=document.getElementById('exp-cols');
+  cont.innerHTML=EXPORT_COLS.filter(c=>!c.onlyMk||c.onlyMk===mk).map(c=>`<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;"><input type="checkbox" class="exp-col-chk" value="${c.key}" checked> ${c.label}</label>`).join('');
+  document.getElementById('mod-export-pdf').classList.add('open');
+}
+function _expLinhaMkt(p,mk,cols){
+  const d=gM(p.sku,mk)||{};
+  const preco=parseFloat(d.preco)||0;
+  const pixD=mk==='meli'?getMeliPix(p.sku):{desc:0,vend:0};
+  const precoCalc=mk==='meli'&&pixD.desc&&pixD.vend?pvMedio(preco,pixD.desc,pixD.vend):preco;
+  const{fr,tar}=mktFreteTar(mk,d,p,preco);
+  const reb=parseFloat(d.reb)||0,ads=parseFloat(d.ads)||0;
+  const tarR=preco?((preco*tar/100)-reb):0;
+  const adsR=preco?(preco*ads/100):0;
+  const aj=preco?cAj(p,fr,tar,reb,ads,precoCalc):0;
+  const m=preco?cMarg(p,precoCalc,fr,tar,reb,ads):{r:'',p:''};
+  const isNacTerc=p.tipo==='Nacional'||p.tipo==='Terceiro Importado';
+  const custoDisp=isNacTerc?calcCMV(p):(parseFloat(p.custo)||0);
+  const obs=LS.get('lb_obs')||{};const pObs=obs[mk+'_'+p.sku]||{tags:[]};
+  const tagsTxt=(pObs.tags||[]).map(t=>t.nome).join(', ');
+  const map={
+    sku:p.sku,nome:p.nome||'',
+    custo:fR(custoDisp),
+    custoAj:preco?fR(aj):'—',
+    preco:preco?fR(preco):'—',
+    frete:preco?fR(fr):'—',
+    tarPct:preco?pc(tar):'—',
+    tarR:preco?fR(tarR):'—',
+    reb:preco?fR(reb):'—',
+    adsPct:preco?pc(ads):'—',
+    adsR:preco?fR(adsR):'—',
+    mcR:(preco&&m.r!=='')?fR(m.r):'—',
+    mcP:(preco&&m.p!=='')?pc(m.p):'—',
+    modalidade:(d.mgaMod==='full'?'Full':'Coleta'),
+    tags:tagsTxt||'—'
+  };
+  return cols.map(c=>map[c.key]);
+}
+function gerarPdfMkt(){
+  const mk=_expMk;if(!mk)return;
+  const checked=Array.from(document.querySelectorAll('.exp-col-chk:checked')).map(el=>el.value);
+  if(!checked.length){toast('Selecione ao menos uma coluna','e');return;}
+  const cols=EXPORT_COLS.filter(c=>checked.includes(c.key));
+  const ps=(LS.get('lb_p')||[]).filter(p=>p[mk]).sort((a,b)=>(a.sku||'').localeCompare(b.sku||'','pt-BR',{numeric:true,sensitivity:'base'}));
+  const importados=ps.filter(p=>p.tipo==='Importado');
+  const nacTerc=ps.filter(p=>p.tipo==='Nacional'||p.tipo==='Terceiro Importado');
+  if(!importados.length&&!nacTerc.length){toast('Nenhum produto ativo nesse marketplace','e');return;}
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const dataHora=new Date().toLocaleString('pt-BR');
+  const fc=getFC();
+  let firstPage=true;
+  function addSecao(titulo,rows){
+    if(!rows.length)return;
+    if(!firstPage)doc.addPage();
+    firstPage=false;
+    doc.setFontSize(14);doc.setTextColor(30,41,59);
+    doc.text('LogBox — Precificação '+(EXPORT_MK_NOMES[mk]||mk),14,15);
+    doc.setFontSize(9);doc.setTextColor(100,116,139);
+    doc.text('Gerado em '+dataHora,14,21);
+    doc.setFontSize(12);doc.setTextColor(30,41,59);
+    doc.text(titulo,14,29);
+    doc.autoTable({
+      startY:33,
+      head:[cols.map(c=>c.label)],
+      body:rows.map(p=>_expLinhaMkt(p,mk,cols)),
+      styles:{fontSize:8,cellPadding:2},
+      headStyles:{fillColor:[29,78,216],textColor:255},
+      didParseCell:function(data){
+        if(data.section==='body'){
+          const colKey=cols[data.column.index]&&cols[data.column.index].key;
+          if(colKey==='mcP'){
+            const raw=parseFloat((data.cell.raw||'').toString().replace('%','').replace(',','.'));
+            if(!isNaN(raw)){
+              if(raw>=(fc.mgVerde||18))data.cell.styles.textColor=[21,128,61];
+              else if(raw>=(fc.mgAmarelo||15))data.cell.styles.textColor=[180,83,9];
+              else data.cell.styles.textColor=[220,38,38];
+              data.cell.styles.fontStyle='bold';
+            }
+          }
+        }
+      }
+    });
+  }
+  addSecao('IMPORTADOS',importados);
+  addSecao('NACIONAL / TERCEIRO IMPORTADO',nacTerc);
+  doc.save('LogBox_'+(EXPORT_MK_NOMES[mk]||mk).replace(/\s/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.pdf');
+  cM('mod-export-pdf');
+  toast('PDF gerado!');
 }
 function abrirTributos(){
   _tribFiltro='todos';
