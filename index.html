@@ -6,7 +6,7 @@
 <title>LogBox — Hub de Precificação</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf-autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 :root{
@@ -2375,6 +2375,9 @@ function _expLinhaMkt(p,mk,cols){
 }
 function gerarPdfMkt(){
   const mk=_expMk;if(!mk)return;
+  if(!window.jspdf||!window.jspdf.jsPDF){toast('⚠️ Biblioteca de PDF não carregou. Verifique sua conexão e recarregue a página.','e');return;}
+  const{jsPDF:jsPDFCheck}=window.jspdf;
+  if(typeof jsPDFCheck.API.autoTable!=='function'){toast('⚠️ Plugin de tabela do PDF não carregou. Verifique sua conexão e recarregue a página.','e');return;}
   const checked=Array.from(document.querySelectorAll('.exp-col-chk:checked')).map(el=>el.value);
   if(!checked.length){toast('Selecione ao menos uma coluna','e');return;}
   const cols=EXPORT_COLS.filter(c=>checked.includes(c.key));
