@@ -1271,7 +1271,8 @@ function sM(sku,mk,field,val){const all=LS.get('lb_m')||{};const k=mk+'_'+sku;if
   // Magalu: frete calculado automaticamente, não salvar no Supabase
   _cache['lb_m']=JSON.parse(JSON.stringify(all));try{localStorage.setItem('lb_m',JSON.stringify(all));}catch{}sbPersistMktItem(sku,mk,all[k]).catch(e=>{console.warn('Supabase sync error lb_m:',e);if(typeof toast==='function')toast('Erro ao salvar no servidor','e');});}
 function cM(id){const el=document.getElementById(id);if(el)el.classList.remove('open');}
-function toast(msg,type='ok'){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.style.borderColor=type==='e'?'var(--red)':'var(--green)';t.style.color=type==='e'?'var(--red)':'var(--green)';t.style.display='block';setTimeout(()=>t.style.display='none',3000);}
+let _toastTimer=null;
+function toast(msg,type='ok'){const t=document.getElementById('toast');if(!t)return;const cor=type==='e'?'var(--red)':type==='w'?'#d97706':'var(--green)';t.textContent=msg;t.style.borderColor=cor;t.style.color=cor;t.style.display='block';clearTimeout(_toastTimer);_toastTimer=setTimeout(()=>t.style.display='none',type==='w'?7000:3000);}
 
 // CÁLCULOS
 function calcCMV(p){const fc=getFC();const c=parseFloat(p.custo)||0,st=parseFloat(p.st)||0,ipi=(parseFloat(p.ipi)||0)/100,icms=(parseFloat(p.icms)||0)/100,temST=st>0,icmsZero=icms===0,pisPct=(fc.pisEntrada||9.25)/100;if(p.tipo==='Importado')return parseFloat(c.toFixed(4));// ICMS 0% trata igual ST (sem crédito ICMS na entrada)
@@ -1610,9 +1611,10 @@ function saveProd(){
   if(!ncm)erros.push('NCM é obrigatório');
   if(!marca)erros.push('Marca é obrigatória');
   if(!categoria)erros.push('Categoria é obrigatória');
-  if(tipo==='Importado'&&peso<=0)erros.push('Peso é obrigatório para produtos Mercado Livre');
+  // Peso e custo NÃO são mais obrigatórios: o produto salva e o sistema avisa o que está faltando
   const custo_val=parseFloat(document.getElementById('fpc').value);
-  if(isNaN(custo_val)||custo_val<0)erros.push('Custo inválido');
+  if(!isNaN(custo_val)&&custo_val<0)erros.push('Custo não pode ser negativo');
+  if(peso<0)erros.push('Peso não pode ser negativo');
   if(erros.length){toast(erros[0],'e');return;}
   if(!ePid){const ps=LS.get('lb_p')||[];if(ps.find(x=>x.sku===sku)){toast('SKU já cadastrado: '+sku,'e');return;}}
   function safeFloat(id,def=0){const v=parseFloat(document.getElementById(id)?document.getElementById(id).value:def);return isNaN(v)||v<0?def:v;}
@@ -1676,7 +1678,11 @@ function saveProd(){
       ps[idx]=nd;
     }
   }else{nd.id=Date.now();ps.push(nd);}
-  LS.set('lb_p',ps);cM('mprod');rBase();toast('Produto salvo!');const pSaved=ps.find(x=>x.sku===nd.sku);if(pSaved&&(pSaved.tipo==='Nacional'||pSaved.tipo==='Terceiro Importado'))sbSalvarCmvNacionais([pSaved]).catch(e=>console.warn('CMV Nac:',e));
+  LS.set('lb_p',ps);cM('mprod');rBase();
+  const faltando=[];if(!(nd.peso>0))faltando.push('peso');if(!(nd.custo>0))faltando.push('custo');
+  if(faltando.length)toast('⚠️ Produto salvo, mas está SEM '+faltando.join(' e ')+'. Preencha depois para a margem ficar correta.','w');
+  else toast('Produto salvo!');
+  const pSaved=ps.find(x=>x.sku===nd.sku);if(pSaved&&(pSaved.tipo==='Nacional'||pSaved.tipo==='Terceiro Importado'))sbSalvarCmvNacionais([pSaved]).catch(e=>console.warn('CMV Nac:',e));
   recalcMcSku(nd.sku);
 }
 
