@@ -170,6 +170,24 @@ tbody td.td-res{background:var(--col-res-bg);font-weight:700;}
 .mov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;align-items:center;justify-content:center;}
 .mov.open{display:flex;}
 #mod-clb,#mod-hub-vinc{z-index:600;}
+#mod-cu-div{z-index:550;}#mod-cu-det{z-index:620;}
+.cu-tb{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;}
+.cu-tb th{background:#1d4ed8;color:#fff;padding:7px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0;z-index:3;}
+.cu-tb th.c-st{text-align:center;}
+.cu-tb td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:middle;overflow:hidden;background:#fff;}
+.cu-tb tr.bloq td{background:#fef2f2;}.cu-tb tr.warn td{background:#fffbeb;}.cu-tb tr.ign td{opacity:.55;}
+.cu-tb tr.cu-grp td{background:#eef2ff;font-size:12px;color:#3730a3;}
+.cu-tb td.acao,.cu-tb th.acao{position:sticky;right:0;z-index:2;box-shadow:-3px 0 5px rgba(0,0,0,.07);}
+.cu-tb th.acao{background:#1d4ed8;z-index:4;}
+.cu-tb td.acao{background:#fff;}.cu-tb tr.bloq td.acao{background:#fef2f2;}.cu-tb tr.warn td.acao{background:#fffbeb;}
+.cu-tb td input[type=number],.cu-tb td input[type=text],.cu-tb td select{width:100%;box-sizing:border-box;padding:4px 6px;font-size:12px;}
+.cu-desc{white-space:normal;overflow-wrap:anywhere;word-break:break-word;font-size:11px;color:var(--text3);line-height:1.25;}
+.cu-dot{width:20px;height:20px;border-radius:50%;border:2px solid rgba(0,0,0,.15);cursor:pointer;color:#fff;font-size:11px;line-height:14px;padding:0;}
+.cu-acoes{display:flex;flex-direction:column;gap:4px;}.cu-acoes .btn{width:100%;justify-content:center;}
+.cu-ind{font-size:12px;padding:6px 8px;border-radius:6px;margin-bottom:4px;background:#f8fafc;border-left:3px solid #94a3b8;}
+.cu-ind.bloq{background:#fef2f2;border-color:#dc2626;color:#7f1d1d;}.cu-ind.warn{background:#fffbeb;border-color:#f59e0b;color:#78350f;}
+.cu-calc{border-collapse:collapse;font-size:12px;width:100%;}.cu-calc td,.cu-calc th{padding:5px 8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;}
+.cu-calc tr.tot td{font-weight:700;background:#eff6ff;}.cu-calc tr.mud td{background:#fffbeb;}
 .skp-lista{max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);margin-top:6px;background:#fff;}
 .skp-it{display:flex;gap:10px;align-items:baseline;padding:7px 10px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border);}
 .skp-it:last-child{border-bottom:none;}
@@ -493,7 +511,7 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
               <div class="fg"><label class="fl">ST (R$)</label><div class="pfx"><span>R$</span><input type="number" id="rst" step="0.01" oninput="cRap()"></div></div>
               <div class="fg"><label class="fl">IPI %</label><div class="pfx"><span>%</span><input type="number" id="ripi" step="0.01" oninput="cRap()"></div></div>
               <div class="fg"><label class="fl">PIS/COFINS %</label><div class="pfx"><span>%</span><input type="number" id="rpis" step="0.01" oninput="cRap()"></div></div>
-              <div class="fg"><label class="fl">Tipo do Produto</label><select id="rtipo" class="full" onchange="cRap()"><option value="Nacional">Nacional</option><option value="Importado">Importado</option><option value="Terceiro Importado">Terceiro Importado</option></select></div>
+              <div class="fg"><label class="fl">Tipo do Produto</label><select id="rtipo" class="full" onchange="cRap()"><option value="Nacional">Nacional</option><option value="Terceiro Importado">Terceiro Importado</option></select></div>
             </div>
             <div class="gr g4">
               <div class="fg"><label class="fl">ICMS %</label><div class="pfx"><span>%</span><input type="number" id="ricms" step="0.01" oninput="cRap()"></div></div>
@@ -527,6 +545,7 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
           <span class="tsm tmu">Registrado automaticamente</span>
           <div class="ml-auto flex g8 fc" style="flex-wrap:wrap;">
             <select id="hist-filtro" onchange="rHist()" style="padding:6px 10px;font-size:12px;min-width:160px;"><option value="">Todos os produtos</option></select>
+            <select id="hist-campo" onchange="rHist()" style="padding:6px 10px;font-size:12px;min-width:150px;"><option value="">Todos os campos</option><option value="Custo NF">Custo NF</option><option value="CMV Contábil">CMV Contábil</option><option value="tipo">🔄 Mudança de tipo</option></select>
             <input type="date" id="hist-de" onchange="rHist()" style="padding:6px 10px;font-size:12px;" title="Data inicial">
             <span class="tmu tsm">até</span>
             <input type="date" id="hist-ate" onchange="rHist()" style="padding:6px 10px;font-size:12px;" title="Data final">
@@ -544,6 +563,7 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
             <th class="th-sku">SKU</th>
             <th class="th-sku" style="text-align:left;">Nome</th>
             <th class="th-sku">Tipo</th>
+            <th class="th-sku">Campo</th>
             <th id="hist-col-ant" style="background:#fee2e2;color:#7a1a1e;">Anterior</th>
             <th id="hist-col-novo" style="background:#dcfce7;color:#14532d;">Novo</th>
             <th class="thg-res">Variação</th>
@@ -569,8 +589,8 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
             <div class="flex g8 fc" style="flex-wrap:wrap;">
               <span class="fl" style="margin:0;white-space:nowrap;">CMV até:</span>
               <input type="date" id="cmv-data-ate" onchange="rCmv()" style="padding:6px 10px;font-size:12px;" title="Mostrar CMV do último container registrado até esta data">
-              <button class="btn btn-sm" onclick="document.getElementById('cmv-data-ate').value='';rCmv()">✕ Limpar</button>
-            </div>
+              \1
+            <div class="flex g8 fc" style="flex-wrap:wrap;"><input type="text" id="cmv-busca" placeholder="Buscar SKU ou nome..." oninput="rCmv()" autocomplete="off" style="padding:6px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--r);min-width:200px;"><button class="btn btn-sm" onclick="document.getElementById('cmv-busca').value='';rCmv()" title="Limpar a busca">✕</button><button class="btn btn-sm" id="cmv-btn-modo" onclick="cmvToggleModo()">Mostrar todos</button><span class="tsm tmu" id="cmv-contador"></span></div>
             <div class="flex g8 fc ml-auto">
               <button class="btn btn-sm btn-p" onclick="openCmvAddProd()">+ Produto</button>
               <button class="btn btn-sm" onclick="abrirOrganizador()">&#9776; Organizador</button>
@@ -947,7 +967,9 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
 </div>
 
 <div class="mov" id="mod-nf"><div class="mod" style="width:520px;"><div class="mt">&#128196; Importar NF de compra</div><p class="tmu tsm" style="margin-bottom:10px;">Envie o <strong>XML</strong> (leitura exata) ou o <strong>PDF (DANFE)</strong> da nota. O sistema lê quantidade, valor unitário, ST, IPI, ICMS e NCM e abre uma tela de <strong>conferência editável</strong> antes de gravar qualquer coisa.</p><input type="file" id="nf-arquivo" accept=".pdf,.xml,application/pdf,text/xml,application/xml" onchange="nfArquivoEscolhido(this)"><div id="nf-status" class="tsm" style="margin-top:10px;"></div><div class="mf"><button class="btn" onclick="cM('mod-nf')">Fechar</button></div></div></div>
-<div class="mov" id="mod-cu-mapa"><div class="mod" style="width:1320px;max-width:98vw;"><div class="mt" id="cu-titulo">Conferência</div><div id="cu-banners"></div><div id="cu-resumo" style="font-size:12px;font-weight:700;margin:6px 0 8px;"></div><div style="max-height:50vh;overflow:auto;border:1px solid var(--border);border-radius:var(--r);" id="cu-tabela"></div><div class="mf" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><div style="display:flex;gap:16px;flex-wrap:wrap;"><label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="cu-hist" checked> Registrar no histórico de custos</label><label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="cu-conf" onchange="cuResumo()"> Conferi os dados e os alertas acima</label></div><div class="flex g8"><button class="btn" onclick="cuVoltar()">Voltar</button><button class="btn btn-p" id="cu-btn" disabled onclick="cuAplicar()">Aplicar</button></div></div></div></div>
+<div class="mov" id="mod-cu-mapa"><div class="mod" style="width:1320px;max-width:98vw;"><div class="mt" id="cu-titulo">Conferência</div><div id="cu-banners"></div><div id="cu-resumo" style="font-size:12px;font-weight:700;margin:6px 0 8px;"></div><div style="max-height:50vh;overflow:auto;border:1px solid var(--border);border-radius:var(--r);" id="cu-tabela"></div><div class="mf" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><div style="display:flex;gap:16px;flex-wrap:wrap;"><label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="cu-hist" checked> Registrar no histórico de custos</label><span id="cu-pend-hint" class="tsm" style="color:#92400e;font-weight:700;align-self:center;"></span></div><div class="flex g8"><button class="btn" onclick="cuVoltar()">Voltar</button><button class="btn btn-p" id="cu-btn" disabled onclick="cuAplicar()">Aplicar</button></div></div></div></div>
+<div class="mov" id="mod-cu-det"><div class="mod" style="width:620px;max-width:96vw;"><div class="mt" id="cu-det-titulo">Indicações</div><div id="cu-det-corpo" style="max-height:62vh;overflow:auto;"></div><div class="mf" id="cu-det-btns" style="align-items:center;gap:8px;"></div></div></div>
+<div class="mov" id="mod-cu-div"><div class="mod" style="width:780px;max-width:96vw;"><div class="mt" id="cu-div-titulo">Dividir item</div><div class="tmu tsm" id="cu-div-desc" style="margin-bottom:8px;"></div><table class="cu-calc"><thead><tr><th>#</th><th>Produto</th><th>Sufixo / cor</th><th></th><th>Qtd</th><th></th><th></th></tr></thead><tbody id="cu-div-linhas"></tbody></table><div style="margin-top:8px;"><button class="btn btn-sm" onclick="nfDivAdd()">+ Adicionar produto</button></div><div id="cu-div-saldo" style="margin-top:10px;font-size:13px;"></div><div id="cu-div-motivo" class="tsm" style="color:#b91c1c;min-height:16px;"></div><div class="mf"><button class="btn" onclick="cM('mod-cu-div')">Cancelar</button><button class="btn btn-p" id="cu-div-ok" disabled onclick="nfDivConfirmar()">Confirmar divisão</button></div></div></div>
 <div class="mov" id="mod-cb-lista"><div class="mod" style="width:640px;"><div class="mt">&#11015; Custo do Hub de Importação — Base de Dados</div><p class="tmu tsm" style="margin-bottom:10px;">Traz o <strong>Custo Base de Dados</strong> (com os rateios do Fechamento) como "Novo Custo NF" e faz o custo médio ponderado de cada produto. Container sem Fechamento lançado não aparece como disponível.</p><div id="cb-lista"></div><div class="mf"><button class="btn" onclick="cM('mod-cb-lista')">Fechar</button></div></div></div>
 <div class="mov" id="mod-cu-apl"><div class="mod" style="width:760px;"><div class="mt">&#129534; Aplicações de custo (NF e Hub)</div><p class="tmu tsm" style="margin-bottom:10px;">Cada aplicação guarda como o produto era antes. "Desfazer" devolve custo, ST, IPI, ICMS, NCM e tipo — só dos produtos que ninguém alterou depois. Desfaça sempre da mais nova para a mais antiga.</p><div id="cu-apl-lista" style="max-height:60vh;overflow:auto;"></div><div class="mf"><button class="btn" onclick="cM('mod-cu-apl')">Fechar</button></div></div></div>
 <div class="mov" id="mod-custo-novo">
@@ -1074,7 +1096,7 @@ async function sbPersist(k,v){
   if(k==='lb_p'){if(!Array.isArray(v))return;const rows=v.map(p=>({sku:p.sku,nome:p.nome,tipo:p.tipo||'Importado',ncm:p.ncm||null,peso:p.peso||0,custo:p.custo||0,st:p.st||0,ipi:p.ipi||0,pis:p.pis||9.25,icms:p.icms||0,marca:p.marca||null,categoria:p.categoria||null,meli:!!p.meli,shp:!!p.shp,amz:!!p.amz,tkt:!!p.tkt,mga:!!p.mga,variacao:!!p.variacao,atualizado_em:new Date().toISOString(),atualizado_por:p.upBy||null}));for(let i=0;i<rows.length;i+=50){await SB.from('produtos').upsert(rows.slice(i,i+50),{onConflict:'sku'});}}
   else if(k==='lb_u'){if(!Array.isArray(v))return;for(const u of v)await SB.from('usuarios').upsert({nome:u.nome,usuario:u.user,senha:u.senha,perfil:u.perfil||'meli',atualizado_em:new Date().toISOString()},{onConflict:'usuario'});}
   else if(k==='lb_m'){if(typeof v!=='object')return;const psRef=LS.get('lb_p')||[];for(const[key,d]of Object.entries(v)){const parts=key.split('_');if(parts.length<2)continue;const mk=parts[0];const sku=parts.slice(1).join('_');const pRef=psRef.find(x=>x.sku===sku);const mcVal=pRef?calcMC(pRef,mk,d):null;await SB.from('marketplace_dados').upsert({marketplace:mk,sku,preco:d.preco||0,frete:(d.frete!=null&&d.frete!==0)?d.frete:null,tar:d.tar||0,reb:d.reb||0,ads:d.ads||0,mc:mcVal,mc_atualizada_em:mcVal!=null?new Date().toISOString():null,atualizado_por:CU?CU.user:null,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'});}}
-  else if(k==='lb_h'){if(!Array.isArray(v))return;const{data:existing}=await SB.from('historico_custos').select('id');const existingIds=new Set((existing||[]).map(r=>String(r.id)));for(const h of v){const chave=String(h.id);if(existingIds.has(chave)||_histEnviados.has(chave))continue;_histEnviados.add(chave);const{data:ins,error:eh}=await SB.from('historico_custos').insert({sku:h.sku,nome:h.nome,campo:h.campo||'custo',valor_anterior:h.isTxt?null:h.ant,valor_novo:h.isTxt?null:h.novo,valor_anterior_txt:h.isTxt?String(h.ant):null,valor_novo_txt:h.isTxt?String(h.novo):null,alterado_por:h.user,alterado_em:h.data?new Date(h.data+'T12:00:00').toISOString():new Date().toISOString()}).select('id').single();if(eh){_histEnviados.delete(chave);throw eh;}if(ins&&ins.id!=null){const cc=_cache['lb_h'];if(Array.isArray(cc)){const it=cc.find(x=>String(x.id)===chave);if(it)it.id=ins.id;try{localStorage.setItem('lb_h',JSON.stringify(cc));}catch{}}}}}
+  else if(k==='lb_h'){if(!Array.isArray(v))return;const{data:existing}=await SB.from('historico_custos').select('id');const existingIds=new Set((existing||[]).map(r=>String(r.id)));for(const h of v){const chave=String(h.id);if(existingIds.has(chave)||_histEnviados.has(chave))continue;_histEnviados.add(chave);const{data:ins,error:eh}=await SB.from('historico_custos').insert({sku:h.sku,nome:h.nome,campo:h.campo||'custo',valor_anterior:h.isTxt?null:h.ant,valor_novo:h.isTxt?null:h.novo,valor_anterior_txt:h.isTxt?String(h.ant):null,valor_novo_txt:h.isTxt?String(h.novo):null,tipo_produto:h.tipo||null,alterado_por:h.user,alterado_em:h.data?new Date(h.data+'T12:00:00').toISOString():new Date().toISOString()}).select('id').single();if(eh){_histEnviados.delete(chave);throw eh;}if(ins&&ins.id!=null){const cc=_cache['lb_h'];if(Array.isArray(cc)){const it=cc.find(x=>String(x.id)===chave);if(it)it.id=ins.id;try{localStorage.setItem('lb_h',JSON.stringify(cc));}catch{}}}}}
   else if(k==='lb_marcas'){if(!Array.isArray(v))return;for(const nome of v)await SB.from('marcas').upsert({nome},{onConflict:'nome'});}
   else if(k==='lb_cats'){if(!Array.isArray(v))return;for(const nome of v)await SB.from('categorias').upsert({nome},{onConflict:'nome'});}
   else if(k==='lb_obs'){if(typeof v!=='object')return;for(const[key,d]of Object.entries(v)){const parts=key.split('_');if(parts.length<2)continue;const mk=parts[0];const sku=parts.slice(1).join('_');await SB.from('observacoes').upsert({marketplace:mk,sku,tags:d.tags||[],nota:d.nota||'',atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'});}}
@@ -1096,7 +1118,7 @@ async function sbLoad(){
     if(rProd.data?.length)_cache['lb_p']=rProd.data.map(p=>({id:p.id,sku:p.sku,nome:p.nome,tipo:p.tipo||'Importado',ncm:p.ncm||'',peso:parseFloat(p.peso)||0,custo:parseFloat(p.custo)||0,st:parseFloat(p.st)||0,ipi:parseFloat(p.ipi)||0,pis:parseFloat(p.pis)||9.25,icms:parseFloat(p.icms)||0,marca:p.marca||'',categoria:p.categoria||'',meli:!!p.meli,shp:!!p.shp,amz:!!p.amz,tkt:!!p.tkt,mga:!!p.mga,variacao:!!p.variacao,upAt:p.atualizado_em?p.atualizado_em.substring(0,10):'',upBy:p.atualizado_por||''}));
     if(rUsers.data?.length)_cache['lb_u']=rUsers.data.map(u=>({id:u.id,nome:u.nome,user:u.usuario,senha:u.senha,perfil:u.perfil}));
     if(rMkt.data?.length){const mkt={};rMkt.data.forEach(r=>{mkt[r.marketplace+'_'+r.sku]={preco:parseFloat(r.preco)||0,frete:(r.frete!=null&&r.frete!==0)?parseFloat(r.frete):null,tar:parseFloat(r.tar)||0,reb:parseFloat(r.reb)||0,ads:parseFloat(r.ads)||0,pix_desc:parseFloat(r.pix_desc)||0,pix_vend:parseFloat(r.pix_vend)||0,mgaMod:r.mga_mod||'coleta',mga_mod:r.mga_mod||'coleta'};});_cache['lb_m']=mkt;}
-    if(rHist.data?.length){const prodMap={};(rProd.data||[]).forEach(p=>prodMap[p.sku]=p.tipo);_cache['lb_h']=rHist.data.map(h=>{const isTxt=h.valor_anterior_txt!=null||h.valor_novo_txt!=null;const ant=isTxt?h.valor_anterior_txt:(parseFloat(h.valor_anterior)||0);const novo=isTxt?h.valor_novo_txt:(parseFloat(h.valor_novo)||0);const vp=(!isTxt&&ant>0)?((novo-ant)/ant*100).toFixed(2):'—';const campo=h.campo==='Custo'?'Custo NF':(h.campo||'Custo NF');const tipo=prodMap[h.sku]||(campo==='CMV Contábil'?'Terceiro Importado':'Importado');return{id:h.id,sku:h.sku,nome:h.nome||'',campo,tipo,ant,novo,isTxt,var:vp!=='—'?(novo>=ant?'+':'')+vp+'%':'—',user:h.alterado_por||'',data:h.alterado_em?h.alterado_em.substring(0,10):''};}); }
+    if(rHist.data?.length){const prodMap={};(rProd.data||[]).forEach(p=>prodMap[p.sku]=p.tipo);_cache['lb_h']=rHist.data.map(h=>{const isTxt=h.valor_anterior_txt!=null||h.valor_novo_txt!=null;const ant=isTxt?h.valor_anterior_txt:(parseFloat(h.valor_anterior)||0);const novo=isTxt?h.valor_novo_txt:(parseFloat(h.valor_novo)||0);const vp=(!isTxt&&ant>0)?((novo-ant)/ant*100).toFixed(2):'—';const campo=h.campo==='Custo'?'Custo NF':(h.campo||'Custo NF');const tipo=h.tipo_produto||prodMap[h.sku]||(campo==='CMV Contábil'?'Terceiro Importado':'Importado');return{id:h.id,sku:h.sku,nome:h.nome||'',campo,tipo,ant,novo,isTxt,var:vp!=='—'?(novo>=ant?'+':'')+vp+'%':'—',user:h.alterado_por||'',data:h.alterado_em?h.alterado_em.substring(0,10):''};}); }
     if(rMarcas.data?.length)_cache['lb_marcas']=rMarcas.data.map(r=>r.nome);
     if(rCats.data?.length)_cache['lb_cats']=rCats.data.map(r=>r.nome);
     if(rObs.data?.length){const obs={};rObs.data.forEach(r=>{obs[r.marketplace+'_'+r.sku]={tags:r.tags||[],nota:r.nota||''};});_cache['lb_obs']=obs;}
@@ -1909,11 +1931,10 @@ function setHistTab(t){
   if(bn)bn.className='btn'+(t==='nac'?' btn-p':'');
   // Atualizar labels das colunas conforme o tipo
   const colAnt=document.getElementById('hist-col-ant'),colNovo=document.getElementById('hist-col-novo');
-  if(t==='imp'){if(colAnt)colAnt.textContent='Custo NF Anterior';if(colNovo)colNovo.textContent='Custo NF Novo';}
-  else{if(colAnt)colAnt.textContent='CMV Contábil Anterior';if(colNovo)colNovo.textContent='CMV Contábil Novo';}
+  if(colAnt)colAnt.textContent='Anterior';if(colNovo)colNovo.textContent='Novo';
   rHist();
 }
-function limparFiltrosHist(){['hist-filtro','hist-de','hist-ate'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const o=document.getElementById('hist-ordem');if(o)o.value='recente';rHist();}
+function limparFiltrosHist(){['hist-filtro','hist-campo','hist-de','hist-ate'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const o=document.getElementById('hist-ordem');if(o)o.value='recente';rHist();}
 function rHist(){
   const filtro=document.getElementById('hist-filtro');
   const de=(document.getElementById('hist-de')||{value:''}).value;
@@ -1924,6 +1945,7 @@ function rHist(){
   h=h.filter(x=>{const t=x.tipo||(tipoMap[x.sku])||'Importado';if(histTab==='imp')return t==='Importado';return t==='Nacional'||t==='Terceiro Importado';});
   if(de)h=h.filter(x=>x.data&&x.data>=de);
   if(ate)h=h.filter(x=>x.data&&x.data<=ate);
+  {const cf=(document.getElementById('hist-campo')||{value:''}).value;if(cf==='tipo')h=h.filter(x=>x.campo==='Tipo');else if(cf)h=h.filter(x=>(x.campo||'Custo NF')===cf);}
   if(filtro){const cur=filtro.value;const skus=[...new Set(h.map(x=>x.sku))].sort();filtro.innerHTML='<option value="">Todos os produtos</option>'+skus.map(s=>`<option value="${s}" ${cur===s?'selected':''}>${s}</option>`).join('');filtro.value=skus.includes(cur)?cur:'';}
   const fv=filtro?filtro.value:'';if(fv)h=h.filter(x=>x.sku===fv);
   if(ordem==='recente')h.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
@@ -1935,8 +1957,8 @@ function rHist(){
     const pos=x.var&&x.var.startsWith('+'),neg=x.var&&x.var.startsWith('-');
     const tipo=x.tipo||(tipoMap[x.sku]||'—');
     const dataFmt=x.data?x.data.split('-').reverse().join('/'):'—';
-    return`<tr><td class="tdc tmu">${dataFmt}</td><td class="tdc"><strong>${x.sku}</strong></td><td class="tdl">${x.nome||'—'}</td><td class="tdc"><span class="chip ${tipo==='Importado'?'ci':'cna'}">${tipo}</span></td><td class="tdc" style="color:var(--red);font-weight:700;">${x.isTxt?(x.ant||'—'):(x.ant!=null?'R$ '+fn(x.ant):'—')}</td><td class="tdc" style="color:var(--green);font-weight:700;">${x.isTxt?(x.novo||'—'):(x.novo!=null?'R$ '+fn(x.novo):'—')}</td><td class="tdc ${pos?'hp':neg?'hn':''}" style="font-weight:700;">${x.var||'—'}</td><td class="tdc tmu">${x.user||'—'}</td><td class="tdc"><button class="btn btn-sm btn-d" onclick="delHist('${x.id}')">Excluir</button></td></tr>`;
-  }).join(''):`<tr><td colspan="9" class="nd">Nenhum registro encontrado.</td></tr>`;
+    return`<tr${x.campo==='Tipo'?' style="background:#eff6ff"':''}><td class="tdc tmu">${dataFmt}</td><td class="tdc"><strong>${x.sku}</strong></td><td class="tdl">${x.nome||'—'}</td><td class="tdc"><span class="chip ${tipo==='Importado'?'ci':'cna'}">${tipo}</span></td><td class="tdc">${_campoChip(x)}</td><td class="tdc" style="color:var(--red);font-weight:700;">${x.isTxt?(x.ant||'—'):(x.ant!=null?'R$ '+fn(x.ant):'—')}</td><td class="tdc" style="color:var(--green);font-weight:700;">${x.isTxt?(x.novo||'—'):(x.novo!=null?'R$ '+fn(x.novo):'—')}</td><td class="tdc ${pos?'hp':neg?'hn':''}" style="font-weight:700;">${x.var||'—'}</td><td class="tdc tmu">${x.user||'—'}</td><td class="tdc"><button class="btn btn-sm btn-d" onclick="delHist('${x.id}')">Excluir</button></td></tr>`;
+  }).join(''):`<tr><td colspan="10" class="nd">Nenhum registro encontrado.</td></tr>`;
 }
 function delHist(id){if(!confirm('Excluir este registro?'))return;LS.set('lb_h',(LS.get('lb_h')||[]).filter(h=>String(h.id)!==String(id)));SB.from('historico_custos').delete().eq('id',id).then(({error})=>{if(error)console.warn('Erro:',error);});rHist();toast('Removido.');}
 
@@ -1995,19 +2017,19 @@ function cRap(){
   let tar,frete;
   if(rapT==='shp'){
     const sc=fShp(preco);tar=sc.tar;frete=sc.frete;
-    const rf=document.getElementById('rf');if(rf)rf.value=preco?fn(frete):'';
+    const rf=document.getElementById('rf');if(rf)rf.value=preco?_fv(frete):'';
     const rt=document.getElementById('rt');if(rt)rt.value=preco?String(sc.tar):'';
   }else if(rapT==='tkt'){
     const tcRap=fTkt({},g('rp'));tar=g('rt')>0?g('rt'):tcRap.tar;frete=g('rf')||tcRap.frete;
-    const rf=document.getElementById('rf');if(rf&&!rf.value)rf.value=fn(tcRap.frete);
+    const rf=document.getElementById('rf');if(rf&&!rf.value)rf.value=_fv(tcRap.frete);
     const rt=document.getElementById('rt');if(rt&&!rt.value)rt.value=String(tcRap.tar);
   }else if(rapT==='mga'){
     const pesoRap=g('rpeso');const precoRap=g('rp');frete=fMgaAuto(pesoRap,precoRap);const mgaTarDef=getFC().mgaTar||9.9;tar=g('rt')>0?g('rt'):mgaTarDef;
-    const rf=document.getElementById('rf');if(rf)rf.value=fn(frete);
+    const rf=document.getElementById('rf');if(rf)rf.value=_fv(frete);
     const rt=document.getElementById('rt');if(rt&&!rt.value)rt.value=String(mgaTarDef);
   }else if(rapT==='meli'){
     tar=g('rt');frete=fM(peso,preco);
-    const rf=document.getElementById('rf');if(rf)rf.value=preco&&peso?fn(frete):'';
+    const rf=document.getElementById('rf');if(rf)rf.value=preco&&peso?_fv(frete):'';
   }else{
     tar=g('rt');frete=g('rf');
   }
@@ -2121,7 +2143,19 @@ function rCmv(){
   // Tbody
   const tbody=document.getElementById('cmv-tbody');if(!tbody)return;
   if(!skuSorted.length){tbody.innerHTML='<tr><td colspan="'+(2+visClbs.length*3)+'" class="nd">Nenhum produto adicionado. Clique em "+ Produto" para adicionar.</td></tr>';return;}
-  tbody.innerHTML=skuSorted.map(sku=>{
+  const _modoTodos=cmvModoTodos(),_busca=_normBusca((document.getElementById('cmv-busca')||{value:''}).value.trim());
+  const _lanc=sku=>{const pd=allD[sku]||{};return visClbs.some(c=>{const d=pd[c.nome]||{};return (parseFloat(d.qtd)||0)>0&&(parseFloat(d.cmv)||0)>0;});};
+  const _inc=sku=>{const pd=allD[sku]||{};return visClbs.some(c=>{const d=pd[c.nome]||{};return ((parseFloat(d.qtd)||0)>0)!==((parseFloat(d.cmv)||0)>0);});};
+  const _nomeDe=sku=>{const p=prodsImp.find(x=>x.sku===sku);return p?(p.nome||''):'';};
+  let skuVis;
+  if(_busca)skuVis=skuSorted.filter(sk=>_normBusca(sk).includes(_busca)||_normBusca(_nomeDe(sk)).includes(_busca));
+  else if(_modoTodos||visClbs.length===0)skuVis=skuSorted;
+  else skuVis=skuSorted.filter(sk=>_lanc(sk)||_inc(sk)||_cmvForcados.has(sk));
+  {const ct=document.getElementById('cmv-contador'),bt=document.getElementById('cmv-btn-modo');
+   if(ct)ct.textContent=_busca?('Busca em todos os produtos: '+skuVis.length+' resultado(s)'):('Mostrando '+skuVis.length+' de '+skuSorted.length+' produtos');
+   if(bt)bt.textContent=_modoTodos?'Só com lançamento':'Mostrar todos ('+skuSorted.length+')';}
+  if(!skuVis.length){tbody.innerHTML='<tr><td colspan="'+(2+visClbs.length*3)+'" class="nd">'+(_busca?'Nenhum produto encontrado para "'+_esc(_busca)+'".':'Nenhum produto com qtde e valor lançados nos containers selecionados. Use "Mostrar todos" ou a busca.')+'</td></tr>';return;}
+  tbody.innerHTML=skuVis.map(sku=>{
     const p=prodsImp.find(x=>x.sku===sku);const nome=p?p.nome||sku:sku;const pData=allD[sku]||{};
     // CORREÇÃO 4: CMV médio calculado apenas com containers até a data filtrada
     const med=calcCmvMed(sku,clbsOrd);
@@ -2143,7 +2177,7 @@ function rCmv(){
     const tdMed='<td class="tdc td-res" style="cursor:pointer;" onclick="openGrafCmv(this.dataset.sku)" data-sku="'+sku+'">'+(med?fR(med):'—')+'</td>';
     const tdEst='';
     const tdNome='<td class="tdl" style="min-width:130px;"><div style="display:flex;align-items:center;gap:6px;"><span id="cmv-sku-label-'+sku+'" style="cursor:pointer;font-weight:700;color:var(--accent2);text-decoration:underline dotted;" onclick="openGrafCmv(this.dataset.sku)" data-sku="'+sku+'" title="Ver gráfico">'+sku+'</span><button class="btn btn-sm" style="padding:2px 6px;font-size:10px;" onclick="editarSkuCmv(this.dataset.sku)" data-sku="'+sku+'" title="Editar SKU">✎</button></div><div class="tsm tmu">'+nome+'</div><button class="btn btn-sm btn-d" style="margin-top:4px;font-size:10px;" onclick="removerCmvProd(this.dataset.sku)" data-sku="'+sku+'">× Remover</button></td>';
-    return '<tr id="cmvr-'+sku+'" data-sku="'+sku+'">'+tdNome+cellsCols+tdMed+tdEst+'</tr>';
+    return '<tr id="cmvr-'+sku+'" data-sku="'+sku+'">'+tdNome.replace('</span>','</span>'+(_inc(sku)?' <span title="Lançamento incompleto: falta a qtde ou o valor em algum container" style="color:#d97706;font-weight:700;">⚠</span>':''))+cellsCols+tdMed+tdEst+'</tr>';
   }).join('');
   if(tbody)initDrag(tbody);
 }
@@ -2316,11 +2350,16 @@ function abrirIncompletos(){
     {campo:'Nome',fn:p=>!p.nome||p.nome===p.sku,label:'Sem nome ou nome igual ao SKU'},
     {campo:'Tipo',fn:p=>!p.tipo,label:'Sem tipo definido'},
     {campo:'NCM',fn:p=>!p.ncm,label:'Sem NCM'},
-    {campo:'Peso',fn:p=>!(parseFloat(p.peso)||0),label:'Peso zerado ou não informado'},
+    {campo:'Peso',fn:p=>!(parseFloat(p.peso)||0)&&!p.meli,label:'Peso zerado ou não informado'+(ps.some(p=>p.meli&&!(parseFloat(p.peso)||0))?' (demais marketplaces)':'')},
   ];
   const body=document.getElementById('inc-body');if(!body)return;
   let html='';
   let totalErros=0;
+  {const meliSP=ps.filter(p=>p.meli&&!(parseFloat(p.peso)||0));
+   if(meliSP.length){
+     const mk=LS.get('lb_m')||{};const pr=p=>parseFloat((mk['meli_'+p.sku]||{}).preco)||0;
+     meliSP.sort((a,b)=>(pr(b)>0)-(pr(a)>0)||_cmpSku(a.sku,b.sku));totalErros+=meliSP.length;
+     html+=`<div style="margin-bottom:16px;border:2px solid #dc2626;border-radius:var(--r);overflow:hidden;"><div style="background:#fee2e2;padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#991b1b;border-bottom:1px solid #fca5a5;">⚠️ Peso zerado ou não informado (Meli) — ${meliSP.length} produto${meliSP.length>1?'s':''}</div><div style="padding:8px 12px;">${meliSP.map(p=>`<div style="padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;display:flex;gap:8px;align-items:center;"><span style="font-weight:700;color:var(--accent2);min-width:120px;">${_esc(p.sku||'(sem SKU)')}</span><span style="color:var(--text2);">${_esc(p.nome||'(sem nome)')}</span><span class="chip" style="font-size:10px;background:#f0f4ff;color:#1d4ed8;margin-left:auto;">${_esc(p.tipo||'(sem tipo)')}</span><span class="chip" style="font-size:10px;background:${pr(p)>0?'#fee2e2':'#f1f5f9'};color:${pr(p)>0?'#991b1b':'#64748b'};">${pr(p)>0?'Meli R$ '+fn(pr(p)):'sem preço no Meli'}</span></div>`).join('')}</div></div>`;}}
   checks.forEach(ch=>{
     const prods=ps.filter(ch.fn);
     if(!prods.length)return;
@@ -2419,7 +2458,7 @@ function cmvAddProdConfirm(){
   if(!p){toast('SKU não encontrado no cadastro','e');return;}
   if(p.tipo!=='Importado'){toast(sku+' é '+p.tipo+' — só produtos Importados entram no CMV Contábil','e');return;}
   if(order.includes(sku)){toast(sku+' já está na lista do CMV','e');return;}
-  order.push(sku);LS.set('lb_cmv_skus',order);cM('mod-cmv-add-prod');rCmv();toast('Produto adicionado!');
+  order.push(sku);_cmvForcados.add(sku);LS.set('lb_cmv_skus',order);cM('mod-cmv-add-prod');rCmv();toast('Produto adicionado!');
 }
 
 // ── Importar CMV Contábil do Hub de Importação ──
@@ -2900,8 +2939,13 @@ async function nfLerArquivo(file){
   return nf;
 }
 
+const _fv=x=>(Math.round((+x||0)*100)/100).toFixed(2); // valor com ponto, aceito por campo numérico
+function _campoChip(x){const c=x.campo||'Custo NF';if(c==='Tipo')return '<span class="chip" style="background:#dbeafe;color:#1e40af;">🔄 Mudança de tipo</span>';if(c==='CMV Contábil')return '<span class="chip" style="background:#ede9fe;color:#5b21b6;">CMV Contábil</span>';return '<span class="chip" style="background:#dcfce7;color:#166534;">Custo NF</span>';}
+let _cmvForcados=new Set();
+function cmvModoTodos(){try{return localStorage.getItem('lb_cmv_modo_todos')==='1';}catch{return false;}}
+function cmvToggleModo(){try{localStorage.setItem('lb_cmv_modo_todos',cmvModoTodos()?'0':'1');}catch{}_cmvForcados.clear();rCmv();}
 // ── Estado e leituras frescas ──
-let _cu={origem:null,modo:'importar',ref:null,nf:null,linhas:[],prods:{},ledger:{},cnpj:null,ja:null,cb:null,vincIdx:null};
+let _cu={origem:null,modo:'importar',ref:null,nf:null,linhas:[],prods:{},ledger:{},cnpj:null,ja:null,cb:null,vincIdx:null,grupos:{},cabOk:{},divMem:{},proxGrupo:0};
 async function prodsFrescos(skus){
   const out={};if(!skus.length)return out;
   const{data,error}=await SB.from('produtos').select('*').in('sku',skus);
@@ -2914,15 +2958,6 @@ async function cuLerLedger(skus){
   (data||[]).forEach(a=>{(out[a.sku]=out[a.sku]||[]).push(a);});
   Object.values(out).forEach(arr=>arr.sort((a,b)=>String(a.data_ref).localeCompare(String(b.data_ref))||String(a.aplicado_em).localeCompare(String(b.aplicado_em))));
   return out;
-}
-function cuPiorMargem(pA,pD){
-  const m=LS.get('lb_m')||{};let pior=null;
-  ['meli','shp','tkt','amz','mga'].forEach(mk=>{
-    if(!pD[mk])return;const d=m[mk+'_'+pD.sku];if(!d||!(parseFloat(d.preco)>0))return;
-    const a=calcMC(pA,mk,d),b=calcMC(pD,mk,d);if(b==null)return;
-    if(!pior||b<pior.depois)pior={mk,antes:a,depois:b};
-  });
-  return pior;
 }
 const _pond=(e,c0,q,c1)=>{const den=e+q;return den>0?(e*c0+q*c1)/den:c1;};
 const _nomeApl=a=>a.ref_nome||(a.origem+' '+a.ref_id);
@@ -2942,6 +2977,10 @@ function cuCabAlertas(){
     if(nf.emissao&&S.ref.data&&S.ref.data<nf.emissao)out.warn.push('A data de entrada é anterior à emissão da nota.');
     (nf.avisos||[]).forEach(a=>out.warn.push(a));
     if(nf.fonte==='pdf')out.info.push('Lido do PDF (aproximado): confira cada campo. O XML da nota é exato.');
+    Object.keys(S.grupos).forEach(g=>{
+      const G=S.grupos[g],soma=S.linhas.filter(L=>String(L.grupo)===String(g)).reduce((t,L)=>t+(parseFloat(L.qtd)||0),0);
+      if(Math.abs(soma-G.qtdNota)>0.0001)out.bloq.push('Item '+G.cod+': a divisão não fecha (distribuído '+soma+' de '+G.qtdNota+' un.).');
+    });
   }else if(S.origem==='hub'){
     const c=S.cb;
     if(!S.ref.data)out.bloq.push('Container sem data de chegada no Hub.');
@@ -2950,19 +2989,20 @@ function cuCabAlertas(){
   }
   return out;
 }
+const cuSig=L=>JSON.stringify([L.alvo,L.qtd,L.custoOrig,L.stUn,L.ipi,L.icms,L.ncm,L.tipoNovo,L.est,L.atualizarNcm,L.ignorar]);
 function cuAvaliar(){
-  const S=_cu,fc=getFC();
+  const S=_cu;
   const cnt={};S.linhas.forEach(L=>{if(L.alvo&&!L.ignorar)cnt[L.alvo]=(cnt[L.alvo]||0)+1;});
   S.linhas.forEach(L=>{
-    L.msgs=[];L.nivel='ok';L.res=null;L.mg=null;
+    L.msgs=[];L.nivel='ok';L.res=null;L.conferido=false;
     const add=(n,t)=>{L.msgs.push({n,t});if(n==='bloq')L.nivel='bloq';else if(n==='warn'&&L.nivel==='ok')L.nivel='warn';};
     if(L.ignorar){L.nivel='ign';return;}
     const p=L.alvo?(S.prods[L.alvo]||null):null;L.prod=p;
-    if(!L.alvo)add('bloq','Sem vínculo: vincule a um produto'+(S.origem==='nf'?' ou crie um novo':''));
+    if(!L.alvo)add('bloq','Sem vínculo: vincule a um produto'+(S.origem==='nf'?', crie um novo ou divida o item':''));
     else if(!p)add('bloq','Produto "'+L.alvo+'" não existe no cadastro');
     if(L.alvo&&cnt[L.alvo]>1)add('bloq','Dois itens apontam para '+L.alvo);
     if(!(L.qtd>0))add('bloq','Qtde zerada');
-    if(!(L.custoOrig>0))add('bloq',S.origem==='nf'?'Valor unitário zerado':'Custo zerado');
+    if(!(L.custoOrig>0))add('bloq',S.origem==='nf'?'Custo NF zerado':'Custo zerado');
     if(!p)return;
     const tipoAtual=p.tipo,tipoNovo=L.tipoNovo||tipoAtual;
     const apps=S.ledger[L.alvo]||[];
@@ -2990,6 +3030,7 @@ function cuAvaliar(){
     const ncmDep=L.atualizarNcm&&L.ncm?_ncmFmt(L.ncm):(p.ncm||'');
     L.res={tipoAtual,tipoNovo,modo,conv,antes,estU,depois,final,cadeia,minha,mais,aplicaCampos,stDep,ipiDep,icmsDep,ncmDep,stAntes:parseFloat(p.st)||0,ipiAntes:parseFloat(p.ipi)||0,icmsAntes:parseFloat(p.icms)||0,ncmAntes:p.ncm||'',custoProd};
     if(L.nivel==='bloq')return;
+    if(L.grupo!=null&&S.grupos[L.grupo])add('info','Parte da divisão do item '+S.grupos[L.grupo].cod+' ('+L.qtd+' de '+S.grupos[L.grupo].qtdNota+' un.)');
     if(S.modo==='atualizar'){
       if(minha){
         const dq=Math.abs((parseFloat(minha.qtd)||0)-L.qtd),dc=Math.abs((parseFloat(minha.custo_origem)||0)-L.custoOrig);
@@ -3015,91 +3056,150 @@ function cuAvaliar(){
     if(S.origem==='nf'){
       if(L.origem==='descricao')add('warn','Casado pela descrição — confira se é o produto certo');
       if(L.tipoSug&&!L.criado&&tipoNovo!==L.tipoSug)add('info','Pelo CST da nota a origem parece '+L.tipoSug+' (selecionado: '+tipoNovo+')');
-      if(tipoNovo!=='Importado'&&((stDep>0)!==(res0(L).stAntes>0)))add('warn','O ST '+(stDep>0?'aparece':'some')+' ('+fR(res0(L).stAntes)+' → '+fR(stDep)+'/un): a regra fiscal e a margem mudam');
+      if(tipoNovo!=='Importado'&&((stDep>0)!==(L.res.stAntes>0)))add('warn','O ST '+(stDep>0?'aparece':'some')+' ('+fR(L.res.stAntes)+' → '+fR(stDep)+'/un): a regra fiscal muda');
       if(L.ncm){const n=_ncmFmt(L.ncm);if(p.ncm&&_ncmFmt(p.ncm)!==n){add('warn','NCM da nota ('+n+') difere do cadastro ('+p.ncm+')');}else if(!p.ncm){L.atualizarNcm=true;L.res.ncmDep=n;add('info','Cadastro sem NCM: será preenchido com '+n);}}
     }
     if(aplicaCampos){
       if(Math.abs(ipiDep-L.res.ipiAntes)>0.01)add('warn','IPI '+L.res.ipiAntes+'% → '+ipiDep+'%');
       if(Math.abs(icmsDep-L.res.icmsAntes)>0.01)add('warn','ICMS '+L.res.icmsAntes+'% → '+icmsDep+'%');
     }
-    const pA=Object.assign({},p),pD=Object.assign({},p,{custo:final,tipo:tipoNovo});
-    if(aplicaCampos){pD.st=stDep;pD.ipi=ipiDep;pD.icms=icmsDep;}
-    L.mg=cuPiorMargem(pA,pD);
-    if(L.mg&&L.mg.depois!=null){
-      if(L.mg.depois<0)add('warn','Margem NEGATIVA em '+(EXPORT_MK_NOMES[L.mg.mk]||L.mg.mk)+' ('+L.mg.depois.toFixed(2).replace('.',',')+'%)');
-      else if(L.mg.depois<(fc.mgAmarelo||15))add('warn','Margem em '+(EXPORT_MK_NOMES[L.mg.mk]||L.mg.mk)+' cai para '+L.mg.depois.toFixed(2).replace('.',',')+'% (mínimo '+(fc.mgAmarelo||15)+'%)');
-    }
   });
+  // "OK, está certo": vale enquanto o item não for editado depois
+  S.linhas.forEach(L=>{L.conferido=(L.nivel==='warn'&&!!L.okSig&&L.okSig===cuSig(L));});
 }
-function res0(L){return L.res||{};}
+function cuPend(){
+  const S=_cu,cab=cuCabAlertas();
+  const bloq=S.linhas.filter(L=>L.nivel==='bloq').length;
+  const pendL=S.linhas.filter(L=>L.nivel==='warn'&&!L.conferido).length;
+  const pendC=cab.warn.filter(t=>!S.cabOk[t]).length;
+  return{cab,bloq,pendL,pendC};
+}
+
+// ── Bolinha de status + pop-up de indicações ──
+function cuNivelVis(L){return L.nivel==='warn'?(L.conferido?'okc':'warn'):(L.nivel==='igual'?'ok':L.nivel);}
+function cuStatusHtml(L){
+  const v=cuNivelVis(L);
+  const cor={bloq:'#dc2626',warn:'#f59e0b',okc:'#16a34a',ok:'#16a34a',ign:'#94a3b8'}[v];
+  const tit={bloq:'Bloqueia — clique para ver',warn:'Atenção — clique para ver e dar OK',okc:'Conferido por você',ok:'Tudo certo — clique para ver o cálculo',ign:'Item ignorado'}[v];
+  return `<button type="button" class="cu-dot" style="background:${cor};" title="${tit}" onclick="cuAbrirDet(${L.i})">${v==='okc'?'✔':''}</button>`;
+}
+function cuRowCls(L){return L.nivel==='bloq'?'bloq':(L.nivel==='warn'&&!L.conferido?'warn':(L.nivel==='ign'?'ign':''));}
+let _cuDetIdx=null;
+function cuDetHtml(L){
+  const S=_cu,nf=S.origem==='nf',r=L.res;
+  const ic={bloq:'🔴',warn:'🟡',info:'ℹ️'};
+  let h=`<div class="tmu tsm" style="margin-bottom:8px;">${nf?'Item da nota: <strong>'+_esc(L.cod)+'</strong> — '+_esc(L.desc):'SKU no Hub: <strong>'+_esc(L.skuOrigem)+'</strong>'}<br>Produto: <strong>${_esc(L.alvo||'sem vínculo')}</strong>${L.prod?' · '+_esc(L.prod.nome||''):''}</div>`;
+  h+='<div class="sl">Indicações</div>';
+  h+=(L.msgs&&L.msgs.length)?L.msgs.map(m=>`<div class="cu-ind ${m.n}">${ic[m.n]} ${_esc(m.t)}</div>`).join(''):'<div class="tmu tsm" style="margin-bottom:6px;">Nenhuma indicação: tudo certo.</div>';
+  if(L.ignorar)return h+'<div class="tmu tsm">Item ignorado: não entra na aplicação.</div>';
+  if(r){
+    const rotAntes=r.minha?'Custo antes desta aplicação':'Custo atual do produto';
+    h+='<div class="sl" style="margin-top:12px;">Cálculo do custo</div><table class="cu-calc">';
+    h+=`<tr><td>${rotAntes}</td><td>${fR(r.minha?r.antes:r.custoProd)}</td></tr><tr><td>Estoque antes</td><td>${r.estU} un.</td></tr><tr><td>Qtd de entrada</td><td>${L.qtd} un.</td></tr><tr><td>${nf?'Custo NF (valor da nota)':'Novo Custo NF (Hub)'}</td><td>${fR(L.custoOrig)}</td></tr>`;
+    h+=r.modo==='ponderado'?`<tr><td>Conta</td><td class="tsm">(${r.estU} × ${fn(r.antes,4)} + ${L.qtd} × ${fn(L.custoOrig,2)}) ÷ (${r.estU} + ${L.qtd})</td></tr>`:`<tr><td>Conta</td><td class="tsm">Sem ponderar: o custo passa a ser o valor ${nf?'da nota':'do Hub'}</td></tr>`;
+    h+=`<tr class="tot"><td>Custo novo</td><td>R$ ${fn(r.depois,4)}</td></tr>`;
+    if(r.cadeia.length)h+=`<tr><td>Refeito em cadeia</td><td class="tsm">${r.cadeia.map(c=>_esc(_nomeApl(c.a))+': '+fn(c.antes,4)+' → '+fn(c.depois,4)).join('<br>')}<br><strong>custo final R$ ${fn(r.final,4)}</strong></td></tr>`;
+    h+='</table>';
+    const lin=(rot,a,b,fmt)=>{const f=fmt||(x=>x);const mud=String(a)!==String(b);return `<tr class="${mud?'mud':''}"><td>${rot}</td><td>${f(a)}</td><td>${mud?'→ <strong>'+f(b)+'</strong>':'sem mudança'}</td></tr>`;};
+    h+='<div class="sl" style="margin-top:12px;">O que muda no produto</div><table class="cu-calc">';
+    h+=lin('Tipo',r.tipoAtual,r.aplicaCampos?r.tipoNovo:r.tipoAtual);
+    h+=lin('Custo NF',fn(r.custoProd,4),fn(r.final,4),x=>'R$ '+x);
+    h+=lin('ST (R$/un)',fn(r.stAntes,4),fn(r.aplicaCampos?r.stDep:r.stAntes,4));
+    h+=lin('IPI %',fn(r.ipiAntes),fn(r.aplicaCampos?r.ipiDep:r.ipiAntes));
+    h+=lin('ICMS %',fn(r.icmsAntes),fn(r.aplicaCampos?r.icmsDep:r.icmsAntes));
+    if(nf)h+=lin('NCM',r.ncmAntes||'—',(r.aplicaCampos?r.ncmDep:r.ncmAntes)||'—');
+    h+='</table>';
+  }
+  return h;
+}
+function cuAbrirDet(i){
+  const L=_cu.linhas[i];if(!L)return;_cuDetIdx=i;
+  document.getElementById('cu-det-titulo').textContent='Indicações — '+(L.alvo||L.skuOrigem||L.cod||'item');
+  document.getElementById('cu-det-corpo').innerHTML=cuDetHtml(L);
+  const b=[];
+  if(L.nivel==='warn'){b.push(L.conferido?`<button class="btn" onclick="cuDesfazerOk(${i})">Desfazer OK</button>`:`<button class="btn btn-p" onclick="cuMarcarOk(${i})">OK, está certo</button>`);}
+  else if(L.nivel==='bloq')b.push('<span class="tsm" style="color:#b91c1c;margin-right:auto;">Bloqueio: resolva o que está em vermelho para liberar este item.</span>');
+  b.push('<button class="btn" onclick="cM(\'mod-cu-det\')">Fechar</button>');
+  document.getElementById('cu-det-btns').innerHTML=b.join('');
+  document.getElementById('mod-cu-det').classList.add('open');
+}
+function cuMarcarOk(i){const L=_cu.linhas[i];if(!L)return;L.okSig=cuSig(L);cM('mod-cu-det');cuAvaliar();cuAtualizarCelulas();cuResumo();}
+function cuDesfazerOk(i){const L=_cu.linhas[i];if(!L)return;L.okSig=null;cM('mod-cu-det');cuAvaliar();cuAtualizarCelulas();cuResumo();}
+function cuCabOk(idx){const t=cuCabAlertas().warn[idx];if(t!=null)_cu.cabOk[t]=true;cuRender();}
 
 // ── Tela de conferência ──
 const _TIPOS=['Importado','Nacional','Terceiro Importado'];
-function cuStatusHtml(L){
-  const ic={ok:'✅',warn:'🟡',bloq:'🔴',ign:'⏭',igual:'✅'}[L.nivel]||'✅';
-  return `<div style="font-size:15px;">${ic}</div>`+(L.msgs||[]).map(m=>`<div class="hub-msg ${m.n}">${(m.n==='bloq'?'🔴 ':m.n==='warn'?'🟡 ':'ℹ️ ')+_esc(m.t)}</div>`).join('');
-}
-function cuResHtml(L){
-  if(L.ignorar||!L.res)return '—';
-  const r=L.res;
-  return `${fR(r.minha?r.antes:r.custoProd)} → <strong>${fR(r.final)}</strong>${r.modo==='substituicao'?'<div class="tmu tsm">sem ponderar</div>':''}`;
-}
-function cuMgHtml(L){
-  if(L.ignorar||!L.mg)return '<span class="tmu">—</span>';
-  const a=L.mg.antes==null?'—':L.mg.antes.toFixed(1).replace('.',',')+'%',d=L.mg.depois.toFixed(1).replace('.',',')+'%';
-  return `<div class="tsm">${_esc(EXPORT_MK_NOMES[L.mg.mk]||L.mg.mk)}</div>${a} → <strong>${d}</strong>`;
+function cuGrupoHdr(g){
+  const S=_cu,G=S.grupos[g],soma=S.linhas.filter(L=>String(L.grupo)===String(g)).reduce((t,L)=>t+(parseFloat(L.qtd)||0),0),falta=G.qtdNota-soma,ok=Math.abs(falta)<=0.0001;
+  return `Item ${_esc(G.cod)} dividido · qtd da nota ${G.qtdNota} · distribuído ${soma} · <span style="color:${ok?'#166534':'#b91c1c'};">${ok?'fechado ✔':(falta>0?'faltam '+falta:'passou '+(-falta))}</span>`;
 }
 function cuAtualizarCelulas(){
   _cu.linhas.forEach(L=>{
-    const st=document.getElementById('cu-st-'+L.i),rs=document.getElementById('cu-res-'+L.i),mg=document.getElementById('cu-mg-'+L.i),tr=document.getElementById('cu-tr-'+L.i);
-    if(st)st.innerHTML=cuStatusHtml(L);if(rs)rs.innerHTML=cuResHtml(L);if(mg)mg.innerHTML=cuMgHtml(L);if(tr)tr.className=L.nivel;
+    const st=document.getElementById('cu-st-'+L.i),tr=document.getElementById('cu-tr-'+L.i);
+    if(st)st.innerHTML=cuStatusHtml(L);if(tr)tr.className=cuRowCls(L);
   });
+  Object.keys(_cu.grupos).forEach(g=>{const el=document.getElementById('cu-grp-'+g);if(el)el.innerHTML=cuGrupoHdr(g);});
 }
 function cuRender(){
-  const S=_cu,nf=S.origem==='nf';cuAvaliar();
+  const S=_cu,nf=S.origem==='nf';S.linhas.forEach((L,k)=>{L.i=k;});cuAvaliar();
   document.getElementById('cu-titulo').textContent=nf?('Importar NF '+(S.nf.numero||'')+' — '+(S.nf.emitente.nome||'')):((S.modo==='atualizar'?'Atualizar ':'Aplicar ')+'custo do container '+S.ref.nome+' (Hub de Importação)');
-  const cab=cuCabAlertas();S.cabBloq=cab.bloq.length>0;
+  const cab=cuCabAlertas();
   document.getElementById('cu-banners').innerHTML=
     (nf?`<div class="hub-ban"><div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;"><span><strong>NF ${_esc(S.nf.numero||'?')}</strong> série ${_esc(S.nf.serie||'?')} · ${_esc(S.nf.emitente.nome||'emitente?')} (${_esc(_fmtCnpj(S.nf.emitente.cnpj)||'?')})</span><label class="tsm">Emissão <input type="date" id="cu-emissao" value="${S.nf.emissao||''}" onchange="nfDataMudou()" style="padding:3px 6px;"></label><label class="tsm">Entrada no galpão <input type="date" id="cu-entrada" value="${S.ref.data||''}" onchange="nfDataMudou()" style="padding:3px 6px;"></label></div><div class="tmu tsm" style="margin-top:4px;word-break:break-all;">Chave: ${_esc(S.nf.chave||'não lida')}</div></div>`
       :`<div class="hub-ban">Container <strong>${_esc(S.ref.nome)}</strong> · chegada <strong>${_fmtData(S.ref.data)}</strong> (data de referência do estoque e da ordem) · custo = Custo Base de Dados (com rateios) · ${S.modo==='atualizar'?'<strong>Atualizar nunca altera o estoque já registrado.</strong>':'estoque antes vem do histórico do STOKBOX'}</div>`)+
     cab.bloq.map(t=>`<div class="hub-ban" style="background:#fef2f2;border-color:#fca5a5;">🔴 ${_esc(t)}</div>`).join('')+
-    cab.warn.map(t=>`<div class="hub-ban" style="background:#fffbeb;border-color:#fcd34d;">🟡 ${_esc(t)}</div>`).join('')+
+    cab.warn.map((t,k)=>`<div class="hub-ban" style="background:#fffbeb;border-color:#fcd34d;display:flex;gap:10px;align-items:center;"><span style="flex:1;">🟡 ${_esc(t)}</span>${S.cabOk[t]?'<span class="tsm" style="color:#166534;">✔ conferido</span>':`<button class="btn btn-sm btn-p" onclick="cuCabOk(${k})">OK, está certo</button>`}</div>`).join('')+
     cab.info.map(t=>`<div class="hub-ban">ℹ️ ${_esc(t)}</div>`).join('');
-  const colNf=nf?'<th>Item da nota</th><th>NCM</th>':'<th>SKU no Hub</th>';
+  const nCols=nf?12:10;
+  const cols=nf?[54,190,108,170,132,86,92,86,68,68,92,150]:[54,150,190,150,90,100,70,70,96,150];
+  const head=nf?'<th class="c-st">●</th><th>Item da nota</th><th>NCM</th><th>Produto</th><th>Tipo</th><th>Qtd de entrada</th><th>Custo NF</th><th>ST/un (R$)</th><th>IPI %</th><th>ICMS %</th><th>Estoque antes</th><th class="acao">Ações</th>':'<th class="c-st">●</th><th>SKU no Hub</th><th>Produto</th><th>Tipo</th><th>Qtd de entrada</th><th>Novo Custo NF</th><th>IPI %</th><th>ICMS %</th><th>Estoque antes</th><th class="acao">Ações</th>';
+  let prevG=null;
   const rows=S.linhas.map(L=>{
-    const prodTxt=L.alvo?`<strong>${_esc(L.alvo)}</strong><div class="tmu tsm">${_esc(L.prod?(L.prod.nome||''):'')}${L.origem==='vinculo'?' · 🔗 vínculo salvo':L.origem==='descricao'?' · pela descrição':L.origem==='novo'?' · criado agora':''}</div>`:'<span class="tmu">—</span>';
+    let hdr='';
+    if(L.grupo!=null&&String(L.grupo)!==String(prevG)){hdr=`<tr class="cu-grp"><td colspan="${nCols}"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span id="cu-grp-${L.grupo}" style="flex:1;">${cuGrupoHdr(L.grupo)}</span><button class="btn btn-sm" onclick="nfDividirAbrir(${L.i})">Editar divisão</button><button class="btn btn-sm" onclick="nfJuntar('${L.grupo}')">Juntar</button></div></td></tr>`;}
+    prevG=L.grupo!=null?L.grupo:null;
+    const prodTxt=L.alvo?`<strong>${_esc(L.alvo)}</strong><div class="cu-desc">${_esc(L.prod?(L.prod.nome||''):'')}${L.origem==='vinculo'?' · 🔗 vínculo salvo':L.origem==='descricao'?' · pela descrição':L.origem==='novo'?' · criado agora':L.origem==='divisao'?' · divisão':''}</div>`:'<span class="tmu">—</span>';
     const blockedEst=S.modo==='atualizar'&&L.res&&L.res.minha;
-    const estCell=blockedEst?`<span title="Estoque gravado na aplicação (travado)">${L.res.estU} 🔒</span>`:`<input type="number" min="0" step="1" style="width:78px;padding:4px 6px;" value="${L.est}" ${L.ignorar||!L.alvo?'disabled':''} oninput="cuEdit(${L.i},'est',this)">`;
-    const inpN=(f,v,w,step)=>`<input type="number" step="${step||'0.01'}" style="width:${w||78}px;padding:4px 6px;" value="${v==null||isNaN(v)?'':v}" ${L.ignorar?'disabled':''} oninput="cuEdit(${L.i},'${f}',this)">`;
-    const tipoSel=nf?`<select style="padding:4px 4px;font-size:11px;" ${L.ignorar||!L.alvo?'disabled':''} onchange="cuEdit(${L.i},'tipoNovo',this)">${_TIPOS.map(t=>`<option ${((L.tipoNovo||(L.prod&&L.prod.tipo))===t)?'selected':''}>${t}</option>`).join('')}</select>`:`<span class="tsm">${_esc(L.prod?(L.prod.tipo!=='Importado'?L.prod.tipo+' → Importado':'Importado'):'—')}</span>`;
+    const estCell=blockedEst?`<span title="Estoque gravado na aplicação (travado)">${L.res.estU} 🔒</span>`:`<input type="number" min="0" step="1" value="${L.est}" ${L.ignorar||!L.alvo?'disabled':''} oninput="cuEdit(${L.i},'est',this)">`;
+    const inpN=(f,v,step,dec)=>`<input type="number" step="${step||'0.01'}" value="${v==null||isNaN(v)?'':(dec!=null?(+v).toFixed(dec):v)}" ${L.ignorar?'disabled':''} oninput="cuEdit(${L.i},'${f}',this)">`;
+    const tipoSel=nf?`<select ${L.ignorar||!L.alvo?'disabled':''} onchange="cuEdit(${L.i},'tipoNovo',this)">${_TIPOS.map(t=>`<option ${((L.tipoNovo||(L.prod&&L.prod.tipo))===t)?'selected':''}>${t}</option>`).join('')}</select>`:`<span class="tsm">${_esc(L.prod?(L.prod.tipo!=='Importado'?L.prod.tipo+' → Importado':'Importado'):'—')}</span>`;
     const acoes=[];
-    if(!L.alvo||!L.prod)acoes.push(`<button class="btn btn-sm btn-p" onclick="cuVincular(${L.i})">Vincular</button>`+(nf?`<button class="btn btn-sm" onclick="nfCriarProduto(${L.i})">Criar produto</button>`:''));
+    if(!L.alvo||!L.prod){acoes.push(`<button class="btn btn-sm btn-p" onclick="cuVincular(${L.i})">Vincular</button>`);if(nf&&L.grupo==null)acoes.push(`<button class="btn btn-sm" onclick="nfCriarProduto(${L.i})">Criar produto</button>`);}
     else acoes.push(`<button class="btn btn-sm" onclick="cuVincular(${L.i})" title="Trocar o produto vinculado">Trocar</button>`);
+    if(nf&&L.grupo==null)acoes.push(`<button class="btn btn-sm" onclick="nfDividirAbrir(${L.i})" title="Dividir este item em vários produtos (ex.: cores)">Dividir</button>`);
     if(L.origem==='vinculo'&&!nf)acoes.push(`<button class="btn btn-sm" onclick="cuDesvincular(${L.i})">Desvincular</button>`);
-    const ncmChk=(nf&&L.prod&&L.ncm&&L.prod.ncm&&_ncmFmt(L.prod.ncm)!==_ncmFmt(L.ncm))?`<label class="tsm" style="display:block;"><input type="checkbox" ${L.atualizarNcm?'checked':''} onchange="cuEditChk(${L.i},'atualizarNcm',this.checked)"> atualizar NCM no cadastro</label>`:'';
-    return `<tr id="cu-tr-${L.i}" class="${L.nivel}"><td id="cu-st-${L.i}" style="min-width:200px;">${cuStatusHtml(L)}</td>`+
-      (nf?`<td style="min-width:150px;"><strong>${_esc(L.cod)}</strong><div class="tmu tsm" style="max-width:190px;">${_esc(L.desc)}</div></td><td><input type="text" style="width:88px;padding:4px 6px;" value="${_esc(L.ncm||'')}" ${L.ignorar?'disabled':''} oninput="cuEdit(${L.i},'ncm',this)">${ncmChk}</td>`:`<td><strong>${_esc(L.skuOrigem)}</strong></td>`)+
-      `<td>${prodTxt}</td><td>${tipoSel}</td><td>${inpN('qtd',L.qtd,78,'1')}</td><td>${inpN('custoOrig',L.custoOrig,92,'0.0001')}</td>`+
-      (nf?`<td>${inpN('stUn',L.stUn,78,'0.0001')}</td>`:'')+
-      `<td>${inpN('ipi',L.ipi,64)}</td><td>${inpN('icms',L.icms,64)}</td><td class="tdc">${estCell}</td><td class="tdc" id="cu-res-${L.i}">${cuResHtml(L)}</td><td class="tdc" id="cu-mg-${L.i}">${cuMgHtml(L)}</td>`+
-      `<td><div style="display:flex;gap:4px;flex-wrap:wrap;">${acoes.join('')}</div><label style="font-size:11px;display:flex;align-items:center;gap:4px;margin-top:4px;"><input type="checkbox" ${L.ignorar?'checked':''} onchange="cuEditChk(${L.i},'ignorar',this.checked)"> Ignorar</label></td></tr>`;
+    const ncmChk=(nf&&L.prod&&L.ncm&&L.prod.ncm&&_ncmFmt(L.prod.ncm)!==_ncmFmt(L.ncm))?`<label class="tsm" style="display:block;"><input type="checkbox" ${L.atualizarNcm?'checked':''} onchange="cuEditChk(${L.i},'atualizarNcm',this.checked)"> atualizar no cadastro</label>`:'';
+    return hdr+`<tr id="cu-tr-${L.i}" class="${cuRowCls(L)}"><td id="cu-st-${L.i}" style="text-align:center;">${cuStatusHtml(L)}</td>`+
+      (nf?`<td><strong>${_esc(L.cod)}</strong><div class="cu-desc">${_esc(L.desc)}</div></td><td><input type="text" value="${_esc(L.ncm||'')}" ${L.ignorar?'disabled':''} oninput="cuEdit(${L.i},'ncm',this)">${ncmChk}</td>`:`<td><strong>${_esc(L.skuOrigem)}</strong></td>`)+
+      `<td>${prodTxt}</td><td>${tipoSel}</td><td>${inpN('qtd',L.qtd,'1')}</td><td>${nf?inpN('custoOrig',L.custoOrig,'0.01',2):inpN('custoOrig',L.custoOrig,'0.01',2)}</td>`+
+      (nf?`<td>${inpN('stUn',L.stUn,'0.0001')}</td>`:'')+
+      `<td>${inpN('ipi',L.ipi,'0.01')}</td><td>${inpN('icms',L.icms,'0.01')}</td><td style="text-align:center;">${estCell}</td>`+
+      `<td class="acao"><div class="cu-acoes">${acoes.join('')}<label class="tsm" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" ${L.ignorar?'checked':''} onchange="cuEditChk(${L.i},'ignorar',this.checked)"> Ignorar</label></div></td></tr>`;
   }).join('');
-  document.getElementById('cu-tabela').innerHTML=`<table class="hub-tb"><thead><tr><th>Status / alertas</th>${colNf}<th>Produto</th><th>Tipo</th><th>Qtd de entrada</th><th>${nf?'Valor unit. (Custo NF)':'Novo Custo NF'}</th>${nf?'<th>ST/un (R$)</th>':''}<th>IPI %</th><th>ICMS %</th><th>Estoque antes</th><th>Custo atual → novo</th><th>Pior margem</th><th>Ações</th></tr></thead><tbody>${rows}</tbody></table>`;
+  document.getElementById('cu-tabela').innerHTML=`<table class="cu-tb"><colgroup>${cols.map(w=>`<col style="width:${w}px">`).join('')}</colgroup><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
   cuResumo();
 }
 function cuResumo(){
-  const S=_cu;const n={ok:0,warn:0,bloq:0,ign:0,igual:0};S.linhas.forEach(L=>{n[L.nivel==='ok'?'ok':L.nivel]++;});
+  const S=_cu;const n={ok:0,warn:0,bloq:0,ign:0,igual:0,okc:0};
+  S.linhas.forEach(L=>{if(L.nivel==='warn'){n[L.conferido?'okc':'warn']++;}else n[L.nivel==='ok'?'ok':L.nivel]++;});
+  const P=cuPend();
   const gravar=S.linhas.filter(L=>!L.ignorar&&L.alvo&&L.nivel!=='igual'&&L.nivel!=='bloq').length;
-  document.getElementById('cu-resumo').innerHTML=`✅ ${n.ok+n.igual} ok · 🟡 ${n.warn} com atenção · 🔴 ${n.bloq} bloqueando · ⏭ ${n.ign} ignorados`;
+  document.getElementById('cu-resumo').innerHTML=`🟢 ${n.ok+n.igual} ok · ✔ ${n.okc} conferidos · 🟡 ${n.warn} aguardando OK · 🔴 ${n.bloq} bloqueando · ⏭ ${n.ign} ignorados`;
   const b=document.getElementById('cu-btn');
-  b.disabled=!(document.getElementById('cu-conf').checked&&n.bloq===0&&!S.cabBloq&&gravar>0);
+  b.disabled=!(P.bloq===0&&P.cab.bloq.length===0&&P.pendL===0&&P.pendC===0&&gravar>0);
   b.textContent=(S.modo==='atualizar'?'Atualizar ':'Aplicar ')+gravar+' SKU'+(gravar===1?'':'s');
+  const h=document.getElementById('cu-pend-hint');
+  if(h)h.textContent=(P.pendL+P.pendC>0)?('Falta dar OK em '+(P.pendL+P.pendC)+' alerta(s) 🟡'):(P.bloq+P.cab.bloq.length>0?'Resolva os itens 🔴 para liberar':'');
 }
 function cuEdit(i,f,el){
   const L=_cu.linhas[i];
   if(f==='tipoNovo')L.tipoNovo=el.value;
   else if(f==='ncm')L.ncm=el.value;
-  else{const v=parseFloat(el.value);L[f]=(f==='ipi'||f==='icms'||f==='stUn')?(isNaN(v)?null:v):(isNaN(v)?0:v);if(f==='est')L.est=Math.max(0,L.est);}
+  else{const v=parseFloat(el.value);
+    if(f==='ipi'||f==='icms'||f==='stUn')L[f]=isNaN(v)?null:v;
+    else if(f==='custoOrig')L[f]=isNaN(v)?0:(_cu.origem==='nf'?_r2(v):v);
+    else L[f]=isNaN(v)?0:v;
+    if(f==='est'){L.est=Math.max(0,L.est);L.estManual=true;}}
   cuAvaliar();cuAtualizarCelulas();cuResumo();
 }
 function cuEditChk(i,f,v){_cu.linhas[i][f]=!!v;cuRender();}
@@ -3117,17 +3217,20 @@ async function cuReavaliarLinha(L){
   const f=await prodsFrescos([L.alvo]);Object.assign(_cu.prods,f);
   if(!_cu.ledger[L.alvo])Object.assign(_cu.ledger,await cuLerLedger([L.alvo]));
   const p=_cu.prods[L.alvo];if(p&&!L.tipoNovo)L.tipoNovo=_cu.origem==='hub'?'Importado':p.tipo;
+  L.estManual=false;
   try{const e=await hubImpEstoque([L.alvo],_cu.ref.data);const r=e[L.alvo];L.est=(r&&r.fonte==='dia1')?r.saldo:0;L.estFonte=r?r.fonte:null;}catch(x){L.est=0;L.estFonte=null;}
 }
 async function cuSalvarVinculo(i,alvo){
   const L=_cu.linhas[i];if(!L)return;const quem=(typeof CU!=='undefined'&&CU)?CU.user:null;
-  let r;
-  if(_cu.origem==='nf')r=await SB.from('nf_sku_vinculos').upsert({cnpj_emitente:_cu.cnpj||'',cod_fornecedor:L.skuOrigem,sku_precificacao:alvo,criado_por:quem},{onConflict:'cnpj_emitente,cod_fornecedor'});
-  else r=await SB.from('cmv_sku_vinculos').upsert({sku_hub:L.skuOrigem,sku_precificacao:alvo,criado_por:quem},{onConflict:'sku_hub'});
-  if(r.error){toast('⚠️ Não salvei o vínculo: '+r.error.message,'e');return;}
-  L.alvo=alvo;L.origem='vinculo';L.criado=false;L.tipoNovo=null;
+  if(L.grupo==null){ // item dividido não grava vínculo único (a memória é do grupo)
+    let r;
+    if(_cu.origem==='nf')r=await SB.from('nf_sku_vinculos').upsert({cnpj_emitente:_cu.cnpj||'',cod_fornecedor:L.skuOrigem,sku_precificacao:alvo,criado_por:quem},{onConflict:'cnpj_emitente,cod_fornecedor'});
+    else r=await SB.from('cmv_sku_vinculos').upsert({sku_hub:L.skuOrigem,sku_precificacao:alvo,criado_por:quem},{onConflict:'sku_hub'});
+    if(r.error){toast('⚠️ Não salvei o vínculo: '+r.error.message,'e');return;}
+  }
+  L.alvo=alvo;L.origem=L.grupo==null?'vinculo':'divisao';L.criado=false;L.tipoNovo=null;
   await cuReavaliarLinha(L);
-  cM('mod-hub-vinc');cuRender();toast('🔗 '+L.skuOrigem+' → '+alvo+' (vínculo salvo, nas próximas já vem pronto)');
+  cM('mod-hub-vinc');cuRender();toast('🔗 '+L.skuOrigem+' → '+alvo+(L.grupo==null?' (vínculo salvo, nas próximas já vem pronto)':''));
 }
 async function cuDesvincular(i){
   const L=_cu.linhas[i];if(!L||!confirm('Apagar o vínculo de "'+L.skuOrigem+'"?'))return;
@@ -3139,12 +3242,101 @@ async function cuDesvincular(i){
   cuRender();toast('Vínculo apagado.');
 }
 
+// ── Dividir item da NF (ex.: SKU base com cores misturadas) ──
+const _CORES={VM:'Vermelha',BR:'Branca',PR:'Preta',AM:'Amarela',AZ:'Azul',RS:'Rosa',LR:'Laranja',CZ:'Cinza'};
+let _cuDiv=null,_cuDivVinc=null;
+function nfDividirAbrir(i){
+  const S=_cu,L=S.linhas[i];if(!L)return;
+  if(L.grupo!=null){
+    const G=S.grupos[L.grupo];
+    _cuDiv={g:L.grupo,cod:G.cod,desc:G.desc,qtdNota:G.qtdNota,base:G.orig,edit:true,rows:S.linhas.filter(x=>String(x.grupo)===String(L.grupo)).map(x=>({alvo:x.alvo,nome:(S.prods[x.alvo]||{}).nome||'',qtd:x.qtd,ignorar:!!x.ignorar,suf:'',criado:!!x.criado}))};
+  }else{
+    _cuDiv={g:'g'+(++S.proxGrupo),cod:L.cod,desc:L.desc,qtdNota:L.qtd,base:JSON.parse(JSON.stringify(L)),edit:false,rows:[
+      {alvo:L.alvo||null,nome:L.alvo?((S.prods[L.alvo]||{}).nome||''):'',qtd:L.qtd,ignorar:false,suf:'',criado:!!L.criado},
+      {alvo:null,nome:'',qtd:0,ignorar:false,suf:'',criado:false}]};
+  }
+  nfDivRender();document.getElementById('mod-cu-div').classList.add('open');
+}
+function nfDivValidar(){
+  const D=_cuDiv;if(!D)return{ok:false,soma:0,falta:0,motivo:''};
+  const soma=D.rows.reduce((t,r)=>t+(parseFloat(r.qtd)||0),0),falta=D.qtdNota-soma;
+  const vistos={};let motivo='';
+  D.rows.forEach(r=>{if(r.ignorar)return;if(!r.alvo)motivo=motivo||'Escolha ou crie o produto de cada linha (ou marque Ignorar).';else{if(vistos[r.alvo])motivo=motivo||'O produto '+r.alvo+' aparece duas vezes.';vistos[r.alvo]=1;}if(!(parseFloat(r.qtd)>0)&&!r.ignorar)motivo=motivo||'Informe a quantidade de cada produto.';});
+  if(Math.abs(falta)>0.0001)motivo=motivo||(falta>0?'Faltam '+falta+' un. para fechar com a nota.':'Passou '+(-falta)+' un. da quantidade da nota.');
+  if(D.rows.length<2&&!motivo)motivo='Use ao menos dois produtos (para um só, basta vincular).';
+  return{ok:!motivo,soma,falta,motivo};
+}
+function nfDivRender(){
+  const D=_cuDiv;
+  document.getElementById('cu-div-titulo').textContent='Dividir item '+D.cod+' — qtd da nota: '+D.qtdNota;
+  document.getElementById('cu-div-desc').textContent=D.desc||'';
+  document.getElementById('cu-div-linhas').innerHTML=D.rows.map((r,k)=>`<tr><td>${k+1}</td><td><button class="btn btn-sm ${r.alvo?'':'btn-p'}" onclick="nfDivEscolher(${k})">${r.alvo?_esc(r.alvo):'Escolher produto…'}</button><div class="tsm tmu">${_esc(r.nome||'')}${r.criado?' · criado agora':''}</div></td><td><select onchange="nfDivSuf(${k},this.value)" title="Sufixo/cor para o SKU novo"><option value="">sufixo…</option>${Object.keys(_CORES).map(s=>`<option value="${s}" ${r.suf===s?'selected':''}>${s} · ${_CORES[s]}</option>`).join('')}</select></td><td><button class="btn btn-sm" onclick="nfDivCriar(${k})">Criar produto</button></td><td><input type="number" min="0" step="1" value="${r.qtd}" oninput="nfDivQtd(${k},this.value)" style="width:90px;"></td><td><label class="tsm"><input type="checkbox" ${r.ignorar?'checked':''} onchange="nfDivIgn(${k},this.checked)"> ignorar</label></td><td><button class="btn btn-sm" onclick="nfDivRemover(${k})" title="Remover linha">✕</button></td></tr>`).join('');
+  nfDivSaldo();
+}
+function nfDivSaldo(){
+  const v=nfDivValidar();
+  document.getElementById('cu-div-saldo').innerHTML=`Qtd da nota: <strong>${_cuDiv.qtdNota}</strong> · distribuído: <strong>${v.soma}</strong> · <span style="color:${Math.abs(v.falta)<=0.0001?'#166534':'#b91c1c'};font-weight:700;">${Math.abs(v.falta)<=0.0001?'fechado ✔':(v.falta>0?'faltam '+v.falta:'passou '+(-v.falta))}</span>`;
+  document.getElementById('cu-div-motivo').textContent=v.ok?'':v.motivo;
+  document.getElementById('cu-div-ok').disabled=!v.ok;
+}
+function nfDivQtd(k,val){_cuDiv.rows[k].qtd=Math.max(0,parseFloat(val)||0);nfDivSaldo();}
+function nfDivIgn(k,v){_cuDiv.rows[k].ignorar=!!v;nfDivSaldo();}
+function nfDivSuf(k,v){_cuDiv.rows[k].suf=v;}
+function nfDivRemover(k){_cuDiv.rows.splice(k,1);nfDivRender();}
+function nfDivAdd(){_cuDiv.rows.push({alvo:null,nome:'',qtd:0,ignorar:false,suf:'',criado:false});nfDivRender();}
+function nfDivEscolher(k){
+  _cuDivVinc=k;document.getElementById('hub-vinc-sku').textContent=_cuDiv.cod+' (linha '+(k+1)+')';
+  const inp=document.getElementById('hub-vinc-busca');inp.value='';
+  skuPicker({input:'hub-vinc-busca',lista:'hub-vinc-lista',hidden:null,items:cuVincItens,onPick:it=>{const p=(LS.get('lb_p')||[]).find(x=>x.sku===it.sku);const r=_cuDiv.rows[_cuDivVinc];r.alvo=it.sku;r.nome=p?(p.nome||''):'';r.criado=false;cM('mod-hub-vinc');nfDivRender();}});
+  document.getElementById('mod-hub-vinc').classList.add('open');setTimeout(()=>inp.focus(),30);
+}
+function nfDivCriar(k){
+  const D=_cuDiv,r=D.rows[k],base=D.base;
+  const sug=nfSugerirSku({cod:D.cod,desc:D.desc});openPM();
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v==null?'':v;};
+  set('fps',sug.sku+(r.suf?'-'+r.suf:''));set('fpn',(sug.nome+(r.suf?' '+_CORES[r.suf]:'')).trim());set('fpncm',base.ncm);set('fpt',base.tipoSug||'Terceiro Importado');set('fpc',base.custoOrig);set('fpst',base.stUn||0);set('fpipi',base.ipi||0);set('fpicms',base.icms||0);
+  document.getElementById('mprod').style.zIndex='600';
+  window._cuAposSalvar=async sku=>{
+    toast('Produto '+sku+' salvo — confirmando no banco…');
+    let f=null;
+    for(let t=0;t<15&&!f;t++){try{f=(await prodsFrescos([sku]))[sku]||null;}catch(e){console.warn(e);}if(!f)await new Promise(x=>setTimeout(x,400));}
+    if(!f){toast('⚠️ O produto '+sku+' ainda não apareceu no banco. Aguarde uns segundos e use "Escolher produto" para ligá-lo.','w');return;}
+    r.alvo=sku;r.nome=f.nome||'';r.criado=true;_cu.prods[sku]=f;nfDivRender();toast('Produto '+sku+' criado e ligado a esta linha.');
+  };
+}
+async function nfDivConfirmar(){
+  const D=_cuDiv,S=_cu,v=nfDivValidar();if(!v.ok){toast(v.motivo,'e');return;}
+  const btn=document.getElementById('cu-div-ok');btn.disabled=true;
+  const mk=r=>Object.assign(JSON.parse(JSON.stringify(D.base)),{alvo:r.alvo,qtd:r.qtd,ignorar:r.ignorar,grupo:D.g,origem:r.ignorar?null:(r.criado?'novo':'divisao'),criado:!!r.criado,tipoNovo:null,est:0,estFonte:null,estManual:false,okSig:null,atualizarNcm:false});
+  const subs=D.rows.map(mk);
+  let pos=S.linhas.findIndex(L=>String(L.grupo)===String(D.g)),del=0;
+  if(pos>=0){S.linhas=S.linhas.filter(L=>String(L.grupo)!==String(D.g));}   // editar divisão: troca as partes antigas
+  else{pos=S.linhas.findIndex(L=>L.cod===D.cod&&L.grupo==null);del=pos>=0?1:0;} // 1ª divisão: o item original SAI da tabela
+  if(pos<0)pos=S.linhas.length;
+  S.linhas.splice(pos,del,...subs);
+  S.grupos[D.g]={orig:D.base,cod:D.cod,desc:D.desc,qtdNota:D.qtdNota};
+  S.linhas.forEach((L,k)=>{L.i=k;});
+  try{for(const L of subs){if(L.alvo&&!L.ignorar){await cuReavaliarLinha(L);if(L.criado){L.est=0;L.estFonte=null;L.tipoNovo=(_cu.prods[L.alvo]||{}).tipo||null;}}}}catch(e){console.warn(e);}
+  cM('mod-cu-div');cuRender();btn.disabled=false;
+}
+function nfJuntar(g){
+  const S=_cu,G=S.grupos[g];if(!G)return;
+  const pos=S.linhas.findIndex(L=>String(L.grupo)===String(g));
+  S.linhas=S.linhas.filter(L=>String(L.grupo)!==String(g));
+  const orig=JSON.parse(JSON.stringify(G.orig));orig.grupo=null;orig.okSig=null;
+  S.linhas.splice(pos<0?S.linhas.length:pos,0,orig);delete S.grupos[g];
+  S.linhas.forEach((L,k)=>{L.i=k;});
+  (async()=>{try{if(orig.alvo)await cuReavaliarLinha(orig);}catch(e){console.warn(e);}cuRender();})();
+  cuRender();
+}
+
 // ── Aplicar (grava produtos + registro de aplicação, com releitura fresca e conferência) ──
 async function cuAplicar(){
   const S=_cu,b=document.getElementById('cu-btn');
-  if(!document.getElementById('cu-conf').checked){toast('Marque "Conferi" para continuar','e');return;}
   cuAvaliar();
-  if(S.cabBloq||S.linhas.some(L=>L.nivel==='bloq')){toast('Ainda há alertas vermelhos para resolver','e');return;}
+  {const P=cuPend();
+   if(P.bloq>0||P.cab.bloq.length>0){toast('Ainda há alertas vermelhos para resolver','e');return;}
+   if(P.pendL>0||P.pendC>0){toast('Falta dar OK nos alertas 🟡 (clique na bolinha de cada item)','e');return;}}
   const linhas=S.linhas.filter(L=>!L.ignorar&&L.alvo&&L.nivel!=='igual');
   if(!linhas.length){toast('Nada a gravar','e');return;}
   const rotulo=b.textContent;b.disabled=true;b.textContent='Gravando…';
@@ -3184,8 +3376,12 @@ async function cuAplicar(){
     {const{error}=await SB.from('produtos').upsert(rows,{onConflict:'sku'});if(error)throw error;}
     // 5) vínculos aprendidos
     if(S.origem==='nf'){
-      const ap=linhas.filter(L=>L.origem==='descricao'||L.origem==='novo').map(L=>({cnpj_emitente:S.cnpj||'',cod_fornecedor:L.skuOrigem,sku_precificacao:L.alvo,criado_por:quem}));
+      const ap=linhas.filter(L=>L.grupo==null&&(L.origem==='descricao'||L.origem==='novo')).map(L=>({cnpj_emitente:S.cnpj||'',cod_fornecedor:L.skuOrigem,sku_precificacao:L.alvo,criado_por:quem}));
       if(ap.length){const{error}=await SB.from('nf_sku_vinculos').upsert(ap,{onConflict:'cnpj_emitente,cod_fornecedor'});if(error)console.warn('vínculos NF',error);}
+      // memória das divisões: guarda QUAIS produtos formam o grupo daquele código (sem quantidades)
+      const gps=Object.keys(S.grupos).map(g=>({cod:S.grupos[g].cod,skus:[...new Set(S.linhas.filter(L=>String(L.grupo)===String(g)&&!L.ignorar&&L.alvo).map(L=>L.alvo))]})).filter(x=>x.skus.length>=2);
+      if(gps.length){const{error}=await SB.from('nf_sku_divisoes').upsert(gps.map(x=>({cnpj_emitente:S.cnpj||'',cod_fornecedor:x.cod,skus:x.skus,criado_por:quem,atualizado_em:agora})),{onConflict:'cnpj_emitente,cod_fornecedor'});if(error)console.warn('divisões NF',error);}
+      for(const cod of Object.keys(S.divMem||{})){if(!gps.some(x=>x.cod===cod)){await SB.from('nf_sku_divisoes').delete().eq('cnpj_emitente',S.cnpj||'').eq('cod_fornecedor',cod);}}
     }else{
       await SB.from('cmv_hub_ignorados').delete().eq('container_id','base:'+S.ref.id);
       const ig=S.linhas.filter(L=>L.ignorar).map(L=>({container_id:'base:'+S.ref.id,sku_hub:L.skuOrigem,criado_por:quem}));
@@ -3216,8 +3412,9 @@ function cuRegistrarHistorico(itens,quem){
     const mk=(campo,ant,novo,isTxt)=>{const o={id:Date.now()+Math.random(),data:td(),sku:x.sku,nome:x.nome||x.sku,tipo:d.tipo,campo,ant,novo,var:'—',user:quem||'—'};
       if(isTxt)o.isTxt=true;else{const A=parseFloat(ant)||0,N=parseFloat(novo)||0;o.ant=A;o.novo=N;if(A>0){const v=((N-A)/A*100).toFixed(2);o.var=(N>=A?'+':'')+v+'%';}}return o;};
     if(a.tipo!==d.tipo)h.push(mk('Tipo',a.tipo,d.tipo,true));
-    if(Math.abs((parseFloat(a.custo)||0)-(parseFloat(d.custo)||0))>0.001)h.push(mk('Custo NF',a.custo,d.custo,false));
-    if(a.tipo!=='Importado'||d.tipo!=='Importado'){const ca=calcCMV(a),cd=calcCMV(d);if(Math.abs(ca-cd)>0.001)h.push(mk('CMV Contábil',ca,cd,false));}
+    // um único registro de custo, no padrão do tipo NOVO: Importado = Custo NF · Nacional/Terceiro = CMV Contábil
+    if(d.tipo==='Importado'){if(Math.abs((parseFloat(a.custo)||0)-(parseFloat(d.custo)||0))>0.001)h.push(mk('Custo NF',a.custo,d.custo,false));}
+    else{const ca=calcCMV(a),cd=calcCMV(d);if(Math.abs(ca-cd)>0.001)h.push(mk('CMV Contábil',ca,cd,false));}
   });
   LS.set('lb_h',h);
 }
@@ -3251,20 +3448,38 @@ async function nfPrepararMapa(nf,arquivo){
   const vinc={};{const r=await SB.from('nf_sku_vinculos').select('cod_fornecedor,sku_precificacao').eq('cnpj_emitente',cnpj);if(r.error)throw r.error;(r.data||[]).forEach(v=>{vinc[v.cod_fornecedor]=v.sku_precificacao;});}
   const ps=LS.get('lb_p')||[];
   const linhas=nf.itens.map((it,i)=>{const r=nfResolverSku(it,vinc,ps);
-    return{i,cod:it.cod,desc:it.desc,skuOrigem:it.cod,ncm:it.ncm,tipoSug:_origemTipo(it.origem),tipoNovo:null,qtd:it.qtd,custoOrig:_r4(it.unit),stUn:it.stUn,ipi:it.ipiPct,icms:it.icmsPct,alvo:r.alvo,origem:r.origem,est:0,estFonte:null,ignorar:false,atualizarNcm:false,criado:false};});
+    return{i,cod:it.cod,desc:it.desc,skuOrigem:it.cod,ncm:it.ncm,tipoSug:_origemTipo(it.origem),tipoNovo:null,qtd:it.qtd,custoOrig:_r2(it.unit),stUn:it.stUn,ipi:it.ipiPct,icms:it.icmsPct,alvo:r.alvo,origem:r.origem,est:0,estFonte:null,ignorar:false,atualizarNcm:false,criado:false};});
   const alvos=[...new Set(linhas.filter(L=>L.alvo).map(L=>L.alvo))];
   const prods=await prodsFrescos(alvos),ledger=await cuLerLedger(alvos);
   linhas.forEach(L=>{if(L.alvo&&prods[L.alvo])L.tipoNovo=prods[L.alvo].tipo;});
   const dataEnt=nf.emissao||null;
   if(dataEnt&&alvos.length){const e=await hubImpEstoque(alvos,dataEnt);linhas.forEach(L=>{const r=L.alvo?e[L.alvo]:null;L.est=(r&&r.fonte==='dia1')?r.saldo:0;L.estFonte=r?r.fonte:null;});}
-  _cu={origem:'nf',modo:'importar',ref:{id:nf.chave||('sem-chave-'+Date.now()),nome:'NF '+(nf.numero||'?')+' · '+(nf.emitente.nome||nf.emitente.cnpj||'?'),data:dataEnt},nf,linhas,prods,ledger,cnpj:cnpj,ja,jaDesfeita,arquivo,cb:null,vincIdx:null};
-  document.getElementById('cu-conf').checked=false;document.getElementById('cu-hist').checked=true;
+  const divMem={};{const r=await SB.from('nf_sku_divisoes').select('cod_fornecedor,skus').eq('cnpj_emitente',cnpj);if(!r.error)(r.data||[]).forEach(d=>{if(Array.isArray(d.skus)&&d.skus.length>=2)divMem[d.cod_fornecedor]=d.skus;});}
+  _cu={origem:'nf',modo:'importar',ref:{id:nf.chave||('sem-chave-'+Date.now()),nome:'NF '+(nf.numero||'?')+' · '+(nf.emitente.nome||nf.emitente.cnpj||'?'),data:dataEnt},nf,linhas,prods,ledger,cnpj:cnpj,ja,jaDesfeita,arquivo,cb:null,vincIdx:null,grupos:{},cabOk:{},divMem,proxGrupo:0};
+  await nfAplicarMemoriaDivisao();
+  document.getElementById('cu-hist').checked=true;
   cM('mod-nf');document.getElementById('mod-cu-mapa').classList.add('open');cuRender();
+}
+async function nfAplicarMemoriaDivisao(){
+  const S=_cu;
+  for(const cod of Object.keys(S.divMem)){
+    const skus=S.divMem[cod];const idx=S.linhas.findIndex(L=>L.cod===cod&&L.grupo==null);if(idx<0)continue;
+    const base=JSON.parse(JSON.stringify(S.linhas[idx]));const g='g'+(++S.proxGrupo);
+    const subs=skus.map(sku=>Object.assign(JSON.parse(JSON.stringify(base)),{alvo:sku,qtd:0,grupo:g,origem:'divisao',criado:false,ignorar:false,tipoNovo:null,est:0,estFonte:null,okSig:null,estManual:false}));
+    S.linhas.splice(idx,1,...subs);S.grupos[g]={orig:base,cod,desc:base.desc,qtdNota:base.qtd};
+  }
+  S.linhas.forEach((L,k)=>{L.i=k;});
+  const alvos=[...new Set(S.linhas.filter(L=>L.grupo!=null&&L.alvo).map(L=>L.alvo))];
+  if(alvos.length){
+    Object.assign(S.prods,await prodsFrescos(alvos));Object.assign(S.ledger,await cuLerLedger(alvos));
+    const e=S.ref.data?await hubImpEstoque(alvos,S.ref.data):{};
+    S.linhas.forEach(L=>{if(L.grupo!=null&&L.alvo){const r=e[L.alvo];L.est=(r&&r.fonte==='dia1')?r.saldo:0;L.estFonte=r?r.fonte:null;const p=S.prods[L.alvo];L.tipoNovo=p?p.tipo:null;}});
+  }
 }
 async function nfDataMudou(){
   const S=_cu;S.nf.emissao=document.getElementById('cu-emissao').value||null;S.ref.data=document.getElementById('cu-entrada').value||null;
   const alvos=[...new Set(S.linhas.filter(L=>L.alvo).map(L=>L.alvo))];
-  if(S.ref.data&&alvos.length){try{const e=await hubImpEstoque(alvos,S.ref.data);S.linhas.forEach(L=>{if(L.criado)return;const r=L.alvo?e[L.alvo]:null;L.est=(r&&r.fonte==='dia1')?r.saldo:0;L.estFonte=r?r.fonte:null;});}catch(x){console.warn(x);}}
+  if(S.ref.data&&alvos.length){try{const e=await hubImpEstoque(alvos,S.ref.data);S.linhas.forEach(L=>{if(L.criado||L.estManual)return;const r=L.alvo?e[L.alvo]:null;L.est=(r&&r.fonte==='dia1')?r.saldo:0;L.estFonte=r?r.fonte:null;});}catch(x){console.warn(x);}}
   cuRender();
 }
 function nfSugerirSku(L){
@@ -3362,8 +3577,8 @@ async function cbAnalisar(cid,modo){
     const alvos=[...new Set(linhas.filter(L=>L.alvo).map(L=>L.alvo))];
     const[prods,ledger,est]=await Promise.all([prodsFrescos(alvos),cuLerLedger(alvos),hubImpEstoque(alvos,c.data)]);
     linhas.forEach(L=>{const r=L.alvo?est[L.alvo]:null;L.est=(r&&r.fonte==='dia1')?r.saldo:0;L.estFonte=r?r.fonte:null;});
-    _cu={origem:'hub',modo,ref:{id:cid,nome:c.nome,data:c.data},nf:null,linhas,prods,ledger,cnpj:null,ja:null,cb:{soma,esperado},cbApl:_cu.cbApl,arquivo:null,vincIdx:null};
-    document.getElementById('cu-conf').checked=false;document.getElementById('cu-hist').checked=true;
+    _cu={origem:'hub',modo,ref:{id:cid,nome:c.nome,data:c.data},nf:null,linhas,prods,ledger,cnpj:null,ja:null,cb:{soma,esperado},cbApl:_cu.cbApl,arquivo:null,vincIdx:null,grupos:{},cabOk:{},divMem:{},proxGrupo:0};
+    document.getElementById('cu-hist').checked=true;
     cM('mod-cb-lista');document.getElementById('mod-cu-mapa').classList.add('open');cuRender();
   }catch(e){console.error('cbAnalisar',e);toast('⚠️ Não consegui analisar: '+((e&&e.message)||e),'e');}
 }
