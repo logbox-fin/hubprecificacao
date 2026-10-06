@@ -7,6 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 :root{
@@ -280,6 +281,9 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
           <select id="base-filtro-cat" onchange="rBase()" style="padding:6px 10px;font-size:12px;min-width:150px;"><option value="">Todas as Categorias</option></select>
           <div class="ml-auto flex g8">
             <select id="base-ordem" onchange="rBase()" style="padding:6px 10px;font-size:12px;"><option value="">Ordenar por...</option><option value="nome-az">Nome A→Z</option><option value="sku-az" selected>SKU A→Z</option><option value="sku-za">SKU Z→A</option></select>
+            <button class="btn" onclick="nfAbrir()" title="Lê o PDF ou XML da nota e atualiza custo ponderado, ST, IPI e ICMS">&#128196; Importar NF</button>
+            <button class="btn" onclick="cbAbrir()" title="Traz o Custo Base de Dados dos containers do Hub de Importação">&#11015; Custo do Hub</button>
+            <button class="btn" onclick="cuAplAbrir()" title="Aplicações de custo feitas por NF ou Hub (com opção de desfazer)">&#129534; Aplicações</button>
             <button class="btn" onclick="baixarPlanilha()">&#8659; Baixar Modelo</button>
             <button class="btn" onclick="document.getElementById('mod-import').classList.add('open')">&#8657; Importar em Lote</button>
             <button class="btn btn-p" onclick="openPM()">+ Novo Produto</button>
@@ -941,6 +945,11 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
     </div>
   </div>
 </div>
+
+<div class="mov" id="mod-nf"><div class="mod" style="width:520px;"><div class="mt">&#128196; Importar NF de compra</div><p class="tmu tsm" style="margin-bottom:10px;">Envie o <strong>XML</strong> (leitura exata) ou o <strong>PDF (DANFE)</strong> da nota. O sistema lê quantidade, valor unitário, ST, IPI, ICMS e NCM e abre uma tela de <strong>conferência editável</strong> antes de gravar qualquer coisa.</p><input type="file" id="nf-arquivo" accept=".pdf,.xml,application/pdf,text/xml,application/xml" onchange="nfArquivoEscolhido(this)"><div id="nf-status" class="tsm" style="margin-top:10px;"></div><div class="mf"><button class="btn" onclick="cM('mod-nf')">Fechar</button></div></div></div>
+<div class="mov" id="mod-cu-mapa"><div class="mod" style="width:1320px;max-width:98vw;"><div class="mt" id="cu-titulo">Conferência</div><div id="cu-banners"></div><div id="cu-resumo" style="font-size:12px;font-weight:700;margin:6px 0 8px;"></div><div style="max-height:50vh;overflow:auto;border:1px solid var(--border);border-radius:var(--r);" id="cu-tabela"></div><div class="mf" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><div style="display:flex;gap:16px;flex-wrap:wrap;"><label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="cu-hist" checked> Registrar no histórico de custos</label><label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="cu-conf" onchange="cuResumo()"> Conferi os dados e os alertas acima</label></div><div class="flex g8"><button class="btn" onclick="cuVoltar()">Voltar</button><button class="btn btn-p" id="cu-btn" disabled onclick="cuAplicar()">Aplicar</button></div></div></div></div>
+<div class="mov" id="mod-cb-lista"><div class="mod" style="width:640px;"><div class="mt">&#11015; Custo do Hub de Importação — Base de Dados</div><p class="tmu tsm" style="margin-bottom:10px;">Traz o <strong>Custo Base de Dados</strong> (com os rateios do Fechamento) como "Novo Custo NF" e faz o custo médio ponderado de cada produto. Container sem Fechamento lançado não aparece como disponível.</p><div id="cb-lista"></div><div class="mf"><button class="btn" onclick="cM('mod-cb-lista')">Fechar</button></div></div></div>
+<div class="mov" id="mod-cu-apl"><div class="mod" style="width:760px;"><div class="mt">&#129534; Aplicações de custo (NF e Hub)</div><p class="tmu tsm" style="margin-bottom:10px;">Cada aplicação guarda como o produto era antes. "Desfazer" devolve custo, ST, IPI, ICMS, NCM e tipo — só dos produtos que ninguém alterou depois. Desfaça sempre da mais nova para a mais antiga.</p><div id="cu-apl-lista" style="max-height:60vh;overflow:auto;"></div><div class="mf"><button class="btn" onclick="cM('mod-cu-apl')">Fechar</button></div></div></div>
 <div class="mov" id="mod-custo-novo">
   <div class="mod" style="width:520px;">
     <div class="mt" id="cn-titulo">💰 Atualizar Custo</div>
@@ -1290,7 +1299,7 @@ function sM(sku,mk,field,val){const all=LS.get('lb_m')||{};const k=mk+'_'+sku;if
   // TikTok: tar e frete são calculados dinamicamente por faixa de preço — não salvar no Supabase
   // Magalu: frete calculado automaticamente, não salvar no Supabase
   _cache['lb_m']=JSON.parse(JSON.stringify(all));try{localStorage.setItem('lb_m',JSON.stringify(all));}catch{}sbPersistMktItem(sku,mk,all[k]).catch(e=>{console.warn('Supabase sync error lb_m:',e);if(typeof toast==='function')toast('Erro ao salvar no servidor','e');});}
-function cM(id){const el=document.getElementById(id);if(el)el.classList.remove('open');}
+function cM(id){const el=document.getElementById(id);if(el)el.classList.remove('open');if(id==='mprod'&&el){el.style.zIndex='';window._cuAposSalvar=null;}}
 let _toastTimer=null;
 function toast(msg,type='ok'){const t=document.getElementById('toast');if(!t)return;const cor=type==='e'?'var(--red)':type==='w'?'#d97706':'var(--green)';t.textContent=msg;t.style.borderColor=cor;t.style.color=cor;t.style.display='block';clearTimeout(_toastTimer);_toastTimer=setTimeout(()=>t.style.display='none',type==='w'?7000:3000);}
 
@@ -1590,6 +1599,7 @@ function delCat(i){if(!confirm('Excluir?'))return;const m=LS.get('lb_cats')||[];
 // MODAL PRODUTO — Bug 1 (delete Supabase) + Bug 2 (histórico correto) + Magalu
 let ePid=null,oProd=null;
 function openPM(id){
+  window._cuAposSalvar=null;{const _m=document.getElementById('mprod');if(_m)_m.style.zIndex='';}
   ePid=id||null;oProd=null;
   document.getElementById('mpt').textContent=id?'Editar Produto':'Novo Produto';
   if(id){
@@ -1616,7 +1626,7 @@ function openPM(id){
   document.getElementById('mprod').classList.add('open');
 }
 
-function saveProd(){
+function saveProd(){const _cuCb=window._cuAposSalvar;
   if(!CU){toast('Sessão inválida','e');return;}
   const sku=document.getElementById('fps').value.trim();
   const nome=document.getElementById('fpn').value.trim();
@@ -1705,6 +1715,7 @@ function saveProd(){
   else toast('Produto salvo!');
   const pSaved=ps.find(x=>x.sku===nd.sku);if(pSaved&&(pSaved.tipo==='Nacional'||pSaved.tipo==='Terceiro Importado'))sbSalvarCmvNacionais([pSaved]).catch(e=>console.warn('CMV Nac:',e));
   recalcMcSku(nd.sku);
+  if(_cuCb){window._cuAposSalvar=null;try{_cuCb(nd.sku);}catch(e){console.warn('cuAposSalvar',e);}}
 }
 
 function delProd(){
@@ -2779,6 +2790,629 @@ async function hubImpAtualizarDireto(nome){
   if(!cid){const x=_hubImp.view.find(v=>v.nome===nome);cid=x&&x.id;}
   if(!cid){toast('Container não encontrado no Hub','e');return;}
   hubImpAnalisar(cid,'atualizar');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RODADAS 2 e 3 — Importar NF (PDF/XML) e Custo Base de Dados do Hub
+// ═══════════════════════════════════════════════════════════════
+const NF_CNPJ_EMPRESA='61975961000106'; // LOGBOX — destinatário esperado das notas
+const CU_VAR_ALERTA=20;                 // % de diferença entre o valor novo e o custo anterior que dispara alerta
+const _r4=x=>Math.round((+x||0)*1e4)/1e4;
+const _r2=x=>Math.round((+x||0)*100)/100;
+const _numBR=s=>{ // número no formato brasileiro (1.234,56) ou simples (1234.56)
+  if(typeof s==='number')return s;
+  s=String(s==null?'':s).trim();if(!s)return NaN;
+  if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');
+  else if(/^\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,'');
+  return parseFloat(s);
+};
+const _ncmFmt=s=>{const d=String(s||'').replace(/\D/g,'');return d.length===8?d.replace(/^(\d{4})(\d{2})(\d{2})$/,'$1.$2.$3'):String(s||'').trim();};
+const _origemTipo=o=>(o==null||o==='')?null:(['1','2','6','7'].includes(String(o))?'Terceiro Importado':'Nacional');
+const _soDig=s=>String(s||'').replace(/\D/g,'');
+const _normSku=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+const _fmtCnpj=d=>{d=_soDig(d);return d.length===14?d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'):d;};
+
+// ── PDF: reconstrói as linhas do texto a partir das posições (PDF.js) ──
+function nfPdfLinhas(items){
+  const its=items.filter(i=>i.str&&i.str.trim()!=='').sort((a,b)=>b.y-a.y||a.x-b.x);
+  const linhas=[];let cur=null;
+  its.forEach(it=>{if(!cur||Math.abs(cur.y-it.y)>2.5){cur={y:it.y,its:[]};linhas.push(cur);}cur.its.push(it);});
+  return linhas.map(l=>l.its.sort((a,b)=>a.x-b.x).map(i=>i.str.trim()).join(' ').replace(/\s+/g,' ').trim());
+}
+const _NUM_RE=/^-?\d[\d.]*(?:,\d+)?$/;
+function nfParsePdfLinhas(linhas){
+  const texto=linhas.join('\n');
+  const nf={fonte:'pdf',avisos:[],itens:[],chave:null,numero:null,serie:null,emissao:null,emitente:{cnpj:null,nome:null},destinatario:{cnpj:null},natureza:null,totalProdutos:null,somaConfere:null};
+  // chave de acesso (44 dígitos) — dela saem CNPJ do emitente, série e número
+  let ch=null;const m44=texto.match(/\b\d{44}\b/);
+  if(m44)ch=m44[0];else{const ms=texto.match(/\b(?:\d{4}\s){10}\d{4}\b/);if(ms)ch=ms[0].replace(/\s/g,'');}
+  if(ch&&ch.length===44){
+    nf.chave=ch;nf.emitente.cnpj=ch.slice(6,20);nf.serie=String(parseInt(ch.slice(22,25),10));nf.numero=String(parseInt(ch.slice(25,34),10));
+  }else nf.avisos.push('Não consegui ler a chave de acesso (44 dígitos).');
+  // emissão: primeira data cujo mês/ano bate com o AAMM da chave
+  const aamm=ch?ch.slice(2,6):null;const re=/\b(\d{2})\/(\d{2})\/(\d{4})\b/g;let md;
+  while((md=re.exec(texto))){if(!aamm||(md[3].slice(2)===aamm.slice(0,2)&&md[2]===aamm.slice(2,4))){nf.emissao=md[3]+'-'+md[2]+'-'+md[1];break;}}
+  const mn=texto.match(/RECEBEMOS DE\s+(.+?)\s+OS PRODUTOS/i);if(mn)nf.emitente.nome=mn[1].trim();
+  const cnpjs=[...new Set((texto.match(/\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/g)||[]).map(_soDig))];
+  nf.destinatario.cnpj=cnpjs.includes(NF_CNPJ_EMPRESA)?NF_CNPJ_EMPRESA:(cnpjs.find(c=>c!==nf.emitente.cnpj)||null);
+  const mr=texto.match(/DEVOLU[CÇ]|REMESSA|BONIFICA|TRANSFER[EÊ]|CONSIGNA|DEMONSTRA|CANCELAD/i);if(mr)nf.natureza=mr[0].toUpperCase();
+  // itens
+  const itemRe=/^(\S+)\s+(.*?)\s*(\d{4}\.?\d{2}\.?\d{2})\s+(\d{3})\s+(\d{4})\s+([A-Za-z]{1,5})\s+(.+)$/;
+  linhas.forEach((ln,idx)=>{
+    const m=ln.match(itemRe);if(!m)return;
+    const tokens=m[7].split(/\s+/).filter(t=>_NUM_RE.test(t));const nums=tokens.map(_numBR);
+    let tri=null;
+    for(let i=0;i<nums.length&&!tri;i++)for(let j=i+1;j<nums.length&&!tri;j++)for(let k=j+1;k<nums.length&&!tri;k++){
+      const q=nums[i],u=nums[j],t=nums[k];
+      if(q>0&&u>0&&t>0&&Math.abs(q*u-t)<=Math.max(0.05,t*0.001))tri=[i,j,k];
+    }
+    if(!tri){nf.avisos.push('Item "'+m[1]+'": não consegui identificar quantidade/valor.');return;}
+    const[qi,ui,ti]=tri;const qtd=nums[qi],unit=nums[ui],total=nums[ti];
+    const tail=nums.slice(ti+1);let aIcms=null,aIpi=null,vIpi=null,st=0;
+    if(tail.length>=2&&tail[tail.length-1]<=100&&tail[tail.length-2]<=100){
+      aIpi=tail[tail.length-1];aIcms=tail[tail.length-2];
+      let rest=tail.slice(0,-2);
+      const esp=total*aIpi/100;
+      if(rest.length&&Math.abs(rest[rest.length-1]-esp)<=Math.max(0.05,esp*0.01)){vIpi=rest[rest.length-1];rest=rest.slice(0,-1);}
+      if(rest.length>=4)st=rest[rest.length-1]; // base ICMS, valor ICMS, base ST, valor ST
+    }
+    let desc=m[2];for(let k=idx+1;k<Math.min(idx+4,linhas.length);k++){if(itemRe.test(linhas[k])||/DADOS ADICIONAIS|C[AÁ]LCULO|TRANSPORT|INFORMA/i.test(linhas[k]))break;desc+=' '+linhas[k];}
+    nf.itens.push({cod:m[1],desc:desc.trim(),ncm:_ncmFmt(m[3]),cst:m[4],origem:m[4][0],cfop:m[5],un:m[6],qtd,unit,total,stTotal:st,stUn:qtd>0?_r4(st/qtd):0,ipiPct:aIpi,icmsPct:aIcms,vIpi});
+  });
+  const soma=_r2(nf.itens.reduce((s,i)=>s+i.total,0));nf.totalProdutos=soma;
+  const todos=(texto.match(/\d[\d.]*,\d{2}/g)||[]).map(_numBR);
+  nf.somaConfere=nf.itens.length>0&&todos.some(v=>Math.abs(v-soma)<=0.02);
+  return nf;
+}
+
+// ── XML da NF-e (exato) ──
+function nfParseXml(txt){
+  const doc=new DOMParser().parseFromString(txt,'application/xml');
+  if(doc.getElementsByTagName('parsererror').length)throw new Error('XML inválido');
+  const T=(el,n)=>{if(!el)return '';const x=el.getElementsByTagName(n)[0];return x?x.textContent.trim():'';};
+  const inf=doc.getElementsByTagName('infNFe')[0];if(!inf)throw new Error('Não é um XML de NF-e (infNFe não encontrado)');
+  const nf={fonte:'xml',avisos:[],itens:[],chave:(inf.getAttribute('Id')||'').replace(/^NFe/,''),numero:T(inf.getElementsByTagName('ide')[0],'nNF'),serie:T(inf.getElementsByTagName('ide')[0],'serie'),emissao:null,
+    emitente:{cnpj:_soDig(T(inf.getElementsByTagName('emit')[0],'CNPJ')),nome:T(inf.getElementsByTagName('emit')[0],'xNome')},destinatario:{cnpj:_soDig(T(inf.getElementsByTagName('dest')[0],'CNPJ'))},natureza:null,totalProdutos:null,somaConfere:null};
+  const dh=T(inf.getElementsByTagName('ide')[0],'dhEmi')||T(inf.getElementsByTagName('ide')[0],'dEmi');nf.emissao=dh?dh.slice(0,10):null;
+  const nat=T(inf.getElementsByTagName('ide')[0],'natOp');const mr=nat.match(/DEVOLU[CÇ]|REMESSA|BONIFICA|TRANSFER[EÊ]|CONSIGNA|DEMONSTRA/i);if(mr)nf.natureza=mr[0].toUpperCase();
+  [...inf.getElementsByTagName('det')].forEach(det=>{
+    const pr=det.getElementsByTagName('prod')[0],imp=det.getElementsByTagName('imposto')[0];if(!pr)return;
+    const icms=imp?imp.getElementsByTagName('ICMS')[0]:null,ipi=imp?imp.getElementsByTagName('IPI')[0]:null;
+    const qtd=parseFloat(T(pr,'qCom'))||0,unit=parseFloat(T(pr,'vUnCom'))||0,total=parseFloat(T(pr,'vProd'))||0;
+    const st=parseFloat(T(icms,'vICMSST')||T(icms,'vICMSSTRet'))||0;const orig=T(icms,'orig');
+    nf.itens.push({cod:T(pr,'cProd'),desc:T(pr,'xProd'),ncm:_ncmFmt(T(pr,'NCM')),cst:T(icms,'CST')||T(icms,'CSOSN'),origem:orig||null,cfop:T(pr,'CFOP'),un:T(pr,'uCom'),qtd,unit,total,stTotal:st,stUn:qtd>0?_r4(st/qtd):0,ipiPct:ipi&&T(ipi,'pIPI')!==''?parseFloat(T(ipi,'pIPI')):null,icmsPct:icms&&T(icms,'pICMS')!==''?parseFloat(T(icms,'pICMS')):null,vIpi:ipi&&T(ipi,'vIPI')!==''?parseFloat(T(ipi,'vIPI')):null});
+  });
+  const vp=parseFloat(T(inf.getElementsByTagName('ICMSTot')[0],'vProd'));nf.totalProdutos=isNaN(vp)?_r2(nf.itens.reduce((s,i)=>s+i.total,0)):vp;
+  nf.somaConfere=Math.abs(_r2(nf.itens.reduce((s,i)=>s+i.total,0))-nf.totalProdutos)<=0.02;
+  return nf;
+}
+async function nfLerArquivo(file){
+  const nome=(file.name||'').toLowerCase();
+  if(nome.endsWith('.xml'))return nfParseXml(await file.text());
+  if(!nome.endsWith('.pdf'))throw new Error('Envie o PDF (DANFE) ou o XML da nota.');
+  if(!window.pdfjsLib)throw new Error('A biblioteca de PDF não carregou (verifique a internet e recarregue). Se tiver, use o XML da nota.');
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+  let linhas=[];
+  for(let p=1;p<=pdf.numPages;p++){const pg=await pdf.getPage(p);const tc=await pg.getTextContent();linhas=linhas.concat(nfPdfLinhas(tc.items.map(i=>({str:i.str,x:i.transform[4],y:i.transform[5]}))));}
+  const nf=nfParsePdfLinhas(linhas);
+  if(!nf.itens.length)throw new Error('Não consegui ler os itens deste PDF (layout não reconhecido). Use o XML da nota.');
+  return nf;
+}
+
+// ── Estado e leituras frescas ──
+let _cu={origem:null,modo:'importar',ref:null,nf:null,linhas:[],prods:{},ledger:{},cnpj:null,ja:null,cb:null,vincIdx:null};
+async function prodsFrescos(skus){
+  const out={};if(!skus.length)return out;
+  const{data,error}=await SB.from('produtos').select('*').in('sku',skus);
+  if(error)throw error;(data||[]).forEach(r=>{out[r.sku]=r;});return out;
+}
+async function cuLerLedger(skus){
+  const out={};if(!skus.length)return out;
+  const{data,error}=await SB.from('custo_aplicacoes').select('*').in('sku',skus).is('desfeita_em',null);
+  if(error)throw error;
+  (data||[]).forEach(a=>{(out[a.sku]=out[a.sku]||[]).push(a);});
+  Object.values(out).forEach(arr=>arr.sort((a,b)=>String(a.data_ref).localeCompare(String(b.data_ref))||String(a.aplicado_em).localeCompare(String(b.aplicado_em))));
+  return out;
+}
+function cuPiorMargem(pA,pD){
+  const m=LS.get('lb_m')||{};let pior=null;
+  ['meli','shp','tkt','amz','mga'].forEach(mk=>{
+    if(!pD[mk])return;const d=m[mk+'_'+pD.sku];if(!d||!(parseFloat(d.preco)>0))return;
+    const a=calcMC(pA,mk,d),b=calcMC(pD,mk,d);if(b==null)return;
+    if(!pior||b<pior.depois)pior={mk,antes:a,depois:b};
+  });
+  return pior;
+}
+const _pond=(e,c0,q,c1)=>{const den=e+q;return den>0?(e*c0+q*c1)/den:c1;};
+const _nomeApl=a=>a.ref_nome||(a.origem+' '+a.ref_id);
+
+// ── Avaliação (cabeçalho + linhas) ──
+function cuCabAlertas(){
+  const S=_cu,out={bloq:[],warn:[],info:[]};
+  if(S.origem==='nf'){
+    const nf=S.nf;
+    if(S.ja)out.bloq.push('Nota já importada em '+_fmtData(S.ja.importado_em)+(S.ja.importado_por?' por '+S.ja.importado_por:'')+' (desfaça a aplicação antes de reimportar).');
+    if(!nf.chave)out.warn.push('Chave de acesso não lida: a proteção contra importar a mesma nota duas vezes não vale.');
+    if(!S.ref.data)out.bloq.push('Informe a data de entrada no galpão.');
+    if(!nf.itens.length)out.bloq.push('Nenhum item lido na nota.');
+    if(nf.destinatario.cnpj!==NF_CNPJ_EMPRESA)out.warn.push('Destinatário '+(nf.destinatario.cnpj?_fmtCnpj(nf.destinatario.cnpj):'não identificado')+' não é a LOGBOX ('+_fmtCnpj(NF_CNPJ_EMPRESA)+').');
+    if(nf.natureza)out.warn.push('A natureza da operação indica "'+nf.natureza+'": confirme que é uma compra.');
+    if(nf.somaConfere===false)out.warn.push('A soma dos itens (R$ '+_r2(nf.totalProdutos).toLocaleString('pt-BR',{minimumFractionDigits:2})+') não bate com nenhum total da nota: algum item pode não ter sido lido.');
+    if(nf.emissao&&S.ref.data&&S.ref.data<nf.emissao)out.warn.push('A data de entrada é anterior à emissão da nota.');
+    (nf.avisos||[]).forEach(a=>out.warn.push(a));
+    if(nf.fonte==='pdf')out.info.push('Lido do PDF (aproximado): confira cada campo. O XML da nota é exato.');
+  }else if(S.origem==='hub'){
+    const c=S.cb;
+    if(!S.ref.data)out.bloq.push('Container sem data de chegada no Hub.');
+    if(c&&Math.abs((c.soma||0)-(c.esperado||0))>0.05)out.warn.push('A soma dos SKUs (R$ '+_r2(c.soma).toLocaleString('pt-BR',{minimumFractionDigits:2})+') não confere com o Fechamento (R$ '+_r2(c.esperado).toLocaleString('pt-BR',{minimumFractionDigits:2})+').');
+    else if(c)out.info.push('✅ A soma dos SKUs confere com o Fechamento do container.');
+  }
+  return out;
+}
+function cuAvaliar(){
+  const S=_cu,fc=getFC();
+  const cnt={};S.linhas.forEach(L=>{if(L.alvo&&!L.ignorar)cnt[L.alvo]=(cnt[L.alvo]||0)+1;});
+  S.linhas.forEach(L=>{
+    L.msgs=[];L.nivel='ok';L.res=null;L.mg=null;
+    const add=(n,t)=>{L.msgs.push({n,t});if(n==='bloq')L.nivel='bloq';else if(n==='warn'&&L.nivel==='ok')L.nivel='warn';};
+    if(L.ignorar){L.nivel='ign';return;}
+    const p=L.alvo?(S.prods[L.alvo]||null):null;L.prod=p;
+    if(!L.alvo)add('bloq','Sem vínculo: vincule a um produto'+(S.origem==='nf'?' ou crie um novo':''));
+    else if(!p)add('bloq','Produto "'+L.alvo+'" não existe no cadastro');
+    if(L.alvo&&cnt[L.alvo]>1)add('bloq','Dois itens apontam para '+L.alvo);
+    if(!(L.qtd>0))add('bloq','Qtde zerada');
+    if(!(L.custoOrig>0))add('bloq',S.origem==='nf'?'Valor unitário zerado':'Custo zerado');
+    if(!p)return;
+    const tipoAtual=p.tipo,tipoNovo=L.tipoNovo||tipoAtual;
+    const apps=S.ledger[L.alvo]||[];
+    const minha=S.modo==='atualizar'?(apps.find(a=>a.origem===S.origem&&a.ref_id===S.ref.id)||null):null;
+    const mais=apps.filter(a=>{if(a.origem===S.origem&&a.ref_id===S.ref.id)return false;
+      if(String(a.data_ref)>String(S.ref.data))return true;
+      return !!(minha&&String(a.data_ref)===String(S.ref.data)&&String(a.aplicado_em)>String(minha.aplicado_em));});
+    const custoProd=parseFloat(p.custo)||0;
+    const conv=tipoNovo!==tipoAtual;
+    const antes=minha?(parseFloat(minha.custo_antes)||0):custoProd;
+    const estU=minha?(parseFloat(minha.est_antes)||0):(L.est||0);
+    let modo=minha?minha.modo:((conv||L.criado||!(antes>0))?'substituicao':'ponderado');
+    let depois=_r4(modo==='substituicao'?L.custoOrig:_pond(estU,antes,L.qtd,L.custoOrig));
+    let final=depois;const cadeia=[];
+    if(minha&&mais.length){
+      let prev=depois;
+      mais.forEach(a=>{const dep=_r4(a.modo==='substituicao'?(parseFloat(a.custo_origem)||0):_pond(parseFloat(a.est_antes)||0,prev,parseFloat(a.qtd)||0,parseFloat(a.custo_origem)||0));cadeia.push({a,antes:prev,depois:dep});prev=dep;});
+      final=prev;
+    }
+    if(!minha&&mais.length)add('bloq','Já existe aplicação mais nova neste SKU ('+mais.map(_nomeApl).join(', ')+'): desfaça-a primeiro');
+    const aplicaCampos=!mais.length;
+    const stDep=tipoNovo==='Importado'?0:(S.origem==='nf'&&L.stUn!=null?_r4(L.stUn):(parseFloat(p.st)||0));
+    const ipiDep=(L.ipi!=null&&!isNaN(L.ipi))?L.ipi:(parseFloat(p.ipi)||0);
+    const icmsDep=(L.icms!=null&&!isNaN(L.icms))?L.icms:(parseFloat(p.icms)||0);
+    const ncmDep=L.atualizarNcm&&L.ncm?_ncmFmt(L.ncm):(p.ncm||'');
+    L.res={tipoAtual,tipoNovo,modo,conv,antes,estU,depois,final,cadeia,minha,mais,aplicaCampos,stDep,ipiDep,icmsDep,ncmDep,stAntes:parseFloat(p.st)||0,ipiAntes:parseFloat(p.ipi)||0,icmsAntes:parseFloat(p.icms)||0,ncmAntes:p.ncm||'',custoProd};
+    if(L.nivel==='bloq')return;
+    if(S.modo==='atualizar'){
+      if(minha){
+        const dq=Math.abs((parseFloat(minha.qtd)||0)-L.qtd),dc=Math.abs((parseFloat(minha.custo_origem)||0)-L.custoOrig);
+        const di=L.ipi!=null?Math.abs((parseFloat(minha.ipi_depois)||0)-L.ipi):0,dm=L.icms!=null?Math.abs((parseFloat(minha.icms_depois)||0)-L.icms):0;
+        const apl=apps[apps.length-1];
+        const reg=apl?(parseFloat(apl.custo_depois)||0):0;
+        if(dq<=0.5&&dc<=0.005&&di<=0.005&&dm<=0.005){L.nivel='igual';L.msgs.push({n:'info',t:'Sem alteração'});return;}
+        add('warn','Mudou no Hub: qtde '+(parseFloat(minha.qtd)||0)+' → '+L.qtd+' · custo '+fR(parseFloat(minha.custo_origem)||0)+' → '+fR(L.custoOrig));
+        if(Math.abs(custoProd-reg)>0.005)add('warn','O custo hoje ('+fR(custoProd)+') difere do último registrado ('+fR(reg)+'): alguém alterou depois — será sobrescrito');
+        if(cadeia.length)add('warn','Há aplicações mais novas ('+mais.map(_nomeApl).join(', ')+'): serão refeitas em cadeia');
+      }else add('info','SKU novo neste container');
+    }
+    if(conv)add('info','Mudança de tipo: '+tipoAtual+' → '+tipoNovo+' — sem ponderar: o custo vira o valor da '+(S.origem==='nf'?'nota':'importação')+', os impostos são atualizados'+(tipoNovo==='Importado'?' e o ST é zerado':''));
+    else if(!(antes>0)&&!minha)add('info','Produto sem custo anterior: custo = valor '+(S.origem==='nf'?'da nota':'do Hub')+' (sem ponderar)');
+    if(modo==='ponderado'&&antes>0&&L.custoOrig>0){
+      const pct=(L.custoOrig-antes)/antes*100;
+      if(Math.abs(pct)>CU_VAR_ALERTA)add('warn','Valor '+Math.abs(pct).toFixed(0)+'% '+(pct>0?'acima':'abaixo')+' do custo anterior ('+fR(antes)+')');
+    }
+    if(S.modo==='importar'&&modo==='ponderado'){
+      if(L.estFonte!=='dia1')add('info','Sem histórico de estoque: tratado como produto novo (estoque 0)');
+      if(L.est>=1000&&L.est>10*L.qtd)add('warn','Estoque antes ('+L.est+') muito maior que a qtde');
+    }
+    if(S.origem==='nf'){
+      if(L.origem==='descricao')add('warn','Casado pela descrição — confira se é o produto certo');
+      if(L.tipoSug&&!L.criado&&tipoNovo!==L.tipoSug)add('info','Pelo CST da nota a origem parece '+L.tipoSug+' (selecionado: '+tipoNovo+')');
+      if(tipoNovo!=='Importado'&&((stDep>0)!==(res0(L).stAntes>0)))add('warn','O ST '+(stDep>0?'aparece':'some')+' ('+fR(res0(L).stAntes)+' → '+fR(stDep)+'/un): a regra fiscal e a margem mudam');
+      if(L.ncm){const n=_ncmFmt(L.ncm);if(p.ncm&&_ncmFmt(p.ncm)!==n){add('warn','NCM da nota ('+n+') difere do cadastro ('+p.ncm+')');}else if(!p.ncm){L.atualizarNcm=true;L.res.ncmDep=n;add('info','Cadastro sem NCM: será preenchido com '+n);}}
+    }
+    if(aplicaCampos){
+      if(Math.abs(ipiDep-L.res.ipiAntes)>0.01)add('warn','IPI '+L.res.ipiAntes+'% → '+ipiDep+'%');
+      if(Math.abs(icmsDep-L.res.icmsAntes)>0.01)add('warn','ICMS '+L.res.icmsAntes+'% → '+icmsDep+'%');
+    }
+    const pA=Object.assign({},p),pD=Object.assign({},p,{custo:final,tipo:tipoNovo});
+    if(aplicaCampos){pD.st=stDep;pD.ipi=ipiDep;pD.icms=icmsDep;}
+    L.mg=cuPiorMargem(pA,pD);
+    if(L.mg&&L.mg.depois!=null){
+      if(L.mg.depois<0)add('warn','Margem NEGATIVA em '+(EXPORT_MK_NOMES[L.mg.mk]||L.mg.mk)+' ('+L.mg.depois.toFixed(2).replace('.',',')+'%)');
+      else if(L.mg.depois<(fc.mgAmarelo||15))add('warn','Margem em '+(EXPORT_MK_NOMES[L.mg.mk]||L.mg.mk)+' cai para '+L.mg.depois.toFixed(2).replace('.',',')+'% (mínimo '+(fc.mgAmarelo||15)+'%)');
+    }
+  });
+}
+function res0(L){return L.res||{};}
+
+// ── Tela de conferência ──
+const _TIPOS=['Importado','Nacional','Terceiro Importado'];
+function cuStatusHtml(L){
+  const ic={ok:'✅',warn:'🟡',bloq:'🔴',ign:'⏭',igual:'✅'}[L.nivel]||'✅';
+  return `<div style="font-size:15px;">${ic}</div>`+(L.msgs||[]).map(m=>`<div class="hub-msg ${m.n}">${(m.n==='bloq'?'🔴 ':m.n==='warn'?'🟡 ':'ℹ️ ')+_esc(m.t)}</div>`).join('');
+}
+function cuResHtml(L){
+  if(L.ignorar||!L.res)return '—';
+  const r=L.res;
+  return `${fR(r.minha?r.antes:r.custoProd)} → <strong>${fR(r.final)}</strong>${r.modo==='substituicao'?'<div class="tmu tsm">sem ponderar</div>':''}`;
+}
+function cuMgHtml(L){
+  if(L.ignorar||!L.mg)return '<span class="tmu">—</span>';
+  const a=L.mg.antes==null?'—':L.mg.antes.toFixed(1).replace('.',',')+'%',d=L.mg.depois.toFixed(1).replace('.',',')+'%';
+  return `<div class="tsm">${_esc(EXPORT_MK_NOMES[L.mg.mk]||L.mg.mk)}</div>${a} → <strong>${d}</strong>`;
+}
+function cuAtualizarCelulas(){
+  _cu.linhas.forEach(L=>{
+    const st=document.getElementById('cu-st-'+L.i),rs=document.getElementById('cu-res-'+L.i),mg=document.getElementById('cu-mg-'+L.i),tr=document.getElementById('cu-tr-'+L.i);
+    if(st)st.innerHTML=cuStatusHtml(L);if(rs)rs.innerHTML=cuResHtml(L);if(mg)mg.innerHTML=cuMgHtml(L);if(tr)tr.className=L.nivel;
+  });
+}
+function cuRender(){
+  const S=_cu,nf=S.origem==='nf';cuAvaliar();
+  document.getElementById('cu-titulo').textContent=nf?('Importar NF '+(S.nf.numero||'')+' — '+(S.nf.emitente.nome||'')):((S.modo==='atualizar'?'Atualizar ':'Aplicar ')+'custo do container '+S.ref.nome+' (Hub de Importação)');
+  const cab=cuCabAlertas();S.cabBloq=cab.bloq.length>0;
+  document.getElementById('cu-banners').innerHTML=
+    (nf?`<div class="hub-ban"><div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;"><span><strong>NF ${_esc(S.nf.numero||'?')}</strong> série ${_esc(S.nf.serie||'?')} · ${_esc(S.nf.emitente.nome||'emitente?')} (${_esc(_fmtCnpj(S.nf.emitente.cnpj)||'?')})</span><label class="tsm">Emissão <input type="date" id="cu-emissao" value="${S.nf.emissao||''}" onchange="nfDataMudou()" style="padding:3px 6px;"></label><label class="tsm">Entrada no galpão <input type="date" id="cu-entrada" value="${S.ref.data||''}" onchange="nfDataMudou()" style="padding:3px 6px;"></label></div><div class="tmu tsm" style="margin-top:4px;word-break:break-all;">Chave: ${_esc(S.nf.chave||'não lida')}</div></div>`
+      :`<div class="hub-ban">Container <strong>${_esc(S.ref.nome)}</strong> · chegada <strong>${_fmtData(S.ref.data)}</strong> (data de referência do estoque e da ordem) · custo = Custo Base de Dados (com rateios) · ${S.modo==='atualizar'?'<strong>Atualizar nunca altera o estoque já registrado.</strong>':'estoque antes vem do histórico do STOKBOX'}</div>`)+
+    cab.bloq.map(t=>`<div class="hub-ban" style="background:#fef2f2;border-color:#fca5a5;">🔴 ${_esc(t)}</div>`).join('')+
+    cab.warn.map(t=>`<div class="hub-ban" style="background:#fffbeb;border-color:#fcd34d;">🟡 ${_esc(t)}</div>`).join('')+
+    cab.info.map(t=>`<div class="hub-ban">ℹ️ ${_esc(t)}</div>`).join('');
+  const colNf=nf?'<th>Item da nota</th><th>NCM</th>':'<th>SKU no Hub</th>';
+  const rows=S.linhas.map(L=>{
+    const prodTxt=L.alvo?`<strong>${_esc(L.alvo)}</strong><div class="tmu tsm">${_esc(L.prod?(L.prod.nome||''):'')}${L.origem==='vinculo'?' · 🔗 vínculo salvo':L.origem==='descricao'?' · pela descrição':L.origem==='novo'?' · criado agora':''}</div>`:'<span class="tmu">—</span>';
+    const blockedEst=S.modo==='atualizar'&&L.res&&L.res.minha;
+    const estCell=blockedEst?`<span title="Estoque gravado na aplicação (travado)">${L.res.estU} 🔒</span>`:`<input type="number" min="0" step="1" style="width:78px;padding:4px 6px;" value="${L.est}" ${L.ignorar||!L.alvo?'disabled':''} oninput="cuEdit(${L.i},'est',this)">`;
+    const inpN=(f,v,w,step)=>`<input type="number" step="${step||'0.01'}" style="width:${w||78}px;padding:4px 6px;" value="${v==null||isNaN(v)?'':v}" ${L.ignorar?'disabled':''} oninput="cuEdit(${L.i},'${f}',this)">`;
+    const tipoSel=nf?`<select style="padding:4px 4px;font-size:11px;" ${L.ignorar||!L.alvo?'disabled':''} onchange="cuEdit(${L.i},'tipoNovo',this)">${_TIPOS.map(t=>`<option ${((L.tipoNovo||(L.prod&&L.prod.tipo))===t)?'selected':''}>${t}</option>`).join('')}</select>`:`<span class="tsm">${_esc(L.prod?(L.prod.tipo!=='Importado'?L.prod.tipo+' → Importado':'Importado'):'—')}</span>`;
+    const acoes=[];
+    if(!L.alvo||!L.prod)acoes.push(`<button class="btn btn-sm btn-p" onclick="cuVincular(${L.i})">Vincular</button>`+(nf?`<button class="btn btn-sm" onclick="nfCriarProduto(${L.i})">Criar produto</button>`:''));
+    else acoes.push(`<button class="btn btn-sm" onclick="cuVincular(${L.i})" title="Trocar o produto vinculado">Trocar</button>`);
+    if(L.origem==='vinculo'&&!nf)acoes.push(`<button class="btn btn-sm" onclick="cuDesvincular(${L.i})">Desvincular</button>`);
+    const ncmChk=(nf&&L.prod&&L.ncm&&L.prod.ncm&&_ncmFmt(L.prod.ncm)!==_ncmFmt(L.ncm))?`<label class="tsm" style="display:block;"><input type="checkbox" ${L.atualizarNcm?'checked':''} onchange="cuEditChk(${L.i},'atualizarNcm',this.checked)"> atualizar NCM no cadastro</label>`:'';
+    return `<tr id="cu-tr-${L.i}" class="${L.nivel}"><td id="cu-st-${L.i}" style="min-width:200px;">${cuStatusHtml(L)}</td>`+
+      (nf?`<td style="min-width:150px;"><strong>${_esc(L.cod)}</strong><div class="tmu tsm" style="max-width:190px;">${_esc(L.desc)}</div></td><td><input type="text" style="width:88px;padding:4px 6px;" value="${_esc(L.ncm||'')}" ${L.ignorar?'disabled':''} oninput="cuEdit(${L.i},'ncm',this)">${ncmChk}</td>`:`<td><strong>${_esc(L.skuOrigem)}</strong></td>`)+
+      `<td>${prodTxt}</td><td>${tipoSel}</td><td>${inpN('qtd',L.qtd,78,'1')}</td><td>${inpN('custoOrig',L.custoOrig,92,'0.0001')}</td>`+
+      (nf?`<td>${inpN('stUn',L.stUn,78,'0.0001')}</td>`:'')+
+      `<td>${inpN('ipi',L.ipi,64)}</td><td>${inpN('icms',L.icms,64)}</td><td class="tdc">${estCell}</td><td class="tdc" id="cu-res-${L.i}">${cuResHtml(L)}</td><td class="tdc" id="cu-mg-${L.i}">${cuMgHtml(L)}</td>`+
+      `<td><div style="display:flex;gap:4px;flex-wrap:wrap;">${acoes.join('')}</div><label style="font-size:11px;display:flex;align-items:center;gap:4px;margin-top:4px;"><input type="checkbox" ${L.ignorar?'checked':''} onchange="cuEditChk(${L.i},'ignorar',this.checked)"> Ignorar</label></td></tr>`;
+  }).join('');
+  document.getElementById('cu-tabela').innerHTML=`<table class="hub-tb"><thead><tr><th>Status / alertas</th>${colNf}<th>Produto</th><th>Tipo</th><th>Qtd de entrada</th><th>${nf?'Valor unit. (Custo NF)':'Novo Custo NF'}</th>${nf?'<th>ST/un (R$)</th>':''}<th>IPI %</th><th>ICMS %</th><th>Estoque antes</th><th>Custo atual → novo</th><th>Pior margem</th><th>Ações</th></tr></thead><tbody>${rows}</tbody></table>`;
+  cuResumo();
+}
+function cuResumo(){
+  const S=_cu;const n={ok:0,warn:0,bloq:0,ign:0,igual:0};S.linhas.forEach(L=>{n[L.nivel==='ok'?'ok':L.nivel]++;});
+  const gravar=S.linhas.filter(L=>!L.ignorar&&L.alvo&&L.nivel!=='igual'&&L.nivel!=='bloq').length;
+  document.getElementById('cu-resumo').innerHTML=`✅ ${n.ok+n.igual} ok · 🟡 ${n.warn} com atenção · 🔴 ${n.bloq} bloqueando · ⏭ ${n.ign} ignorados`;
+  const b=document.getElementById('cu-btn');
+  b.disabled=!(document.getElementById('cu-conf').checked&&n.bloq===0&&!S.cabBloq&&gravar>0);
+  b.textContent=(S.modo==='atualizar'?'Atualizar ':'Aplicar ')+gravar+' SKU'+(gravar===1?'':'s');
+}
+function cuEdit(i,f,el){
+  const L=_cu.linhas[i];
+  if(f==='tipoNovo')L.tipoNovo=el.value;
+  else if(f==='ncm')L.ncm=el.value;
+  else{const v=parseFloat(el.value);L[f]=(f==='ipi'||f==='icms'||f==='stUn')?(isNaN(v)?null:v):(isNaN(v)?0:v);if(f==='est')L.est=Math.max(0,L.est);}
+  cuAvaliar();cuAtualizarCelulas();cuResumo();
+}
+function cuEditChk(i,f,v){_cu.linhas[i][f]=!!v;cuRender();}
+
+// ── Vincular / Desvincular ──
+function cuVincItens(){return (LS.get('lb_p')||[]).slice().sort((a,b)=>_cmpSku(a.sku,b.sku)).map(p=>({sku:p.sku,nome:(p.nome||'')+' · '+p.tipo}));}
+function cuVincular(i){
+  _cu.vincIdx=i;const L=_cu.linhas[i];
+  document.getElementById('hub-vinc-sku').textContent=L.skuOrigem;
+  const inp=document.getElementById('hub-vinc-busca');inp.value='';
+  skuPicker({input:'hub-vinc-busca',lista:'hub-vinc-lista',hidden:null,items:cuVincItens,onPick:it=>cuSalvarVinculo(_cu.vincIdx,it.sku)});
+  document.getElementById('mod-hub-vinc').classList.add('open');setTimeout(()=>inp.focus(),30);
+}
+async function cuReavaliarLinha(L){
+  const f=await prodsFrescos([L.alvo]);Object.assign(_cu.prods,f);
+  if(!_cu.ledger[L.alvo])Object.assign(_cu.ledger,await cuLerLedger([L.alvo]));
+  const p=_cu.prods[L.alvo];if(p&&!L.tipoNovo)L.tipoNovo=_cu.origem==='hub'?'Importado':p.tipo;
+  try{const e=await hubImpEstoque([L.alvo],_cu.ref.data);const r=e[L.alvo];L.est=(r&&r.fonte==='dia1')?r.saldo:0;L.estFonte=r?r.fonte:null;}catch(x){L.est=0;L.estFonte=null;}
+}
+async function cuSalvarVinculo(i,alvo){
+  const L=_cu.linhas[i];if(!L)return;const quem=(typeof CU!=='undefined'&&CU)?CU.user:null;
+  let r;
+  if(_cu.origem==='nf')r=await SB.from('nf_sku_vinculos').upsert({cnpj_emitente:_cu.cnpj||'',cod_fornecedor:L.skuOrigem,sku_precificacao:alvo,criado_por:quem},{onConflict:'cnpj_emitente,cod_fornecedor'});
+  else r=await SB.from('cmv_sku_vinculos').upsert({sku_hub:L.skuOrigem,sku_precificacao:alvo,criado_por:quem},{onConflict:'sku_hub'});
+  if(r.error){toast('⚠️ Não salvei o vínculo: '+r.error.message,'e');return;}
+  L.alvo=alvo;L.origem='vinculo';L.criado=false;L.tipoNovo=null;
+  await cuReavaliarLinha(L);
+  cM('mod-hub-vinc');cuRender();toast('🔗 '+L.skuOrigem+' → '+alvo+' (vínculo salvo, nas próximas já vem pronto)');
+}
+async function cuDesvincular(i){
+  const L=_cu.linhas[i];if(!L||!confirm('Apagar o vínculo de "'+L.skuOrigem+'"?'))return;
+  const{error}=await SB.from('cmv_sku_vinculos').delete().eq('sku_hub',L.skuOrigem);
+  if(error){toast('⚠️ Não apaguei o vínculo: '+error.message,'e');return;}
+  const p=(LS.get('lb_p')||[]).find(x=>(x.sku||'').toLowerCase()===String(L.skuOrigem).toLowerCase());
+  L.alvo=p?p.sku:null;L.origem=p?'exato':null;L.tipoNovo=null;
+  if(L.alvo)await cuReavaliarLinha(L);else{L.est=0;L.estFonte=null;}
+  cuRender();toast('Vínculo apagado.');
+}
+
+// ── Aplicar (grava produtos + registro de aplicação, com releitura fresca e conferência) ──
+async function cuAplicar(){
+  const S=_cu,b=document.getElementById('cu-btn');
+  if(!document.getElementById('cu-conf').checked){toast('Marque "Conferi" para continuar','e');return;}
+  cuAvaliar();
+  if(S.cabBloq||S.linhas.some(L=>L.nivel==='bloq')){toast('Ainda há alertas vermelhos para resolver','e');return;}
+  const linhas=S.linhas.filter(L=>!L.ignorar&&L.alvo&&L.nivel!=='igual');
+  if(!linhas.length){toast('Nada a gravar','e');return;}
+  const rotulo=b.textContent;b.disabled=true;b.textContent='Gravando…';
+  try{
+    const quem=(typeof CU!=='undefined'&&CU)?CU.user:null,agora=new Date().toISOString();
+    const skus=[...new Set(linhas.map(L=>L.alvo))];
+    // 1) releitura fresca: se alguém mexeu no produto ou nas aplicações enquanto a tela estava aberta, não grava
+    const fresh=await prodsFrescos(skus),ledF=await cuLerLedger(skus);
+    for(const L of linhas){
+      const base=S.prods[L.alvo],f=fresh[L.alvo];
+      if(!f)throw new Error('O produto '+L.alvo+' não existe mais.');
+      if(Math.abs((parseFloat(f.custo)||0)-(parseFloat(base.custo)||0))>0.00005||f.tipo!==base.tipo||Math.abs((parseFloat(f.st)||0)-(parseFloat(base.st)||0))>0.00005)
+        throw new Error('O produto '+L.alvo+' foi alterado por outra pessoa enquanto esta tela estava aberta. Feche e abra de novo.');
+      if((S.ledger[L.alvo]||[]).map(x=>x.id).join(',')!==(ledF[L.alvo]||[]).map(x=>x.id).join(','))
+        throw new Error('As aplicações de custo do SKU '+L.alvo+' mudaram enquanto esta tela estava aberta. Feche e abra de novo.');
+    }
+    // 2) cabeçalho da NF (a chave é única: impede importar a mesma nota duas vezes)
+    if(S.origem==='nf'&&S.nf.chave){
+      const nf=S.nf,row={chave:nf.chave,emitente_cnpj:nf.emitente.cnpj,emitente_nome:nf.emitente.nome,numero:nf.numero,serie:nf.serie,emissao:nf.emissao||null,data_entrada:S.ref.data,total_nota:nf.totalProdutos,arquivo_nome:S.arquivo||null,importado_por:quem,importado_em:agora,desfeita_em:null};
+      const r=S.jaDesfeita?await SB.from('nf_importadas').update(row).eq('chave',nf.chave):await SB.from('nf_importadas').insert(row);
+      if(r.error)throw new Error(r.error.code==='23505'?'Esta nota já foi importada.':r.error.message);
+    }
+    // 3) registro das aplicações (guarda "como era antes")
+    const novos=[],ups=[];
+    linhas.forEach(L=>{
+      const r=L.res,ac=r.aplicaCampos;
+      const base={qtd:L.qtd,custo_origem:L.custoOrig,custo_depois:r.depois,
+        st_depois:ac?r.stDep:r.stAntes,ipi_depois:ac?r.ipiDep:r.ipiAntes,icms_depois:ac?r.icmsDep:r.icmsAntes,ncm_depois:ac?r.ncmDep:r.ncmAntes,tipo_depois:ac?r.tipoNovo:r.tipoAtual};
+      if(r.minha){ups.push({id:r.minha.id,patch:base});r.cadeia.forEach(c=>ups.push({id:c.a.id,patch:{custo_antes:c.antes,custo_depois:c.depois}}));}
+      else novos.push(Object.assign({origem:S.origem,ref_id:S.ref.id,ref_nome:S.ref.nome,data_ref:S.ref.data,sku:L.alvo,sku_origem:L.skuOrigem,est_antes:L.est,modo:r.modo,custo_antes:r.antes,st_antes:r.stAntes,ipi_antes:r.ipiAntes,icms_antes:r.icmsAntes,ncm_antes:r.ncmAntes,tipo_antes:r.tipoAtual,aplicado_por:quem},base));
+    });
+    if(novos.length){const{error}=await SB.from('custo_aplicacoes').insert(novos);if(error)throw error;}
+    for(const u of ups){const{error}=await SB.from('custo_aplicacoes').update(u.patch).eq('id',u.id);if(error)throw error;}
+    // 4) produtos (só as linhas alteradas, a partir da leitura fresca)
+    const rows=linhas.map(L=>{const r=L.res,f=fresh[L.alvo];const row=Object.assign({},f,{custo:r.final,atualizado_em:agora,atualizado_por:quem});
+      if(r.aplicaCampos){row.tipo=r.tipoNovo;row.st=r.stDep;row.ipi=r.ipiDep;row.icms=r.icmsDep;row.ncm=r.ncmDep;}return row;});
+    {const{error}=await SB.from('produtos').upsert(rows,{onConflict:'sku'});if(error)throw error;}
+    // 5) vínculos aprendidos
+    if(S.origem==='nf'){
+      const ap=linhas.filter(L=>L.origem==='descricao'||L.origem==='novo').map(L=>({cnpj_emitente:S.cnpj||'',cod_fornecedor:L.skuOrigem,sku_precificacao:L.alvo,criado_por:quem}));
+      if(ap.length){const{error}=await SB.from('nf_sku_vinculos').upsert(ap,{onConflict:'cnpj_emitente,cod_fornecedor'});if(error)console.warn('vínculos NF',error);}
+    }else{
+      await SB.from('cmv_hub_ignorados').delete().eq('container_id','base:'+S.ref.id);
+      const ig=S.linhas.filter(L=>L.ignorar).map(L=>({container_id:'base:'+S.ref.id,sku_hub:L.skuOrigem,criado_por:quem}));
+      if(ig.length){const{error}=await SB.from('cmv_hub_ignorados').insert(ig);if(error)console.warn('ignorados',error);}
+    }
+    // 6) conferência pós-gravação
+    const chk=await prodsFrescos(skus);
+    const falhou=linhas.filter(L=>!chk[L.alvo]||Math.abs((parseFloat(chk[L.alvo].custo)||0)-L.res.final)>0.00005);
+    if(falhou.length)throw new Error('A conferência após gravar falhou em '+falhou.length+' SKU(s) ('+falhou.slice(0,3).map(L=>L.alvo).join(', ')+'). Recarregue e confira.');
+    // 7) tela, histórico, margem
+    const ps=LS.get('lb_p')||[];
+    linhas.forEach(L=>{const r=L.res,p=ps.find(x=>x.sku===L.alvo);if(!p)return;p.custo=r.final;if(r.aplicaCampos){p.tipo=r.tipoNovo;p.st=r.stDep;p.ipi=r.ipiDep;p.icms=r.icmsDep;p.ncm=r.ncmDep;}p.upAt=td();p.upBy=quem;});
+    _cache['lb_p']=JSON.parse(JSON.stringify(ps));try{localStorage.setItem('lb_p',JSON.stringify(ps));}catch{}
+    if(document.getElementById('cu-hist').checked)cuRegistrarHistorico(linhas.map(L=>({sku:L.alvo,nome:(S.prods[L.alvo]||{}).nome,pAntes:S.prods[L.alvo],pDepois:Object.assign({},S.prods[L.alvo],{custo:L.res.final},L.res.aplicaCampos?{tipo:L.res.tipoNovo,st:L.res.stDep,ipi:L.res.ipiDep,icms:L.res.icmsDep}:{})})),quem);
+    linhas.forEach(L=>recalcMcSku(L.alvo));
+    const nac=ps.filter(p=>skus.includes(p.sku)&&(p.tipo==='Nacional'||p.tipo==='Terceiro Importado'));
+    if(nac.length)sbSalvarCmvNacionais(nac).catch(e=>console.warn('CMV Nac:',e));
+    if(typeof rBase==='function')rBase();
+    ['mod-cu-mapa','mod-cb-lista','mod-nf'].forEach(cM);
+    toast('✅ '+linhas.length+' produto(s) atualizado(s) — '+S.ref.nome+'. Dá para desfazer em "Aplicações".');
+  }catch(e){console.error('cuAplicar',e);toast('⚠️ Falha ao gravar: '+((e&&e.message)||e),'e');}
+  finally{b.disabled=false;b.textContent=rotulo;cuResumo();}
+}
+function cuRegistrarHistorico(itens,quem){
+  const h=LS.get('lb_h')||[];
+  itens.forEach(x=>{
+    const a=x.pAntes,d=x.pDepois;if(!a||!d)return;
+    const mk=(campo,ant,novo,isTxt)=>{const o={id:Date.now()+Math.random(),data:td(),sku:x.sku,nome:x.nome||x.sku,tipo:d.tipo,campo,ant,novo,var:'—',user:quem||'—'};
+      if(isTxt)o.isTxt=true;else{const A=parseFloat(ant)||0,N=parseFloat(novo)||0;o.ant=A;o.novo=N;if(A>0){const v=((N-A)/A*100).toFixed(2);o.var=(N>=A?'+':'')+v+'%';}}return o;};
+    if(a.tipo!==d.tipo)h.push(mk('Tipo',a.tipo,d.tipo,true));
+    if(Math.abs((parseFloat(a.custo)||0)-(parseFloat(d.custo)||0))>0.001)h.push(mk('Custo NF',a.custo,d.custo,false));
+    if(a.tipo!=='Importado'||d.tipo!=='Importado'){const ca=calcCMV(a),cd=calcCMV(d);if(Math.abs(ca-cd)>0.001)h.push(mk('CMV Contábil',ca,cd,false));}
+  });
+  LS.set('lb_h',h);
+}
+function cuVoltar(){
+  cM('mod-cu-mapa');
+  if(_cu.origem==='hub')document.getElementById('mod-cb-lista').classList.add('open');else document.getElementById('mod-nf').classList.add('open');
+}
+
+// ── Importar NF ──
+function nfAbrir(){
+  document.getElementById('nf-arquivo').value='';document.getElementById('nf-status').innerHTML='';
+  document.getElementById('mod-nf').classList.add('open');
+}
+async function nfArquivoEscolhido(inp){
+  const f=inp.files&&inp.files[0];if(!f)return;
+  const st=document.getElementById('nf-status');st.textContent='Lendo '+f.name+'…';
+  try{const nf=await nfLerArquivo(f);await nfPrepararMapa(nf,f.name);st.textContent='';}
+  catch(e){console.error(e);st.innerHTML='<span style="color:var(--red);">⚠️ '+_esc((e&&e.message)||e)+'</span>';}
+}
+function nfResolverSku(it,vinc,ps){
+  if(vinc[it.cod])return{alvo:vinc[it.cod],origem:'vinculo'};
+  const ex=ps.find(p=>(p.sku||'').toLowerCase()===String(it.cod).toLowerCase());if(ex)return{alvo:ex.sku,origem:'exato'};
+  const nd=_normSku(it.desc);let best=null;
+  ps.forEach(p=>{const ns=_normSku(p.sku);if(ns.length>=4&&nd.startsWith(ns)&&(!best||ns.length>_normSku(best.sku).length))best=p;});
+  return best?{alvo:best.sku,origem:'descricao'}:{alvo:null,origem:null};
+}
+async function nfPrepararMapa(nf,arquivo){
+  const cnpj=nf.emitente.cnpj||'';
+  let ja=null,jaDesfeita=false;
+  if(nf.chave){const r=await SB.from('nf_importadas').select('chave,importado_em,importado_por,desfeita_em').eq('chave',nf.chave).maybeSingle();if(r.error)throw r.error;if(r.data){if(r.data.desfeita_em)jaDesfeita=true;else ja=r.data;}}
+  const vinc={};{const r=await SB.from('nf_sku_vinculos').select('cod_fornecedor,sku_precificacao').eq('cnpj_emitente',cnpj);if(r.error)throw r.error;(r.data||[]).forEach(v=>{vinc[v.cod_fornecedor]=v.sku_precificacao;});}
+  const ps=LS.get('lb_p')||[];
+  const linhas=nf.itens.map((it,i)=>{const r=nfResolverSku(it,vinc,ps);
+    return{i,cod:it.cod,desc:it.desc,skuOrigem:it.cod,ncm:it.ncm,tipoSug:_origemTipo(it.origem),tipoNovo:null,qtd:it.qtd,custoOrig:_r4(it.unit),stUn:it.stUn,ipi:it.ipiPct,icms:it.icmsPct,alvo:r.alvo,origem:r.origem,est:0,estFonte:null,ignorar:false,atualizarNcm:false,criado:false};});
+  const alvos=[...new Set(linhas.filter(L=>L.alvo).map(L=>L.alvo))];
+  const prods=await prodsFrescos(alvos),ledger=await cuLerLedger(alvos);
+  linhas.forEach(L=>{if(L.alvo&&prods[L.alvo])L.tipoNovo=prods[L.alvo].tipo;});
+  const dataEnt=nf.emissao||null;
+  if(dataEnt&&alvos.length){const e=await hubImpEstoque(alvos,dataEnt);linhas.forEach(L=>{const r=L.alvo?e[L.alvo]:null;L.est=(r&&r.fonte==='dia1')?r.saldo:0;L.estFonte=r?r.fonte:null;});}
+  _cu={origem:'nf',modo:'importar',ref:{id:nf.chave||('sem-chave-'+Date.now()),nome:'NF '+(nf.numero||'?')+' · '+(nf.emitente.nome||nf.emitente.cnpj||'?'),data:dataEnt},nf,linhas,prods,ledger,cnpj:cnpj,ja,jaDesfeita,arquivo,cb:null,vincIdx:null};
+  document.getElementById('cu-conf').checked=false;document.getElementById('cu-hist').checked=true;
+  cM('mod-nf');document.getElementById('mod-cu-mapa').classList.add('open');cuRender();
+}
+async function nfDataMudou(){
+  const S=_cu;S.nf.emissao=document.getElementById('cu-emissao').value||null;S.ref.data=document.getElementById('cu-entrada').value||null;
+  const alvos=[...new Set(S.linhas.filter(L=>L.alvo).map(L=>L.alvo))];
+  if(S.ref.data&&alvos.length){try{const e=await hubImpEstoque(alvos,S.ref.data);S.linhas.forEach(L=>{if(L.criado)return;const r=L.alvo?e[L.alvo]:null;L.est=(r&&r.fonte==='dia1')?r.saldo:0;L.estFonte=r?r.fonte:null;});}catch(x){console.warn(x);}}
+  cuRender();
+}
+function nfSugerirSku(L){
+  const cod=String(L.cod||'');
+  if(/[A-Za-z]/.test(cod)&&/\d/.test(cod)&&cod.length<=30){return{sku:cod,nome:_titulo(L.desc)};}
+  const tok=String(L.desc||'').split(/\s+/)[0]||'';const seg=tok.split('-');
+  while(seg.length>1&&/^[A-Za-z]{4,}$/.test(seg[seg.length-1]))seg.pop();
+  const sku=seg.join('-');const resto=String(L.desc||'').replace(tok,'').trim();
+  const nomeBruto=(tok.length>sku.length?tok.slice(sku.length+1)+' ':'')+resto;
+  return{sku:sku||cod,nome:_titulo(nomeBruto.trim())};
+}
+const _titulo=s=>String(s||'').toLowerCase().replace(/(^|[\s\/])(\S)/g,(m,a,b)=>a+b.toUpperCase());
+function nfCriarProduto(i){
+  const L=_cu.linhas[i];openPM();
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v==null?'':v;};
+  const sug=nfSugerirSku(L);
+  set('fps',sug.sku);set('fpn',sug.nome);set('fpncm',L.ncm);set('fpt',L.tipoSug||'Terceiro Importado');set('fpc',L.custoOrig);set('fpst',L.stUn||0);set('fpipi',L.ipi||0);set('fpicms',L.icms||0);
+  document.getElementById('mprod').style.zIndex='600';
+  window._cuAposSalvar=async sku=>{
+    toast('Produto '+sku+' salvo — confirmando no banco…');
+    // o cadastro grava de forma assíncrona: espera o produto aparecer no banco antes de vincular
+    let f=null;
+    for(let t=0;t<15&&!f;t++){try{f=(await prodsFrescos([sku]))[sku]||null;}catch(e){console.warn(e);}if(!f)await new Promise(r=>setTimeout(r,400));}
+    if(!f){toast('⚠️ O produto '+sku+' ainda não apareceu no banco. Aguarde uns segundos e use "Vincular" para ligá-lo a este item.','w');return;}
+    L.alvo=sku;L.origem='novo';L.criado=true;L.tipoNovo=null;
+    try{await cuReavaliarLinha(L);}catch(e){console.warn(e);}
+    L.est=0;L.estFonte=null;L.tipoNovo=_cu.prods[sku]?_cu.prods[sku].tipo:null;
+    cuRender();toast('Produto '+sku+' criado e vinculado a este item.');
+  };
+}
+
+// ── Custo Base de Dados do Hub de Importação ──
+async function cbLerBase(cid){
+  const out=[];const PAG=1000;
+  for(let ini=0;;ini+=PAG){
+    const{data,error}=await SB.from('v_custo_base_container').select('container_id,container,data_chegada,sku,qtde,aliq_ipi,aliq_icms,total_base,custo_unid,esperado_total').eq('container_id',cid).order('sku',{ascending:true}).range(ini,ini+PAG-1);
+    if(error)throw error;out.push(...(data||[]));if(!data||data.length<PAG)break;
+  }
+  return out;
+}
+async function cbAbrir(){
+  document.getElementById('mod-cb-lista').classList.add('open');
+  const box=document.getElementById('cb-lista');box.innerHTML='<div class="tmu tsm">Carregando containers do Hub de Importação…</div>';
+  try{
+    _hubImp.view=hubImpAgrupar(await hubImpLerView());
+    const{data,error}=await SB.from('custo_aplicacoes').select('ref_id,sku,qtd,custo_origem').eq('origem','hub').is('desfeita_em',null);
+    if(error)throw error;
+    _cu.cbApl={};(data||[]).forEach(a=>{(_cu.cbApl[a.ref_id]=_cu.cbApl[a.ref_id]||[]).push(a);});
+  }catch(e){box.innerHTML='<div class="tsm" style="color:var(--red);">Não consegui ler o Hub de Importação: '+_esc((e&&e.message)||e)+'</div>';return;}
+  cbRenderLista();
+}
+function cbRenderLista(){
+  const box=document.getElementById('cb-lista');
+  const lista=_hubImp.view.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||'')||_cmpSku(b.nome,a.nome));
+  if(!lista.length){box.innerHTML='<div class="tmu tsm">Nenhum container com Apoio NFe no Hub de Importação.</div>';return;}
+  const apl=_cu.cbApl||{};
+  box.innerHTML=lista.map(c=>{
+    const legado=c.data&&c.data<HUB_IMP_INICIO,semData=!c.data,jaApl=!!apl[c.id];
+    let badge='',btn='';
+    if(semData){badge='<span class="chip" style="background:#fee2e2;color:#991b1b;">sem data de chegada</span>';btn='<button class="btn btn-sm" disabled>Indisponível</button>';}
+    else if(legado){badge='<span class="chip" style="background:#e2e8f0;color:#475569;">Legado — lançado à mão</span>';btn='<button class="btn btn-sm" disabled>Manual</button>';}
+    else if(!c.fechado){badge='<span class="chip" style="background:#fef3c7;color:#92400e;">sem Fechamento lançado no Hub</span>';btn='<button class="btn btn-sm" disabled>Aguardando Fechamento</button>';}
+    else{badge='<span class="chip" style="background:#dcfce7;color:#166534;">Fechamento lançado</span>';btn=`<button class="btn btn-sm btn-p" onclick="cbAnalisar('${c.id}','${jaApl?'atualizar':'importar'}')"><span id="cb-diff-${c.id}"></span>${jaApl?'Atualizar':'Aplicar'}</button>`;}
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;"><div style="flex:1;"><div style="font-weight:700;">${_esc(c.nome)} <span class="tmu tsm" style="font-weight:400;">· chegada ${_fmtData(c.data)} · ${c.lista.length} SKUs</span></div><div style="margin-top:4px;">${badge}${jaApl?' <span class="chip" style="background:#dbeafe;color:#1e40af;">🔗 já aplicado</span>':''}</div></div>${btn}</div>`;
+  }).join('');
+  cbChecarMudancas();
+}
+async function cbChecarMudancas(){
+  const apl=_cu.cbApl||{};
+  for(const cid of Object.keys(apl)){
+    try{
+      const rows=await cbLerBase(cid);let n=0;const mapa={};rows.forEach(r=>{mapa[r.sku]=r;});
+      apl[cid].forEach(a=>{const r=mapa[a.sku_origem||a.sku]||mapa[a.sku];if(!r||Math.abs((parseFloat(r.custo_unid)||0)-(parseFloat(a.custo_origem)||0))>0.005||Math.abs((parseFloat(r.qtde)||0)-(parseFloat(a.qtd)||0))>0.5)n++;});
+      const el=document.getElementById('cb-diff-'+cid);if(el&&n)el.textContent='⚠ mudou · ';
+    }catch(e){console.warn('cbChecarMudancas',e);}
+  }
+}
+async function cbAnalisar(cid,modo){
+  toast('Analisando…');
+  try{
+    _hubImp.view=hubImpAgrupar(await hubImpLerView());
+    const c=_hubImp.view.find(x=>x.id===cid);if(!c){toast('Container não encontrado no Hub','e');return;}
+    if(!c.data){toast('Container sem data de chegada no Hub','e');return;}
+    if(c.data<HUB_IMP_INICIO){toast('Container legado: segue manual','e');return;}
+    const rows=await cbLerBase(cid);
+    if(!rows.length){toast('O Hub ainda não tem o Custo Base de Dados deste container (falta o Fechamento).','e');return;}
+    const g={};rows.forEach(r=>{const sku=String(r.sku).trim();const it=g[sku]||(g[sku]={sku,qtd:0,total:0,n:0,unico:0,ipi:r.aliq_ipi,icms:r.aliq_icms});it.qtd+=parseFloat(r.qtde)||0;it.total+=parseFloat(r.total_base)||0;it.n++;it.unico=parseFloat(r.custo_unid)||0;});
+    const itens=Object.values(g).map(it=>({sku:it.sku,qtd:it.qtd,custo:it.n===1?it.unico:(it.qtd>0?_r2(it.total/it.qtd):0),ipi:it.ipi==null?null:_r2(it.ipi*100),icms:it.icms==null?null:_r2(it.icms*100)})).sort((a,b)=>_cmpSku(a.sku,b.sku));
+    const soma=rows.reduce((s,r)=>s+(parseFloat(r.total_base)||0),0),esperado=parseFloat(rows[0].esperado_total)||0;
+    const[vinc,ignMap]=await Promise.all([hubImpLerVinculos(),hubImpLerIgnorados('base:'+cid)]);
+    const ign=ignMap['base:'+cid]||new Set();const ps=LS.get('lb_p')||[];
+    const linhas=itens.map((it,i)=>{let alvo=null,origem=null;
+      if(vinc[it.sku]){alvo=vinc[it.sku];origem='vinculo';}else{const p=ps.find(x=>(x.sku||'').toLowerCase()===it.sku.toLowerCase());if(p){alvo=p.sku;origem='exato';}}
+      return{i,skuOrigem:it.sku,qtd:it.qtd,custoOrig:it.custo,ipi:it.ipi,icms:it.icms,ncm:null,stUn:null,alvo,origem,est:0,estFonte:null,ignorar:ign.has(it.sku),atualizarNcm:false,criado:false,tipoNovo:'Importado'};});
+    const alvos=[...new Set(linhas.filter(L=>L.alvo).map(L=>L.alvo))];
+    const[prods,ledger,est]=await Promise.all([prodsFrescos(alvos),cuLerLedger(alvos),hubImpEstoque(alvos,c.data)]);
+    linhas.forEach(L=>{const r=L.alvo?est[L.alvo]:null;L.est=(r&&r.fonte==='dia1')?r.saldo:0;L.estFonte=r?r.fonte:null;});
+    _cu={origem:'hub',modo,ref:{id:cid,nome:c.nome,data:c.data},nf:null,linhas,prods,ledger,cnpj:null,ja:null,cb:{soma,esperado},cbApl:_cu.cbApl,arquivo:null,vincIdx:null};
+    document.getElementById('cu-conf').checked=false;document.getElementById('cu-hist').checked=true;
+    cM('mod-cb-lista');document.getElementById('mod-cu-mapa').classList.add('open');cuRender();
+  }catch(e){console.error('cbAnalisar',e);toast('⚠️ Não consegui analisar: '+((e&&e.message)||e),'e');}
+}
+
+// ── Aplicações registradas (histórico + desfazer) ──
+async function cuAplAbrir(){
+  document.getElementById('mod-cu-apl').classList.add('open');
+  const box=document.getElementById('cu-apl-lista');box.innerHTML='<div class="tmu tsm">Carregando…</div>';
+  try{
+    const{data,error}=await SB.from('custo_aplicacoes').select('*').is('desfeita_em',null).order('aplicado_em',{ascending:false}).limit(1000);
+    if(error)throw error;
+    const g={};(data||[]).forEach(a=>{const k=a.origem+'|'+a.ref_id;(g[k]=g[k]||{origem:a.origem,ref_id:a.ref_id,nome:a.ref_nome,data_ref:a.data_ref,em:a.aplicado_em,por:a.aplicado_por,apps:[]}).apps.push(a);});
+    const grupos=Object.values(g);
+    grupos.forEach(gr=>{gr.bloq=[];gr.apps.forEach(a=>{(data||[]).forEach(o=>{if(o.sku===a.sku&&!(o.origem===gr.origem&&o.ref_id===gr.ref_id)&&(String(o.data_ref)>String(a.data_ref)||(String(o.data_ref)===String(a.data_ref)&&String(o.aplicado_em)>String(a.aplicado_em)))&&!gr.bloq.includes(_nomeApl(o)))gr.bloq.push(_nomeApl(o));});});});
+    if(!grupos.length){box.innerHTML='<div class="tmu tsm">Nenhuma aplicação de custo registrada ainda.</div>';return;}
+    box.innerHTML=grupos.map(gr=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;"><div style="flex:1;"><div style="font-weight:700;">${_esc(gr.nome||gr.ref_id)}</div><div class="tmu tsm">${gr.origem==='nf'?'Nota fiscal':'Hub de Importação'} · data ${_fmtData(gr.data_ref)} · ${gr.apps.length} SKU(s) · aplicado em ${_fmtData(gr.em)} por ${_esc(gr.por||'—')}</div>${gr.bloq.length?`<div class="hub-msg warn">Para desfazer, desfaça antes as mais novas: ${_esc(gr.bloq.join(', '))}</div>`:''}</div><button class="btn btn-sm" ${gr.bloq.length?'disabled':''} onclick="cuDesfazer('${_esc(gr.origem)}','${_esc(gr.ref_id)}')">Desfazer</button></div>`).join('');
+  }catch(e){box.innerHTML='<div class="tsm" style="color:var(--red);">Não consegui ler as aplicações: '+_esc((e&&e.message)||e)+'</div>';}
+}
+async function cuDesfazer(origem,refId){
+  if(!confirm('Desfazer esta aplicação? Os produtos voltam ao custo, impostos e tipo de antes (só os que ninguém alterou depois).'))return;
+  try{
+    const quem=(typeof CU!=='undefined'&&CU)?CU.user:null,agora=new Date().toISOString();
+    const{data:apps,error}=await SB.from('custo_aplicacoes').select('*').eq('origem',origem).eq('ref_id',refId).is('desfeita_em',null);
+    if(error)throw error;if(!(apps||[]).length){toast('Nada a desfazer','e');return;}
+    const skus=apps.map(a=>a.sku);const fresh=await prodsFrescos(skus);const ledAll=await cuLerLedger(skus);
+    const pular=[],ok=[];
+    apps.forEach(a=>{
+      const p=fresh[a.sku];
+      const maisNova=(ledAll[a.sku]||[]).some(o=>!(o.origem===origem&&o.ref_id===refId)&&(String(o.data_ref)>String(a.data_ref)||(String(o.data_ref)===String(a.data_ref)&&String(o.aplicado_em)>String(a.aplicado_em))));
+      if(!p||maisNova){pular.push(a.sku+' (aplicação mais nova)');return;}
+      if(Math.abs((parseFloat(p.custo)||0)-(parseFloat(a.custo_depois)||0))>0.005){pular.push(a.sku+' (custo alterado depois)');return;}
+      ok.push(a);
+    });
+    if(!ok.length){toast('Nada foi desfeito: '+pular.join('; '),'e');return;}
+    const rows=ok.map(a=>Object.assign({},fresh[a.sku],{custo:parseFloat(a.custo_antes)||0,st:parseFloat(a.st_antes)||0,ipi:parseFloat(a.ipi_antes)||0,icms:parseFloat(a.icms_antes)||0,ncm:a.ncm_antes||'',tipo:a.tipo_antes||fresh[a.sku].tipo,atualizado_em:agora,atualizado_por:quem}));
+    {const{error:e1}=await SB.from('produtos').upsert(rows,{onConflict:'sku'});if(e1)throw e1;}
+    for(const a of ok){const{error:e2}=await SB.from('custo_aplicacoes').update({desfeita_em:agora}).eq('id',a.id);if(e2)throw e2;}
+    if(origem==='nf'&&!pular.length)await SB.from('nf_importadas').update({desfeita_em:agora}).eq('chave',refId);
+    const ps=LS.get('lb_p')||[];
+    ok.forEach(a=>{const p=ps.find(x=>x.sku===a.sku);if(!p)return;p.custo=parseFloat(a.custo_antes)||0;p.st=parseFloat(a.st_antes)||0;p.ipi=parseFloat(a.ipi_antes)||0;p.icms=parseFloat(a.icms_antes)||0;p.ncm=a.ncm_antes||'';p.tipo=a.tipo_antes||p.tipo;p.upAt=td();p.upBy=quem;});
+    _cache['lb_p']=JSON.parse(JSON.stringify(ps));try{localStorage.setItem('lb_p',JSON.stringify(ps));}catch{}
+    cuRegistrarHistorico(ok.map(a=>{const f=fresh[a.sku];return{sku:a.sku,nome:f.nome,pAntes:f,pDepois:Object.assign({},f,{custo:parseFloat(a.custo_antes)||0,st:parseFloat(a.st_antes)||0,ipi:parseFloat(a.ipi_antes)||0,icms:parseFloat(a.icms_antes)||0,tipo:a.tipo_antes||f.tipo})};}),quem);
+    ok.forEach(a=>recalcMcSku(a.sku));
+    const nac=ps.filter(p=>ok.some(a=>a.sku===p.sku)&&(p.tipo==='Nacional'||p.tipo==='Terceiro Importado'));
+    if(nac.length)sbSalvarCmvNacionais(nac).catch(e=>console.warn('CMV Nac:',e));
+    if(typeof rBase==='function')rBase();
+    toast('↩ '+ok.length+' produto(s) voltaram ao valor anterior'+(pular.length?' · não desfeitos: '+pular.join('; '):''),pular.length?'w':'ok');
+    cuAplAbrir();
+  }catch(e){console.error('cuDesfazer',e);toast('⚠️ Falha ao desfazer: '+((e&&e.message)||e),'e');}
 }
 
 // EXPORTAR PDF POR MARKETPLACE
