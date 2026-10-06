@@ -174,7 +174,10 @@ tbody td.td-res{background:var(--col-res-bg);font-weight:700;}
 .cu-tb{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;}
 .cu-tb th{background:#1d4ed8;color:#fff;padding:7px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0;z-index:3;}
 .cu-tb th.c-st{text-align:center;}
-.cu-tb td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:middle;overflow:hidden;background:#fff;}
+.cu-tb th{white-space:normal;line-height:1.15;padding:7px 6px;}
+.cu-tb input[type=number]::-webkit-inner-spin-button,.cu-tb input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+.cu-tb input[type=number]{-moz-appearance:textfield;appearance:textfield;}
+.cu-tb td{padding:6px 5px;border-bottom:1px solid var(--border);vertical-align:middle;overflow:hidden;background:#fff;}
 .cu-tb tr.bloq td{background:#fef2f2;}.cu-tb tr.warn td{background:#fffbeb;}.cu-tb tr.ign td{opacity:.55;}
 .cu-tb tr.cu-grp td{background:#eef2ff;font-size:12px;color:#3730a3;}
 .cu-tb td.acao,.cu-tb th.acao{position:sticky;right:0;z-index:2;box-shadow:-3px 0 5px rgba(0,0,0,.07);}
@@ -967,7 +970,7 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
 </div>
 
 <div class="mov" id="mod-nf"><div class="mod" style="width:520px;"><div class="mt">&#128196; Importar NF de compra</div><p class="tmu tsm" style="margin-bottom:10px;">Envie o <strong>XML</strong> (leitura exata) ou o <strong>PDF (DANFE)</strong> da nota. O sistema lê quantidade, valor unitário, ST, IPI, ICMS e NCM e abre uma tela de <strong>conferência editável</strong> antes de gravar qualquer coisa.</p><input type="file" id="nf-arquivo" accept=".pdf,.xml,application/pdf,text/xml,application/xml" onchange="nfArquivoEscolhido(this)"><div id="nf-status" class="tsm" style="margin-top:10px;"></div><div class="mf"><button class="btn" onclick="cM('mod-nf')">Fechar</button></div></div></div>
-<div class="mov" id="mod-cu-mapa"><div class="mod" style="width:1320px;max-width:98vw;"><div class="mt" id="cu-titulo">Conferência</div><div id="cu-banners"></div><div id="cu-resumo" style="font-size:12px;font-weight:700;margin:6px 0 8px;"></div><div style="max-height:50vh;overflow:auto;border:1px solid var(--border);border-radius:var(--r);" id="cu-tabela"></div><div class="mf" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><div style="display:flex;gap:16px;flex-wrap:wrap;"><label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="cu-hist" checked> Registrar no histórico de custos</label><span id="cu-pend-hint" class="tsm" style="color:#92400e;font-weight:700;align-self:center;"></span></div><div class="flex g8"><button class="btn" onclick="cuVoltar()">Voltar</button><button class="btn btn-p" id="cu-btn" disabled onclick="cuAplicar()">Aplicar</button></div></div></div></div>
+<div class="mov" id="mod-cu-mapa"><div class="mod" style="width:98vw;max-width:1500px;"><div class="mt" id="cu-titulo">Conferência</div><div id="cu-banners"></div><div id="cu-resumo" style="font-size:12px;font-weight:700;margin:6px 0 8px;"></div><div style="max-height:50vh;overflow:auto;border:1px solid var(--border);border-radius:var(--r);" id="cu-tabela"></div><div class="mf" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><div style="display:flex;gap:16px;flex-wrap:wrap;"><label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="cu-hist" checked> Registrar no histórico de custos</label><span id="cu-pend-hint" class="tsm" style="color:#92400e;font-weight:700;align-self:center;"></span></div><div class="flex g8"><button class="btn" onclick="cuVoltar()">Voltar</button><button class="btn btn-p" id="cu-btn" disabled onclick="cuAplicar()">Aplicar</button></div></div></div></div>
 <div class="mov" id="mod-cu-det"><div class="mod" style="width:620px;max-width:96vw;"><div class="mt" id="cu-det-titulo">Indicações</div><div id="cu-det-corpo" style="max-height:62vh;overflow:auto;"></div><div class="mf" id="cu-det-btns" style="align-items:center;gap:8px;"></div></div></div>
 <div class="mov" id="mod-cu-div"><div class="mod" style="width:780px;max-width:96vw;"><div class="mt" id="cu-div-titulo">Dividir item</div><div class="tmu tsm" id="cu-div-desc" style="margin-bottom:8px;"></div><table class="cu-calc"><thead><tr><th>#</th><th>Produto</th><th>Sufixo / cor</th><th></th><th>Qtd</th><th></th><th></th></tr></thead><tbody id="cu-div-linhas"></tbody></table><div style="margin-top:8px;"><button class="btn btn-sm" onclick="nfDivAdd()">+ Adicionar produto</button></div><div id="cu-div-saldo" style="margin-top:10px;font-size:13px;"></div><div id="cu-div-motivo" class="tsm" style="color:#b91c1c;min-height:16px;"></div><div class="mf"><button class="btn" onclick="cM('mod-cu-div')">Cancelar</button><button class="btn btn-p" id="cu-div-ok" disabled onclick="nfDivConfirmar()">Confirmar divisão</button></div></div></div>
 <div class="mov" id="mod-cb-lista"><div class="mod" style="width:640px;"><div class="mt">&#11015; Custo do Hub de Importação — Base de Dados</div><p class="tmu tsm" style="margin-bottom:10px;">Traz o <strong>Custo Base de Dados</strong> (com os rateios do Fechamento) como "Novo Custo NF" e faz o custo médio ponderado de cada produto. Container sem Fechamento lançado não aparece como disponível.</p><div id="cb-lista"></div><div class="mf"><button class="btn" onclick="cM('mod-cb-lista')">Fechar</button></div></div></div>
@@ -3151,8 +3154,8 @@ function cuRender(){
     cab.warn.map((t,k)=>`<div class="hub-ban" style="background:#fffbeb;border-color:#fcd34d;display:flex;gap:10px;align-items:center;"><span style="flex:1;">🟡 ${_esc(t)}</span>${S.cabOk[t]?'<span class="tsm" style="color:#166534;">✔ conferido</span>':`<button class="btn btn-sm btn-p" onclick="cuCabOk(${k})">OK, está certo</button>`}</div>`).join('')+
     cab.info.map(t=>`<div class="hub-ban">ℹ️ ${_esc(t)}</div>`).join('');
   const nCols=nf?12:10;
-  const cols=nf?[54,190,108,170,132,86,92,86,68,68,92,150]:[54,150,190,150,90,100,70,70,96,150];
-  const head=nf?'<th class="c-st">●</th><th>Item da nota</th><th>NCM</th><th>Produto</th><th>Tipo</th><th>Qtd de entrada</th><th>Custo NF</th><th>ST/un (R$)</th><th>IPI %</th><th>ICMS %</th><th>Estoque antes</th><th class="acao">Ações</th>':'<th class="c-st">●</th><th>SKU no Hub</th><th>Produto</th><th>Tipo</th><th>Qtd de entrada</th><th>Novo Custo NF</th><th>IPI %</th><th>ICMS %</th><th>Estoque antes</th><th class="acao">Ações</th>';
+  const cols=nf?[4,12,9,12,13,7,8,6,6,6,7,10]:[4,12,18,13,9,11,7,7,9,10]; // % da largura: cabe sem rolagem lateral
+  const head=nf?'<th class="c-st">●</th><th>Item da nota</th><th>NCM</th><th>Produto</th><th>Tipo</th><th>Entrada</th><th>Custo NF</th><th title="R$ por unidade">ST</th><th>IPI %</th><th>ICMS %</th><th>Estoque</th><th class="acao">Ações</th>':'<th class="c-st">●</th><th>SKU no Hub</th><th>Produto</th><th>Tipo</th><th>Entrada</th><th>Novo Custo NF</th><th>IPI %</th><th>ICMS %</th><th>Estoque</th><th class="acao">Ações</th>';
   let prevG=null;
   const rows=S.linhas.map(L=>{
     let hdr='';
@@ -3176,7 +3179,7 @@ function cuRender(){
       `<td>${inpN('ipi',L.ipi,'0.01')}</td><td>${inpN('icms',L.icms,'0.01')}</td><td style="text-align:center;">${estCell}</td>`+
       `<td class="acao"><div class="cu-acoes">${acoes.join('')}<label class="tsm" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" ${L.ignorar?'checked':''} onchange="cuEditChk(${L.i},'ignorar',this.checked)"> Ignorar</label></div></td></tr>`;
   }).join('');
-  document.getElementById('cu-tabela').innerHTML=`<table class="cu-tb"><colgroup>${cols.map(w=>`<col style="width:${w}px">`).join('')}</colgroup><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
+  document.getElementById('cu-tabela').innerHTML=`<table class="cu-tb" style="min-width:${nf?1000:900}px;"><colgroup>${cols.map(w=>`<col style="width:${w}%">`).join('')}</colgroup><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
   cuResumo();
 }
 function cuResumo(){
