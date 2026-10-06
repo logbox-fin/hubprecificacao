@@ -168,6 +168,20 @@ tbody td.td-res{background:var(--col-res-bg);font-weight:700;}
 .lerr{background:var(--rbg);border:1px solid var(--red);color:var(--red);border-radius:var(--r);padding:8px 12px;font-size:12px;margin-bottom:12px;display:none;}
 .mov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;align-items:center;justify-content:center;}
 .mov.open{display:flex;}
+#mod-clb,#mod-hub-vinc{z-index:600;}
+.skp-lista{max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);margin-top:6px;background:#fff;}
+.skp-it{display:flex;gap:10px;align-items:baseline;padding:7px 10px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border);}
+.skp-it:last-child{border-bottom:none;}
+.skp-it strong{min-width:150px;color:var(--accent2);}
+.skp-it span{color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.skp-it:hover,.skp-it.sel{background:#eff6ff;}
+.skp-vazio{padding:10px;font-size:12px;color:var(--text3);}
+.hub-ban{padding:8px 12px;background:#f1f5f9;border:1px solid var(--border);border-radius:var(--r);font-size:12px;margin-bottom:8px;}
+.hub-tb{width:100%;border-collapse:collapse;font-size:12px;}
+.hub-tb th{background:#1d4ed8;color:#fff;padding:7px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0;z-index:2;}
+.hub-tb td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top;}
+.hub-tb tr.bloq td{background:#fef2f2;}.hub-tb tr.warn td{background:#fffbeb;}.hub-tb tr.ign td{opacity:.55;}.hub-tb tr.igual td{background:#f0fdf4;}
+.hub-msg{font-size:11px;margin-top:2px;}.hub-msg.bloq{color:#b91c1c;}.hub-msg.warn{color:#92400e;}.hub-msg.info{color:#475569;}
 .mod{background:#fff;border:1px solid var(--border);border-radius:var(--r2);padding:24px;width:580px;max-width:96vw;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.15);}
 .mt{font-size:15px;font-weight:700;color:var(--text);margin-bottom:18px;}
 .mf{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
@@ -556,9 +570,11 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
             <div class="flex g8 fc ml-auto">
               <button class="btn btn-sm btn-p" onclick="openCmvAddProd()">+ Produto</button>
               <button class="btn btn-sm" onclick="abrirOrganizador()">&#9776; Organizador</button>
+              <button class="btn btn-sm btn-p" onclick="hubImpAbrir()">&#11015; Importar do Hub</button>
               <button class="btn btn-sm" onclick="exportarRelatorioCmv()">&#8659; Exportar</button>
             </div>
           </div>
+          <div id="cmv-hub-aviso" style="display:none;margin-bottom:10px;"></div>
           <div id="cmv-clbs-ativos" style="margin-bottom:10px;display:flex;flex-wrap:wrap;gap:5px;"></div>
           <div class="card card0"><div class="tw"><table id="tbl-cmv"><thead id="cmv-thead"></thead><tbody id="cmv-tbody"></tbody></table></div></div>
           <div id="cmv-alertas" style="margin-top:14px;"></div>
@@ -832,7 +848,7 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
 
 <div class="mov" id="mod-clb"><div class="mod" style="width:400px;"><div class="mt" id="mod-clb-title">Novo Container</div><div class="fg"><label class="fl">Nome do Container (ex: CLB06)</label><input type="text" class="full" id="clb-nome" placeholder="CLB06"></div><div class="fg"><label class="fl">Data de Chegada</label><input type="date" class="full" id="clb-data"></div><div class="mf"><button class="btn" onclick="cM('mod-clb')">Cancelar</button><button class="btn btn-p" onclick="saveClb()">Salvar</button></div></div></div>
 <div class="mov" id="mod-organizador"><div class="mod" style="width:560px;"><div class="mt">&#9776; Organizador de Containers</div><div id="org-tabela" style="margin-bottom:14px;"></div><div class="mf" style="justify-content:space-between;"><button class="btn btn-p btn-sm" onclick="orgNovoClb()">+ Novo Container</button><button class="btn" onclick="cM('mod-organizador')">Fechar</button></div></div></div>
-<div class="mov" id="mod-cmv-prod"><div class="mod" style="width:500px;"><div class="mt" id="mod-cmv-title">CMV do Produto</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;padding:12px;background:var(--bg3);border-radius:var(--r);"><div><div class="fl">SKU</div><div id="cmv-prod-sku" style="font-weight:700;"></div></div><div><div class="fl">Container</div><div id="cmv-prod-clb" style="font-weight:700;"></div></div><div><div class="fl">CMV Anterior (auto)</div><div id="cmv-prod-ant" style="font-weight:700;color:var(--text2);"></div></div><div><div class="fl">CMV Médio Calculado</div><div id="cmv-prod-med" style="font-weight:700;color:var(--green);"></div></div></div><div class="gr g2"><div class="fg"><label class="fl">Estoque no Galpão</label><input type="number" class="full" id="cmv-estoque" step="1" min="0" oninput="calcCmvModal()"></div><div class="fg"><label class="fl">CMV (R$)</label><input type="number" class="full" id="cmv-valor" step="0.01" oninput="calcCmvModal()"></div></div><div class="fg"><label class="fl">Quantidade neste Container</label><input type="number" class="full" id="cmv-qtd" step="1" min="0" oninput="calcCmvModal()"></div><div class="mf"><button class="btn" onclick="cM('mod-cmv-prod')">Cancelar</button><button class="btn btn-p" onclick="saveCmvProd()">Salvar</button></div></div></div>
+<div class="mov" id="mod-cmv-prod"><div class="mod" style="width:500px;"><div class="mt" id="mod-cmv-title">CMV do Produto</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;padding:12px;background:var(--bg3);border-radius:var(--r);"><div><div class="fl">SKU</div><div id="cmv-prod-sku" style="font-weight:700;"></div></div><div><div class="fl">Container</div><div id="cmv-prod-clb" style="font-weight:700;"></div></div><div><div class="fl">CMV Anterior (auto)</div><div id="cmv-prod-ant" style="font-weight:700;color:var(--text2);"></div></div><div><div class="fl">CMV Médio Calculado</div><div id="cmv-prod-med" style="font-weight:700;color:var(--green);"></div></div></div><div id="cmv-hub-nota" style="display:none;margin-bottom:10px;padding:8px 10px;background:#eff6ff;border:1px solid #93c5fd;border-radius:var(--r);font-size:12px;"></div><div class="gr g2"><div class="fg"><label class="fl">Estoque no Galpão</label><input type="number" class="full" id="cmv-estoque" step="1" min="0" oninput="calcCmvModal()"></div><div class="fg"><label class="fl">CMV (R$)</label><input type="number" class="full" id="cmv-valor" step="0.01" oninput="calcCmvModal()"></div></div><div class="fg"><label class="fl">Quantidade neste Container</label><input type="number" class="full" id="cmv-qtd" step="1" min="0" oninput="calcCmvModal()"></div><div class="mf"><button class="btn" onclick="cM('mod-cmv-prod')">Cancelar</button><button class="btn" id="cmv-btn-desv" style="display:none;" onclick="cmvDesvincularCelula()">Desvincular do Hub</button><button class="btn btn-p" id="cmv-btn-salvar" onclick="saveCmvProd()">Salvar</button></div></div></div>
 <div class="mov" id="mod-cmv-exp"><div class="mod" style="width:380px;"><div class="mt">Exportar Relatório CMV</div><div class="fg"><label class="fl">Data de referência</label><input type="date" class="full" id="exp-data"></div><p class="tmu tsm" style="margin-top:6px;">O sistema usará o CMV médio do último container que chegou até esta data.</p><div class="mf"><button class="btn" onclick="cM('mod-cmv-exp')">Cancelar</button><button class="btn btn-p" onclick="gerarRelatorio()">Exportar XLS</button></div></div></div>
 <div class="mov" id="mod-tributos">
   <div class="mod" style="width:780px;max-width:96vw;">
@@ -884,7 +900,10 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
 <div class="mov" id="mhist"><div class="mod" style="width:460px;"><div class="mt">Registrar alteração no histórico?</div><p class="tmu tsm" style="margin-bottom:12px;">Produto: <strong id="hcsku" style="color:var(--text);"></strong></p><div id="hcch" style="background:var(--bg3);border-radius:var(--r);padding:12px;font-size:12px;margin-bottom:4px;"></div><div class="mf"><button class="btn" onclick="cM('mhist');pH=null;">Não registrar</button><button class="btn btn-g" onclick="confH()">Sim, registrar</button></div></div></div>
 <div class="mov" id="mod-graf-cmv"><div class="mod" style="width:600px;"><div class="mt" id="graf-cmv-title">Evolução do CMV</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;"><div class="sc"><div class="sc-l">Mediana CMV</div><div id="graf-cmv-med" class="sc-v" style="font-size:15px;color:var(--accent2);">—</div></div><div class="sc"><div class="sc-l">CMV Atual</div><div id="graf-cmv-atual" class="sc-v" style="font-size:15px;color:var(--green);">—</div></div><div class="sc"><div class="sc-l">Variação Total</div><div id="graf-cmv-var" class="sc-v" style="font-size:15px;">—</div></div></div><div style="position:relative;width:100%;height:220px;"><canvas id="canvas-cmv"></canvas></div><div class="mf"><button class="btn" onclick="cM('mod-graf-cmv')">Fechar</button></div></div></div>
 <div class="mov" id="mod-graf-custo"><div class="mod" style="width:600px;"><div class="mt" id="graf-custo-title">Histórico de Custo</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;"><div class="sc"><div class="sc-l">Média de Custos</div><div id="graf-custo-med" class="sc-v" style="font-size:15px;color:var(--accent2);">—</div></div><div class="sc"><div class="sc-l">Custo Atual</div><div id="graf-custo-atual" class="sc-v" style="font-size:15px;color:var(--green);">—</div></div><div class="sc"><div class="sc-l">Variação Total</div><div id="graf-custo-var" class="sc-v" style="font-size:15px;">—</div></div></div><div style="position:relative;width:100%;height:220px;"><canvas id="canvas-custo"></canvas></div><div class="mf"><button class="btn" onclick="cM('mod-graf-custo')">Fechar</button></div></div></div>
-<div class="mov" id="mod-cmv-add-prod"><div class="mod" style="width:420px;"><div class="mt">Adicionar Produto ao CMV</div><div class="fg"><label class="fl">Produto (SKU)</label><select class="full" id="cmv-add-sku"><option value="">Selecione...</option></select></div><p class="tmu tsm" style="margin-top:4px;">Apenas produtos do tipo <strong>Importado</strong> aparecem no CMV Contábil.</p><div class="mf"><button class="btn" onclick="cM('mod-cmv-add-prod')">Cancelar</button><button class="btn btn-p" onclick="cmvAddProdConfirm()">Adicionar</button></div></div></div>
+<div class="mov" id="mod-cmv-add-prod"><div class="mod" style="width:460px;"><div class="mt">Adicionar Produto ao CMV</div><div class="fg"><label class="fl">Produto (SKU ou nome)</label><input type="text" class="full" id="cmv-add-busca" placeholder="Digite para buscar… (↑↓ navega, Enter escolhe)" autocomplete="off"><input type="hidden" id="cmv-add-sku"><div id="cmv-add-lista" class="skp-lista"></div></div><p class="tmu tsm" style="margin-top:4px;">Apenas produtos do tipo <strong>Importado</strong> que ainda não estão no CMV Contábil aparecem aqui.</p><div class="mf"><button class="btn" onclick="cM('mod-cmv-add-prod')">Cancelar</button><button class="btn btn-p" onclick="cmvAddProdConfirm()">Adicionar</button></div></div></div>
+<div class="mov" id="mod-hub-imp-lista"><div class="mod" style="width:620px;"><div class="mt">&#11015; Importar do Hub de Importação — CMV Contábil</div><p class="tmu tsm" style="margin-bottom:10px;">Traz Qtde e Custo/Unid. da tabela <strong>Contábil (CMV)</strong> do Hub de Importação. O estoque antes da chegada vem do histórico do STOKBOX. Nada é gravado antes da conferência.</p><div id="hub-imp-lista"></div><div class="mf"><button class="btn" onclick="cM('mod-hub-imp-lista')">Fechar</button></div></div></div>
+<div class="mov" id="mod-hub-imp-mapa"><div class="mod" style="width:1180px;max-width:97vw;"><div class="mt" id="hub-mapa-titulo">Importar do Hub</div><div id="hub-mapa-banners"></div><div id="hub-mapa-resumo" style="font-size:12px;font-weight:700;margin:6px 0 8px;"></div><div style="max-height:52vh;overflow:auto;border:1px solid var(--border);border-radius:var(--r);" id="hub-mapa-tabela"></div><div class="mf" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="hub-conf" onchange="hubImpResumo()"> Conferi os dados e os alertas acima</label><div class="flex g8"><button class="btn" onclick="hubImpVoltar()">Voltar</button><button class="btn btn-p" id="hub-btn-conf" disabled onclick="hubImpConfirmar()">Importar</button></div></div></div></div>
+<div class="mov" id="mod-hub-vinc"><div class="mod" style="width:480px;"><div class="mt">🔗 Vincular SKU do Hub</div><p class="tmu tsm" style="margin-bottom:8px;">SKU no Hub de Importação: <strong id="hub-vinc-sku"></strong>. Escolha o produto Importado correspondente — o vínculo fica salvo e os próximos containers já vêm ligados.</p><input type="text" class="full" id="hub-vinc-busca" placeholder="Digite o SKU ou nome do produto…" autocomplete="off"><div id="hub-vinc-lista" class="skp-lista"></div><div class="mf"><button class="btn" onclick="cM('mod-hub-vinc')">Cancelar</button></div></div></div>
 
 <div class="mov" id="mod-frete-meli">
   <div class="mod" style="width:960px;max-width:98vw;max-height:92vh;">
@@ -1041,11 +1060,12 @@ const LS={
   set:(k,v)=>{_cache[k]=JSON.parse(JSON.stringify(v));try{localStorage.setItem(k,JSON.stringify(v));}catch{}sbPersist(k,v).catch(e=>{console.warn('Supabase sync error:',k,e);toast('⚠️ Falha ao salvar no servidor ('+k+'): '+(e?.message||e),'e');});}
 };
 async function sbPersistMktItem(sku,mk,d){const isTktOrMga=mk==='tkt'||mk==='mga';const ps=LS.get('lb_p')||[];const p=ps.find(x=>x.sku===sku);const mcVal=p?calcMC(p,mk,d):null;const{error}=await SB.from('marketplace_dados').upsert({marketplace:mk,sku,preco:d.preco||0,frete:isTktOrMga?null:((d.frete!=null&&d.frete!==0)?d.frete:null),tar:isTktOrMga?null:(d.tar||0),reb:d.reb||0,ads:d.ads||0,mc:mcVal,mc_atualizada_em:mcVal!=null?new Date().toISOString():null,atualizado_por:(typeof CU!=='undefined'&&CU)?CU.user:null,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'});if(error)throw error;}
+const _histEnviados=new Set(); // ids temporários já enviados (evita reinserir o mesmo registro de histórico)
 async function sbPersist(k,v){
   if(k==='lb_p'){if(!Array.isArray(v))return;const rows=v.map(p=>({sku:p.sku,nome:p.nome,tipo:p.tipo||'Importado',ncm:p.ncm||null,peso:p.peso||0,custo:p.custo||0,st:p.st||0,ipi:p.ipi||0,pis:p.pis||9.25,icms:p.icms||0,marca:p.marca||null,categoria:p.categoria||null,meli:!!p.meli,shp:!!p.shp,amz:!!p.amz,tkt:!!p.tkt,mga:!!p.mga,variacao:!!p.variacao,atualizado_em:new Date().toISOString(),atualizado_por:p.upBy||null}));for(let i=0;i<rows.length;i+=50){await SB.from('produtos').upsert(rows.slice(i,i+50),{onConflict:'sku'});}}
   else if(k==='lb_u'){if(!Array.isArray(v))return;for(const u of v)await SB.from('usuarios').upsert({nome:u.nome,usuario:u.user,senha:u.senha,perfil:u.perfil||'meli',atualizado_em:new Date().toISOString()},{onConflict:'usuario'});}
   else if(k==='lb_m'){if(typeof v!=='object')return;const psRef=LS.get('lb_p')||[];for(const[key,d]of Object.entries(v)){const parts=key.split('_');if(parts.length<2)continue;const mk=parts[0];const sku=parts.slice(1).join('_');const pRef=psRef.find(x=>x.sku===sku);const mcVal=pRef?calcMC(pRef,mk,d):null;await SB.from('marketplace_dados').upsert({marketplace:mk,sku,preco:d.preco||0,frete:(d.frete!=null&&d.frete!==0)?d.frete:null,tar:d.tar||0,reb:d.reb||0,ads:d.ads||0,mc:mcVal,mc_atualizada_em:mcVal!=null?new Date().toISOString():null,atualizado_por:CU?CU.user:null,atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'});}}
-  else if(k==='lb_h'){if(!Array.isArray(v))return;const{data:existing}=await SB.from('historico_custos').select('id');const existingIds=new Set((existing||[]).map(r=>String(r.id)));for(const h of v){if(!existingIds.has(String(h.id))){await SB.from('historico_custos').insert({sku:h.sku,nome:h.nome,campo:h.campo||'custo',valor_anterior:h.isTxt?null:h.ant,valor_novo:h.isTxt?null:h.novo,valor_anterior_txt:h.isTxt?String(h.ant):null,valor_novo_txt:h.isTxt?String(h.novo):null,alterado_por:h.user,alterado_em:h.data?new Date(h.data+'T12:00:00').toISOString():new Date().toISOString()});}}}
+  else if(k==='lb_h'){if(!Array.isArray(v))return;const{data:existing}=await SB.from('historico_custos').select('id');const existingIds=new Set((existing||[]).map(r=>String(r.id)));for(const h of v){const chave=String(h.id);if(existingIds.has(chave)||_histEnviados.has(chave))continue;_histEnviados.add(chave);const{data:ins,error:eh}=await SB.from('historico_custos').insert({sku:h.sku,nome:h.nome,campo:h.campo||'custo',valor_anterior:h.isTxt?null:h.ant,valor_novo:h.isTxt?null:h.novo,valor_anterior_txt:h.isTxt?String(h.ant):null,valor_novo_txt:h.isTxt?String(h.novo):null,alterado_por:h.user,alterado_em:h.data?new Date(h.data+'T12:00:00').toISOString():new Date().toISOString()}).select('id').single();if(eh){_histEnviados.delete(chave);throw eh;}if(ins&&ins.id!=null){const cc=_cache['lb_h'];if(Array.isArray(cc)){const it=cc.find(x=>String(x.id)===chave);if(it)it.id=ins.id;try{localStorage.setItem('lb_h',JSON.stringify(cc));}catch{}}}}}
   else if(k==='lb_marcas'){if(!Array.isArray(v))return;for(const nome of v)await SB.from('marcas').upsert({nome},{onConflict:'nome'});}
   else if(k==='lb_cats'){if(!Array.isArray(v))return;for(const nome of v)await SB.from('categorias').upsert({nome},{onConflict:'nome'});}
   else if(k==='lb_obs'){if(typeof v!=='object')return;for(const[key,d]of Object.entries(v)){const parts=key.split('_');if(parts.length<2)continue;const mk=parts[0];const sku=parts.slice(1).join('_');await SB.from('observacoes').upsert({marketplace:mk,sku,tags:d.tags||[],nota:d.nota||'',atualizado_em:new Date().toISOString()},{onConflict:'marketplace,sku'});}}
@@ -1648,6 +1668,7 @@ function saveProd(){
       }
       // CORREÇÃO SKU: se o SKU mudou, migrar dados e deletar antigo no Supabase
       if(skuMudou){
+        SB.from('cmv_sku_vinculos').update({sku_precificacao:sku}).eq('sku_precificacao',skuAntigo).then(()=>{});
         // Migrar marketplace_dados no cache
         const mkt=LS.get('lb_m')||{};
         ['meli','shp','tkt','amz','mga'].forEach(mk=>{
@@ -2063,7 +2084,7 @@ function obsKey(){return(obsMk||'')+'_'+(obsSku||'');}
 function saveObs(){if(!obsMk||!obsSku)return;const obs=LS.get('lb_obs')||{};const k=obsKey();if(!obs[k])obs[k]={tags:[],nota:''};const ne=document.getElementById('obs-nota');obs[k].nota=ne?ne.value:'';LS.set('lb_obs',obs);cM('mod-obs');rMkt(obsMk);toast('Observação salva!');}
 // CMV CONTÁBIL
 let cmvColsOcultas={};
-function setCmvTab(t){const bl=document.getElementById('cmv-tab-lanc'),bi=document.getElementById('cmv-tab-imp'),bn=document.getElementById('cmv-tab-nac');if(bl)bl.className='btn'+(t==='lanc'?' btn-p':'');if(bi)bi.className='btn'+(t==='imp'?' btn-p':'');if(bn)bn.className='btn'+(t==='nac'?' btn-p':'');const pl=document.getElementById('cmv-lanc-panel'),pi=document.getElementById('cmv-imp-panel'),pn=document.getElementById('cmv-nac-panel');if(pl)pl.style.display=t==='lanc'?'block':'none';if(pi)pi.style.display=t==='imp'?'block':'none';if(pn)pn.style.display=t==='nac'?'block':'none';if(t==='nac'){rCmvNac();const psAll=LS.get('lb_p')||[];sbSalvarCmvNacionais(psAll).catch(e=>console.warn('CMV Nac:',e));}if(t==='imp')rCmvImp();if(t==='lanc')rCmv();}
+function setCmvTab(t){const bl=document.getElementById('cmv-tab-lanc'),bi=document.getElementById('cmv-tab-imp'),bn=document.getElementById('cmv-tab-nac');if(bl)bl.className='btn'+(t==='lanc'?' btn-p':'');if(bi)bi.className='btn'+(t==='imp'?' btn-p':'');if(bn)bn.className='btn'+(t==='nac'?' btn-p':'');const pl=document.getElementById('cmv-lanc-panel'),pi=document.getElementById('cmv-imp-panel'),pn=document.getElementById('cmv-nac-panel');if(pl)pl.style.display=t==='lanc'?'block':'none';if(pi)pi.style.display=t==='imp'?'block':'none';if(pn)pn.style.display=t==='nac'?'block':'none';if(t==='nac'){rCmvNac();const psAll=LS.get('lb_p')||[];sbSalvarCmvNacionais(psAll).catch(e=>console.warn('CMV Nac:',e));}if(t==='imp')rCmvImp();if(t==='lanc'){rCmv();cmvHubVerificar();}}
 function initCmvClbs(){if(!LS.get('lb_clbs'))LS.set('lb_clbs',[]);if(!LS.get('lb_cmv_data'))LS.set('lb_cmv_data',{});if(!LS.get('lb_cmv_skus'))LS.set('lb_cmv_skus',[]);}
 function rCmv(){
   const clbs=LS.get('lb_clbs')||[];
@@ -2104,7 +2125,7 @@ function rCmv(){
       const medAteEste=calcCmvMed(sku,clbsAteEste);
       const bgClb=CLB_COLORS[ci%CLB_COLORS.length];
       const tdQ='<td class="tdc tmu" style="cursor:pointer;background:'+bgClb+';" onclick="openCmvProd(this.dataset.sku,this.dataset.clb)" data-sku="'+sku+'" data-clb="'+c.nome+'" title="Editar">'+(q||'—')+'</td>';
-      const tdC='<td class="tdc td-custo" style="cursor:pointer;background:'+bgClb+';" onclick="openCmvProd(this.dataset.sku,this.dataset.clb)" data-sku="'+sku+'" data-clb="'+c.nome+'">'+(cv?fR(cv):'—')+'</td>';
+      const tdC='<td class="tdc td-custo" style="cursor:pointer;background:'+bgClb+';" onclick="openCmvProd(this.dataset.sku,this.dataset.clb)" data-sku="'+sku+'" data-clb="'+c.nome+'">'+(cv?fR(cv):'—')+(d.hub?' 🔗':'')+'</td>';
       const tdM='<td class="tdc" style="cursor:pointer;background:'+bgClb+';" onclick="openCmvProd(this.dataset.sku,this.dataset.clb)" data-sku="'+sku+'" data-clb="'+c.nome+'">'+(medAteEste?fR(medAteEste):'—')+'</td>';
       return tdQ+tdC+tdM;
     }).join('');
@@ -2139,6 +2160,7 @@ function editarSkuCmv(skuAtual){
     if(data&&data.valor){const v=data.valor;if(v[skuAtual]){v[novo]=v[skuAtual];delete v[skuAtual];SB.from('config').upsert({chave:'lb_cmv_data',valor:v,atualizado_em:new Date().toISOString()},{onConflict:'chave'}).then(()=>{});}
   }});
   rCmv();
+  SB.from('cmv_sku_vinculos').update({sku_precificacao:novo}).eq('sku_precificacao',skuAtual).then(()=>{});
   toast('SKU atualizado para '+novo+'!');
 }
 function toggleCmvCol(nome){cmvColsOcultas[nome]=!cmvColsOcultas[nome];LS.set('lb_cmv_cols',cmvColsOcultas);rCmv();}
@@ -2170,7 +2192,7 @@ else{cmvEstEl.value='';cmvEstEl.placeholder='Buscando...';getEstoqueSTOKBOX(sku)
 document.getElementById('cmv-prod-ant').textContent=d.cmvAnt?fR(d.cmvAnt):'—';
 document.getElementById('cmv-prod-med').textContent=med?fR(med):'—';
 document.getElementById('mod-cmv-title').textContent='CMV — '+sku+' · '+clb;
-document.getElementById('mod-cmv-prod').classList.add('open');}
+cmvAplicarTravaHub(sku,clb);document.getElementById('mod-cmv-prod').classList.add('open');}
 function calcCmvModal(){
   const sku=document.getElementById('cmv-prod-sku').textContent;
   const clb=document.getElementById('cmv-prod-clb').textContent;
@@ -2195,9 +2217,7 @@ function calcCmvModal(){
   });
   document.getElementById('cmv-prod-med').textContent=fR(parseFloat(cmvAtual.toFixed(4)));
 }
-function saveCmvProd(){const sku=document.getElementById('cmv-prod-sku').textContent,clb=document.getElementById('cmv-prod-clb').textContent;const qtd=parseFloat(document.getElementById('cmv-qtd').value)||0,cv=parseFloat(document.getElementById('cmv-valor').value)||0,est=parseFloat(document.getElementById('cmv-estoque').value)||0;const allD=LS.get('lb_cmv_data')||{};if(!allD[sku])allD[sku]={};const ant=allD[sku][clb]?allD[sku][clb].cmv:null;allD[sku][clb]={qtd,cmv:cv,est,cmvAnt:ant||cv};LS.set('lb_cmv_data',allD);cM('mod-cmv-prod');rCmv();toast('CMV salvo!');}
-function openCmvAddProd(){const ps=LS.get('lb_p')||[];const sel=document.getElementById('cmv-add-sku');if(!sel)return;sel.innerHTML='<option value="">Selecione...</option>'+ps.filter(p=>p.tipo==='Importado').map(p=>`<option value="${p.sku}">${p.sku} — ${p.nome||''}</option>`).join('');document.getElementById('mod-cmv-add-prod').classList.add('open');}
-function cmvAddProdConfirm(){const sku=(document.getElementById('cmv-add-sku')||{value:''}).value;if(!sku){toast('Selecione um produto','e');return;}const order=LS.get('lb_cmv_skus')||[];if(!order.includes(sku)){order.push(sku);LS.set('lb_cmv_skus',order);}cM('mod-cmv-add-prod');rCmv();toast('Produto adicionado!');}
+function saveCmvProd(){const sku=document.getElementById('cmv-prod-sku').textContent,clb=document.getElementById('cmv-prod-clb').textContent;{const _c0=((LS.get('lb_cmv_data')||{})[sku]||{})[clb];if(_c0&&_c0.hub){toast('Célula vinculada ao Hub: corrija lá e use Atualizar','e');return;}}const qtd=parseFloat(document.getElementById('cmv-qtd').value)||0,cv=parseFloat(document.getElementById('cmv-valor').value)||0,est=parseFloat(document.getElementById('cmv-estoque').value)||0;const allD=LS.get('lb_cmv_data')||{};if(!allD[sku])allD[sku]={};const ant=allD[sku][clb]?allD[sku][clb].cmv:null;allD[sku][clb]={qtd,cmv:cv,est,cmvAnt:ant||cv};LS.set('lb_cmv_data',allD);cM('mod-cmv-prod');rCmv();toast('CMV salvo!');}
 function rCmvImp(){
   const ps=LS.get('lb_p')||[];
   const clbs=LS.get('lb_clbs')||[];
@@ -2319,6 +2339,448 @@ function setTribFiltro(tipo){
   document.querySelectorAll('.trib-filtro-btn').forEach(b=>b.classList.toggle('btn-p',b.dataset.tipo===tipo));
   renderTributos();
 }
+// ═══════════════════════════════════════════════════════════════
+// RODADA 1 — Busca de SKU, Importar CMV Contábil do Hub de Importação
+// ═══════════════════════════════════════════════════════════════
+const HUB_IMP_INICIO='2026-10-06'; // containers com chegada ANTES desta data = legado (lançados à mão): não importam
+const HUB_IMP_VAR_ALERTA=20;       // % de diferença entre o custo do container e a média atual que dispara alerta
+const _esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const _normBusca=s=>String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const _fmtData=d=>d?String(d).substring(0,10).split('-').reverse().join('/'):'—';
+const _cmpSku=(a,b)=>String(a).localeCompare(String(b),'pt-BR',{numeric:true,sensitivity:'base'});
+
+// ── Seletor de produto com busca (digita SKU/nome, filtra, setas + Enter) ──
+function skuPicker(cfg){
+  const inp=document.getElementById(cfg.input),box=document.getElementById(cfg.lista),hid=cfg.hidden?document.getElementById(cfg.hidden):null;
+  if(!inp||!box)return;
+  let idx=0,vis=[];
+  function render(){
+    const q=_normBusca(inp.value.trim());
+    let lista=cfg.items();
+    if(q){lista=lista.filter(it=>_normBusca(it.sku).includes(q)||_normBusca(it.nome).includes(q));
+      const ex=lista.findIndex(it=>_normBusca(it.sku)===q);if(ex>0){const [e]=lista.splice(ex,1);lista.unshift(e);}}
+    vis=lista.slice(0,60);
+    if(idx>=vis.length)idx=Math.max(0,vis.length-1);
+    box.innerHTML=vis.length?vis.map((it,i)=>`<div class="skp-it${i===idx?' sel':''}" data-i="${i}"><strong>${_esc(it.sku)}</strong><span>${_esc(it.nome||'')}</span></div>`).join(''):'<div class="skp-vazio">Nenhum produto encontrado</div>';
+    box.style.display='block';
+    const sel=box.querySelector('.skp-it.sel');if(sel&&sel.scrollIntoView)sel.scrollIntoView({block:'nearest'});
+  }
+  function pick(it){if(!it)return;inp.value=it.sku;if(hid)hid.value=it.sku;box.style.display='none';if(cfg.onPick)cfg.onPick(it);}
+  inp.oninput=()=>{if(hid)hid.value='';idx=0;render();};
+  inp.onfocus=()=>render();
+  inp.onkeydown=e=>{
+    if(e.key==='ArrowDown'){e.preventDefault();if(idx<vis.length-1)idx++;render();}
+    else if(e.key==='ArrowUp'){e.preventDefault();if(idx>0)idx--;render();}
+    else if(e.key==='Enter'){
+      const escolhido=hid&&hid.value;
+      if(!escolhido&&box.style.display!=='none'&&vis.length){e.preventDefault();pick(vis[idx]);}
+      else if(cfg.onEnter){e.preventDefault();cfg.onEnter();}
+    }
+  };
+  box.onmousedown=e=>{const el=e.target.closest('.skp-it');if(el){e.preventDefault();pick(vis[+el.dataset.i]);}};
+  render();
+}
+
+// ── "+ Produto" do CMV Contábil: agora com busca ──
+function cmvAddItens(){
+  const ja=new Set(LS.get('lb_cmv_skus')||[]);
+  return (LS.get('lb_p')||[]).filter(p=>p.tipo==='Importado'&&!ja.has(p.sku)).sort((a,b)=>_cmpSku(a.sku,b.sku)).map(p=>({sku:p.sku,nome:p.nome||''}));
+}
+function openCmvAddProd(){
+  const inp=document.getElementById('cmv-add-busca');if(!inp)return;
+  inp.value='';document.getElementById('cmv-add-sku').value='';
+  skuPicker({input:'cmv-add-busca',lista:'cmv-add-lista',hidden:'cmv-add-sku',items:cmvAddItens,onEnter:cmvAddProdConfirm});
+  document.getElementById('mod-cmv-add-prod').classList.add('open');
+  setTimeout(()=>inp.focus(),30);
+}
+function cmvAddProdConfirm(){
+  const ps=LS.get('lb_p')||[];const order=LS.get('lb_cmv_skus')||[];
+  let sku=(document.getElementById('cmv-add-sku').value||'').trim();
+  if(!sku){
+    const t=(document.getElementById('cmv-add-busca').value||'').trim();
+    if(!t){toast('Digite ou escolha um produto','e');return;}
+    const tk=t.split(' — ')[0].trim().toLowerCase();
+    const p0=ps.find(x=>(x.sku||'').toLowerCase()===tk);
+    if(!p0){toast('SKU "'+t+'" não encontrado no cadastro','e');return;}
+    sku=p0.sku;
+  }
+  const p=ps.find(x=>x.sku===sku);
+  if(!p){toast('SKU não encontrado no cadastro','e');return;}
+  if(p.tipo!=='Importado'){toast(sku+' é '+p.tipo+' — só produtos Importados entram no CMV Contábil','e');return;}
+  if(order.includes(sku)){toast(sku+' já está na lista do CMV','e');return;}
+  order.push(sku);LS.set('lb_cmv_skus',order);cM('mod-cmv-add-prod');rCmv();toast('Produto adicionado!');
+}
+
+// ── Importar CMV Contábil do Hub de Importação ──
+let _hubImp={view:[],cont:null,modo:'importar',linhas:[],vinc:{},fresh:null};
+let _hubDiffs={};
+let _hubVincIdx=null;
+
+function cmvNormalizarData(raw){ // mesmo formato do carregamento: plano SKU_CLB -> aninhado SKU:{CLB:{...}}
+  const nested={};
+  Object.entries(raw||{}).forEach(([k,v])=>{
+    const m=k.match(/^(.+)_(CLB\d+)$/);
+    if(m){const sku=m[1],clb=m[2];if(!nested[sku])nested[sku]={};nested[sku][clb]={cmv:v.cmv||0,qtd:v.qtd||0,est:v.estoque||v.est||0,cmvAnt:v.cmvAnt||null};}
+    else nested[k]=v;
+  });
+  return nested;
+}
+async function hubImpLerView(ids){
+  // o Supabase devolve no máximo 1000 linhas por consulta: pagina para nunca cortar em silêncio quando houver muitos containers
+  const out=[];const PAG=1000;
+  for(let ini=0;;ini+=PAG){
+    let q=SB.from('v_custo_contabil_container').select('container_id,container,data_chegada,sku,qtde,total_contabil,custo_unid,tem_fechamento');
+    if(ids&&ids.length)q=q.in('container_id',ids);
+    const{data,error}=await q.order('container_id',{ascending:true}).order('sku',{ascending:true}).range(ini,ini+PAG-1);
+    if(error)throw error;
+    out.push(...(data||[]));
+    if(!data||data.length<PAG)break;
+  }
+  return out;
+}
+function hubImpAgrupar(rows){
+  const map={};
+  rows.forEach(r=>{
+    const c=map[r.container_id]||(map[r.container_id]={id:r.container_id,nome:r.container,data:r.data_chegada||null,fechado:true,itens:{}});
+    if(!r.tem_fechamento)c.fechado=false;
+    r.sku=String(r.sku).trim();
+    const it=c.itens[r.sku]||(c.itens[r.sku]={sku:r.sku,qtd:0,total:0,n:0,unico:0});
+    it.qtd+=parseFloat(r.qtde)||0;it.total+=parseFloat(r.total_contabil)||0;it.n++;it.unico=parseFloat(r.custo_unid)||0;
+  });
+  return Object.values(map).map(c=>{
+    c.lista=Object.values(c.itens).map(it=>({sku:it.sku,qtd:it.qtd,custo:it.n===1?it.unico:(it.qtd>0?Math.round(it.total/it.qtd*100)/100:0)})).sort((a,b)=>_cmpSku(a.sku,b.sku));
+    return c;
+  });
+}
+async function hubImpLerVinculos(){
+  const{data,error}=await SB.from('cmv_sku_vinculos').select('sku_hub,sku_precificacao');
+  if(error)throw error;const m={};(data||[]).forEach(r=>{m[r.sku_hub]=r.sku_precificacao;});return m;
+}
+async function hubImpLerIgnorados(cid){
+  let q=SB.from('cmv_hub_ignorados').select('container_id,sku_hub');
+  if(cid)q=q.eq('container_id',cid);
+  const{data,error}=await q;if(error)throw error;
+  const m={};(data||[]).forEach(r=>{(m[r.container_id]=m[r.container_id]||new Set()).add(r.sku_hub);});return m;
+}
+async function hubImpLerCmvFresco(){
+  const[rc,rs,rl]=await Promise.all([
+    SB.from('config').select('valor').eq('chave','lb_cmv_data').maybeSingle(),
+    SB.from('cmv_skus').select('sku,ordem').order('ordem',{ascending:true}),
+    SB.from('cmv_clbs').select('clb_id,nome,data_chegada')]);
+  if(rc.error)throw rc.error;if(rs.error)throw rs.error;if(rl.error)throw rl.error;
+  return{data:cmvNormalizarData((rc.data&&rc.data.valor)||{}),skus:(rs.data||[]).map(r=>r.sku),clbs:(rl.data||[]).map(r=>({nome:r.clb_id,data:r.data_chegada||null}))};
+}
+async function hubImpEstoque(skus,dataClb){
+  const out={};if(!skus.length)return out;
+  const{data,error}=await SB.rpc('ef_saldo_em_data',{p_skus:skus,p_cutoff:dataClb+'T00:00:00-03:00'});
+  if(error)throw error;
+  (data||[]).forEach(r=>{out[r.sku]={saldo:parseFloat(r.saldo)||0,fonte:r.fonte};});
+  return out;
+}
+function hubImpMedia(sku,dataObj,clbs,over){
+  const pData=dataObj[sku]||{};
+  const ord=clbs.slice().sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  let m=0,has=false;
+  ord.forEach(c=>{
+    let e,q,v;
+    if(over&&c.nome===over.nome){e=over.est;q=over.qtd;v=over.cmv;}
+    else{const d=pData[c.nome]||{};e=parseFloat(d.est||0);q=parseFloat(d.qtd||0);v=parseFloat(d.cmv||0);}
+    if(!v)return;has=true;
+    const den=e+q;m=den>0?(e*m+q*v)/den:v;
+  });
+  return has?m:null;
+}
+function hubImpCelulasHub(clb){
+  const all=LS.get('lb_cmv_data')||{};const out=[];
+  Object.entries(all).forEach(([sku,cl])=>{const c=cl&&cl[clb];if(c&&c.hub)out.push({sku,cell:c});});
+  return out;
+}
+
+async function hubImpAbrir(){
+  const box=document.getElementById('hub-imp-lista');
+  box.innerHTML='<div class="tmu tsm">Carregando containers do Hub de Importação…</div>';
+  document.getElementById('mod-hub-imp-lista').classList.add('open');
+  try{_hubImp.view=hubImpAgrupar(await hubImpLerView());}
+  catch(e){box.innerHTML='<div class="tsm" style="color:var(--red);">Não consegui ler o Hub de Importação: '+_esc((e&&e.message)||e)+'</div>';return;}
+  hubImpRenderLista();
+}
+function hubImpRenderLista(){
+  const box=document.getElementById('hub-imp-lista');
+  const lista=_hubImp.view.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||'')||_cmpSku(b.nome,a.nome));
+  if(!lista.length){box.innerHTML='<div class="tmu tsm">Nenhum container com Apoio NFe no Hub de Importação.</div>';return;}
+  box.innerHTML=lista.map(c=>{
+    const legado=c.data&&c.data<HUB_IMP_INICIO,semData=!c.data;
+    const jaImp=hubImpCelulasHub(c.nome).length>0;
+    const diff=_hubDiffs[c.nome];
+    let badge='',btn='';
+    if(semData){badge='<span class="chip" style="background:#fee2e2;color:#991b1b;">sem data de chegada</span>';btn='<button class="btn btn-sm" disabled>Indisponível</button>';}
+    else if(legado){badge='<span class="chip" style="background:#e2e8f0;color:#475569;">Legado — lançado à mão</span>';btn='<button class="btn btn-sm" disabled>Manual</button>';}
+    else{
+      badge=c.fechado?'<span class="chip" style="background:#dcfce7;color:#166534;">valores definitivos</span>':'<span class="chip" style="background:#fef3c7;color:#92400e;">⚠ provisório (sem Fechamento)</span>';
+      btn=jaImp?`<button class="btn btn-sm btn-p" onclick="hubImpAnalisar('${c.id}','atualizar')">${diff?'⚠ ':''}Atualizar</button>`:`<button class="btn btn-sm btn-p" onclick="hubImpAnalisar('${c.id}','importar')">Importar</button>`;
+    }
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;"><div style="flex:1;"><div style="font-weight:700;">${_esc(c.nome)} <span class="tmu tsm" style="font-weight:400;">· chegada ${_fmtData(c.data)} · ${c.lista.length} SKUs</span></div><div style="margin-top:4px;">${badge}${jaImp?' <span class="chip" style="background:#dbeafe;color:#1e40af;">🔗 já importado</span>':''}</div></div>${btn}</div>`;
+  }).join('');
+}
+
+async function hubImpAnalisar(cid,modo){
+  toast('Analisando…');
+  try{
+    // sempre relê o Hub na hora (nunca usa a cópia de quando a lista foi aberta): pega correções recém-feitas lá
+    _hubImp.view=hubImpAgrupar(await hubImpLerView());
+    const c=_hubImp.view.find(x=>x.id===cid);if(!c){toast('Container não encontrado no Hub','e');return;}
+    if(!c.data){toast('Container sem data de chegada no Hub','e');return;}
+    if(c.data<HUB_IMP_INICIO){toast('Container legado: segue manual','e');return;}
+    const[vinc,fresh,ignMap]=await Promise.all([hubImpLerVinculos(),hubImpLerCmvFresco(),hubImpLerIgnorados(cid)]);
+    const ign=ignMap[cid]||new Set();
+    const ps=LS.get('lb_p')||[];
+    const linhas=c.lista.map((it,i)=>{
+      let alvo=null,origem=null;
+      if(vinc[it.sku]){alvo=vinc[it.sku];origem='vinculo';}
+      else{const p=ps.find(x=>(x.sku||'').toLowerCase()===it.sku.toLowerCase());if(p){alvo=p.sku;origem='exato';}}
+      return{i,skuHub:it.sku,qtd:it.qtd,custo:it.custo,alvo,origem,est:0,estFonte:null,ignorar:ign.has(it.sku)};
+    });
+    const alvos=[...new Set(linhas.filter(L=>L.alvo).map(L=>L.alvo))];
+    const est=await hubImpEstoque(alvos,c.data);
+    linhas.forEach(L=>{const r=L.alvo?est[L.alvo]:null;L.est=(r&&r.fonte==='dia1')?r.saldo:0;L.estFonte=r?r.fonte:null;});
+    _hubImp.cont=c;_hubImp.modo=modo;_hubImp.linhas=linhas;_hubImp.vinc=vinc;_hubImp.fresh=fresh;
+    document.getElementById('hub-conf').checked=false;
+    cM('mod-hub-imp-lista');
+    document.getElementById('mod-hub-imp-mapa').classList.add('open');
+    hubImpRender();
+  }catch(e){console.error('hubImpAnalisar',e);toast('⚠️ Não consegui analisar: '+((e&&e.message)||e),'e');}
+}
+
+function hubImpAvaliar(){
+  const S=_hubImp,ps=LS.get('lb_p')||[],nome=S.cont.nome;
+  const cont={};S.linhas.forEach(L=>{if(L.alvo&&!L.ignorar)cont[L.alvo]=(cont[L.alvo]||0)+1;});
+  const clbsAtual=S.fresh.clbs.slice();
+  if(!clbsAtual.find(x=>x.nome===nome))clbsAtual.push({nome,data:S.cont.data});
+  const clbsNova=S.fresh.clbs.filter(x=>x.nome!==nome).concat([{nome,data:S.cont.data}]);
+  S.linhas.forEach(L=>{
+    L.msgs=[];L.nivel='ok';L.mediaAtual=null;L.mediaNova=null;L.cel=null;
+    const add=(n,t)=>{L.msgs.push({n,t});if(n==='bloq')L.nivel='bloq';else if(n==='warn'&&L.nivel==='ok')L.nivel='warn';};
+    if(L.ignorar){L.nivel='ign';return;}
+    L.prod=L.alvo?(ps.find(p=>p.sku===L.alvo)||null):null;
+    if(!L.alvo)add('bloq','Sem vínculo: escolha o produto');
+    else if(!L.prod)add('bloq','Produto "'+L.alvo+'" não existe mais no cadastro');
+    else if(L.prod.tipo!=='Importado')add('bloq','Produto é '+L.prod.tipo+' (só Importado entra no CMV Contábil)');
+    if(L.alvo&&cont[L.alvo]>1)add('bloq','Dois SKUs do Hub apontam para '+L.alvo);
+    if(!(L.qtd>0))add('bloq','Qtde zerada');
+    if(!(L.custo>0))add('bloq','Custo zerado');
+    if(!L.alvo)return;
+    const cel=(S.fresh.data[L.alvo]||{})[nome]||null;L.cel=cel;
+    L.mediaAtual=hubImpMedia(L.alvo,S.fresh.data,clbsAtual,null);
+    const est=(S.modo==='atualizar'&&cel)?(parseFloat(cel.est)||0):L.est;
+    L.estUsado=est;
+    if(L.qtd>0&&L.custo>0)L.mediaNova=hubImpMedia(L.alvo,S.fresh.data,clbsNova,{nome,est,qtd:L.qtd,cmv:L.custo});
+    if(L.nivel==='bloq')return;
+    if(S.modo==='atualizar'){
+      if(cel&&cel.hub){
+        const dq=Math.abs((parseFloat(cel.qtd)||0)-L.qtd),dc=Math.abs((parseFloat(cel.cmv)||0)-L.custo);
+        if(dq<=0.5&&dc<=0.005){L.nivel='igual';L.msgs.push({n:'info',t:'Sem alteração'});return;}
+        add('warn','Mudou no Hub: qtde '+(parseFloat(cel.qtd)||0)+' → '+L.qtd+' · CMV '+fR(parseFloat(cel.cmv)||0)+' → '+fR(L.custo));
+      }else if(cel){add('warn','Já há lançamento manual neste container (qtde '+(parseFloat(cel.qtd)||0)+' · CMV '+fR(parseFloat(cel.cmv)||0)+'): será substituído');}
+      else add('info','SKU novo neste container');
+    }else if(cel&&((parseFloat(cel.qtd)||0)>0||(parseFloat(cel.cmv)||0)>0)){
+      add('warn','Vai substituir lançamento manual (qtde '+(parseFloat(cel.qtd)||0)+' · CMV '+fR(parseFloat(cel.cmv)||0)+')');
+    }
+    if(L.mediaAtual>0&&L.custo>0){
+      const pct=(L.custo-L.mediaAtual)/L.mediaAtual*100;
+      if(Math.abs(pct)>HUB_IMP_VAR_ALERTA)add('warn','Custo '+Math.abs(pct).toFixed(0)+'% '+(pct>0?'acima':'abaixo')+' da média atual ('+fR(L.mediaAtual)+')');
+    }
+    if(S.modo==='importar'){
+      if(L.estFonte!=='dia1')add('info','Sem histórico de estoque: tratado como produto novo (estoque 0)');
+      if(L.est>=1000&&L.est>10*L.qtd)add('warn','Estoque antes ('+L.est+') muito maior que a qtde do container');
+    }
+    const novos=S.fresh.clbs.filter(x=>x.nome!==nome&&(x.data||'')>S.cont.data&&(S.fresh.data[L.alvo]||{})[x.nome]&&((parseFloat(S.fresh.data[L.alvo][x.nome].qtd)||0)>0||(parseFloat(S.fresh.data[L.alvo][x.nome].cmv)||0)>0)).map(x=>x.nome);
+    if(novos.length)add('info','Containers mais novos já lançados ('+novos.join(', ')+'): a média deles será refeita');
+    if(!S.fresh.skus.includes(L.alvo))add('info','Entra na lista do CMV Contábil');
+  });
+}
+
+function hubImpStatusHtml(L){
+  const ic={ok:'✅',warn:'🟡',bloq:'🔴',ign:'⏭',igual:'✅'}[L.nivel]||'✅';
+  const msgs=(L.msgs||[]).map(m=>`<div class="hub-msg ${m.n}">${(m.n==='bloq'?'🔴 ':m.n==='warn'?'🟡 ':'ℹ️ ')+_esc(m.t)}</div>`).join('');
+  return `<div style="font-size:15px;">${ic}</div>${msgs}`;
+}
+function hubImpMediaHtml(L){
+  if(L.ignorar||L.mediaNova==null)return '—';
+  const a=L.mediaAtual==null?'—':fR(L.mediaAtual);
+  return `${a} → <strong>${fR(L.mediaNova)}</strong>`;
+}
+function hubImpRender(){
+  const S=_hubImp,c=S.cont;hubImpAvaliar();
+  document.getElementById('hub-mapa-titulo').textContent=(S.modo==='atualizar'?'Atualizar ':'Importar ')+c.nome+' do Hub de Importação';
+  const fr=S.fresh.clbs.find(x=>x.nome===c.nome);
+  const ban=[];
+  ban.push(`<div class="hub-ban">Container <strong>${_esc(c.nome)}</strong> · chegada <strong>${_fmtData(c.data)}</strong> (data de referência do estoque e da ordem da média) · ${c.fechado?'valores definitivos (Fechamento lançado)':'<strong style="color:#92400e;">⚠ valores provisórios: o Fechamento ainda não foi lançado no Hub</strong>'}</div>`);
+  if(!fr)ban.push(`<div class="hub-ban">O container ${_esc(c.nome)} ainda não existe no CMV Contábil: será criado com a data ${_fmtData(c.data)}.</div>`);
+  else if((fr.data||'')!==c.data)ban.push(`<div class="hub-ban" style="background:#fffbeb;">A data do container no CMV (${_fmtData(fr.data)}) será ajustada para a chegada no Hub (${_fmtData(c.data)}).</div>`);
+  if(S.modo==='atualizar')ban.push('<div class="hub-ban">Atualizar nunca altera o estoque já gravado — só qtde e CMV.</div>');
+  document.getElementById('hub-mapa-banners').innerHTML=ban.join('');
+  const linhas=S.linhas.map(L=>{
+    const estCell=S.modo==='atualizar'&&L.cel?`<span title="Estoque gravado na importação (travado)">${parseFloat(L.cel.est)||0} 🔒</span>`:`<input type="number" min="0" step="1" class="hub-est" style="width:84px;padding:4px 6px;" value="${L.est}" ${L.ignorar||!L.alvo?'disabled':''} oninput="hubImpEstEdit(${L.i},this)">`;
+    const prodTxt=L.alvo?`<strong>${_esc(L.alvo)}</strong><div class="tmu tsm">${_esc(L.prod?(L.prod.nome||''):'')}${L.origem==='vinculo'?' · 🔗 vínculo salvo':''}</div>`:'<span class="tmu">—</span>';
+    const acoes=[];
+    if(!L.alvo||(L.prod&&L.prod.tipo!=='Importado')||!L.prod)acoes.push(`<button class="btn btn-sm btn-p" onclick="hubImpVincular(${L.i})">Vincular</button>`);
+    else acoes.push(`<button class="btn btn-sm" onclick="hubImpVincular(${L.i})" title="Trocar o produto vinculado">Trocar</button>`);
+    if(L.origem==='vinculo')acoes.push(`<button class="btn btn-sm" onclick="hubImpDesvincular(${L.i})" title="Apagar o vínculo salvo">Desvincular</button>`);
+    return `<tr id="hub-tr-${L.i}" class="${L.nivel}"><td id="hub-st-${L.i}" style="min-width:210px;">${hubImpStatusHtml(L)}</td><td><strong>${_esc(L.skuHub)}</strong></td><td>${prodTxt}</td><td class="tdc">${L.qtd}</td><td class="tdc">${fR(L.custo)}</td><td class="tdc">${estCell}</td><td class="tdc" id="hub-med-${L.i}">${hubImpMediaHtml(L)}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap;">${acoes.join('')}</div><label style="font-size:11px;display:flex;align-items:center;gap:4px;margin-top:4px;"><input type="checkbox" ${L.ignorar?'checked':''} onchange="hubImpIgnorar(${L.i},this.checked)"> Ignorar</label></td></tr>`;
+  }).join('');
+  document.getElementById('hub-mapa-tabela').innerHTML=`<table class="hub-tb"><thead><tr><th>Status / alertas</th><th>SKU no Hub</th><th>Produto vinculado</th><th>Qtd de entrada</th><th>Custo/Unid. (CMV)</th><th>Estoque antes</th><th>Média atual → nova</th><th>Ações</th></tr></thead><tbody>${linhas}</tbody></table>`;
+  hubImpResumo();
+}
+function hubImpResumo(){
+  const S=_hubImp;
+  const n={ok:0,warn:0,bloq:0,ign:0,igual:0};S.linhas.forEach(L=>{n[L.nivel==='ok'?'ok':L.nivel]++;});
+  const gravar=S.linhas.filter(L=>!L.ignorar&&L.alvo&&L.nivel!=='igual'&&L.nivel!=='bloq').length;
+  const add=hubImpSkusFaltantes().length;
+  document.getElementById('hub-mapa-resumo').innerHTML=`✅ ${n.ok+n.igual} ok · 🟡 ${n.warn} com atenção · 🔴 ${n.bloq} bloqueando · ⏭ ${n.ign} ignorados`;
+  const ok=document.getElementById('hub-conf').checked&&n.bloq===0&&(gravar>0||add>0||hubImpPrecisaClb());
+  const b=document.getElementById('hub-btn-conf');b.disabled=!ok;
+  b.textContent=(S.modo==='atualizar'?'Atualizar ':'Importar ')+gravar+' SKU'+(gravar===1?'':'s');
+}
+function hubImpSkusFaltantes(){
+  const S=_hubImp;return [...new Set(S.linhas.filter(L=>!L.ignorar&&L.alvo&&L.nivel!=='bloq').map(L=>L.alvo))].filter(s=>!S.fresh.skus.includes(s));
+}
+function hubImpPrecisaClb(){
+  const S=_hubImp;const fr=S.fresh.clbs.find(x=>x.nome===S.cont.nome);return !fr||(fr.data||'')!==S.cont.data;
+}
+function hubImpEstEdit(i,el){
+  const L=_hubImp.linhas[i];L.est=Math.max(0,parseFloat(el.value)||0);
+  hubImpAvaliar();
+  _hubImp.linhas.forEach(X=>{const st=document.getElementById('hub-st-'+X.i),md=document.getElementById('hub-med-'+X.i),tr=document.getElementById('hub-tr-'+X.i);if(st)st.innerHTML=hubImpStatusHtml(X);if(md)md.innerHTML=hubImpMediaHtml(X);if(tr)tr.className=X.nivel;});
+  hubImpResumo();
+}
+function hubImpIgnorar(i,v){_hubImp.linhas[i].ignorar=!!v;hubImpRender();}
+function hubImpVincItens(){
+  return (LS.get('lb_p')||[]).filter(p=>p.tipo==='Importado').sort((a,b)=>_cmpSku(a.sku,b.sku)).map(p=>({sku:p.sku,nome:p.nome||''}));
+}
+function hubImpVincular(i){
+  _hubVincIdx=i;const L=_hubImp.linhas[i];
+  document.getElementById('hub-vinc-sku').textContent=L.skuHub;
+  const inp=document.getElementById('hub-vinc-busca');inp.value='';
+  skuPicker({input:'hub-vinc-busca',lista:'hub-vinc-lista',hidden:null,items:hubImpVincItens,onPick:it=>hubImpSalvarVinculo(_hubVincIdx,it.sku)});
+  document.getElementById('mod-hub-vinc').classList.add('open');
+  setTimeout(()=>inp.focus(),30);
+}
+async function hubImpSalvarVinculo(i,alvo){
+  const L=_hubImp.linhas[i];if(!L)return;
+  const{error}=await SB.from('cmv_sku_vinculos').upsert({sku_hub:L.skuHub,sku_precificacao:alvo,criado_por:(typeof CU!=='undefined'&&CU)?CU.user:null},{onConflict:'sku_hub'});
+  if(error){toast('⚠️ Não salvei o vínculo: '+error.message,'e');return;}
+  _hubImp.vinc[L.skuHub]=alvo;L.alvo=alvo;L.origem='vinculo';
+  try{const e=await hubImpEstoque([alvo],_hubImp.cont.data);const r=e[alvo];L.est=(r&&r.fonte==='dia1')?r.saldo:0;L.estFonte=r?r.fonte:null;}
+  catch(x){L.est=0;L.estFonte=null;}
+  cM('mod-hub-vinc');hubImpRender();
+  toast('🔗 '+L.skuHub+' → '+alvo+' (vínculo salvo, nos próximos já vem pronto)');
+}
+async function hubImpDesvincular(i){
+  const L=_hubImp.linhas[i];if(!L||!confirm('Apagar o vínculo de "'+L.skuHub+'"?'))return;
+  const{error}=await SB.from('cmv_sku_vinculos').delete().eq('sku_hub',L.skuHub);
+  if(error){toast('⚠️ Não apaguei o vínculo: '+error.message,'e');return;}
+  delete _hubImp.vinc[L.skuHub];
+  const p=(LS.get('lb_p')||[]).find(x=>(x.sku||'').toLowerCase()===L.skuHub.toLowerCase());
+  L.alvo=p?p.sku:null;L.origem=p?'exato':null;
+  try{if(L.alvo){const e=await hubImpEstoque([L.alvo],_hubImp.cont.data);const r=e[L.alvo];L.est=(r&&r.fonte==='dia1')?r.saldo:0;L.estFonte=r?r.fonte:null;}else{L.est=0;L.estFonte=null;}}catch(x){L.est=0;}
+  hubImpRender();toast('Vínculo apagado.');
+}
+
+async function hubImpConfirmar(){
+  const S=_hubImp,b=document.getElementById('hub-btn-conf');
+  if(!document.getElementById('hub-conf').checked){toast('Marque "Conferi" para continuar','e');return;}
+  hubImpAvaliar();
+  if(S.linhas.some(L=>L.nivel==='bloq')){toast('Ainda há alertas vermelhos para resolver','e');return;}
+  const grava=S.linhas.filter(L=>!L.ignorar&&L.alvo&&L.nivel!=='igual');
+  const faltam=hubImpSkusFaltantes();
+  if(!grava.length&&!faltam.length&&!hubImpPrecisaClb()){toast('Nada a gravar','e');return;}
+  const rotulo=b.textContent;b.disabled=true;b.textContent='Gravando…';
+  try{
+    // releitura fresca: não sobrescreve o que outra pessoa salvou enquanto a tela estava aberta
+    const fr=await hubImpLerCmvFresco();
+    const data=fr.data,agora=new Date().toISOString(),quem=(typeof CU!=='undefined'&&CU)?CU.user:null;
+    grava.forEach(L=>{
+      if(!data[L.alvo])data[L.alvo]={};
+      const ant=data[L.alvo][S.cont.nome];
+      const est=(S.modo==='atualizar'&&ant)?(parseFloat(ant.est)||0):L.est;
+      data[L.alvo][S.cont.nome]={qtd:L.qtd,cmv:L.custo,est,cmvAnt:(ant&&ant.cmv)?ant.cmv:L.custo,hub:{cid:S.cont.id,sku_hub:L.skuHub,em:agora,por:quem}};
+    });
+    if(grava.length){const{error}=await SB.from('config').upsert({chave:'lb_cmv_data',valor:data,atualizado_em:agora},{onConflict:'chave'});if(error)throw error;}
+    const novos=[...new Set(S.linhas.filter(L=>!L.ignorar&&L.alvo).map(L=>L.alvo))].filter(s=>!fr.skus.includes(s));
+    let ordem=fr.skus.length;
+    for(const s of novos){const{error}=await SB.from('cmv_skus').upsert({sku:s,ordem:ordem++},{onConflict:'sku'});if(error)throw error;}
+    {const{error:ed}=await SB.from('cmv_hub_ignorados').delete().eq('container_id',S.cont.id);if(ed)throw ed;
+     const ig=S.linhas.filter(L=>L.ignorar).map(L=>({container_id:S.cont.id,sku_hub:L.skuHub,criado_por:quem}));
+     if(ig.length){const{error:ei}=await SB.from('cmv_hub_ignorados').insert(ig);if(ei)throw ei;}}
+    const clbFr=fr.clbs.find(x=>x.nome===S.cont.nome);
+    if(!clbFr||(clbFr.data||'')!==S.cont.data){const{error}=await SB.from('cmv_clbs').upsert({clb_id:S.cont.nome,nome:S.cont.nome,data_chegada:S.cont.data,ativo:true},{onConflict:'clb_id'});if(error)throw error;}
+    // conferência pós-gravação
+    const chk=await hubImpLerCmvFresco();
+    const falhou=grava.filter(L=>{const c=(chk.data[L.alvo]||{})[S.cont.nome];return !c||Math.abs((parseFloat(c.cmv)||0)-L.custo)>0.005||Math.abs((parseFloat(c.qtd)||0)-L.qtd)>0.5;});
+    if(falhou.length)throw new Error('A conferência após gravar falhou em '+falhou.length+' SKU(s) ('+falhou.slice(0,3).map(L=>L.alvo).join(', ')+'). Alguém pode ter salvo ao mesmo tempo — recarregue e tente de novo.');
+    _cache['lb_cmv_data']=JSON.parse(JSON.stringify(chk.data));try{localStorage.setItem('lb_cmv_data',JSON.stringify(chk.data));}catch{}
+    _cache['lb_cmv_skus']=JSON.parse(JSON.stringify(chk.skus));try{localStorage.setItem('lb_cmv_skus',JSON.stringify(chk.skus));}catch{}
+    _cache['lb_clbs']=JSON.parse(JSON.stringify(chk.clbs));try{localStorage.setItem('lb_clbs',JSON.stringify(chk.clbs));}catch{}
+    cM('mod-hub-imp-mapa');cM('mod-hub-imp-lista');rCmv();cmvHubVerificar();
+    toast('✅ '+S.cont.nome+': '+grava.length+' SKU(s) '+(S.modo==='atualizar'?'atualizados':'importados')+' do Hub');
+  }catch(e){console.error('hubImpConfirmar',e);toast('⚠️ Falha ao gravar: '+((e&&e.message)||e),'e');}
+  finally{b.disabled=false;b.textContent=rotulo;hubImpResumo();}
+}
+function hubImpVoltar(){cM('mod-hub-imp-mapa');hubImpRenderLista();document.getElementById('mod-hub-imp-lista').classList.add('open');}
+
+// ── Células vinculadas ao Hub ficam travadas (correção só no Hub, depois "Atualizar") ──
+function cmvAplicarTravaHub(sku,clb){
+  const d=((LS.get('lb_cmv_data')||{})[sku]||{})[clb]||{};const hub=!!d.hub;
+  ['cmv-estoque','cmv-valor','cmv-qtd'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=hub;});
+  const nota=document.getElementById('cmv-hub-nota');
+  if(nota){nota.style.display=hub?'block':'none';if(hub)nota.innerHTML='🔗 <strong>Vinculado ao Hub de Importação</strong> (SKU no Hub: '+_esc(d.hub.sku_hub||sku)+'). Para corrigir, altere no Hub de Importação e use <em>Atualizar</em> na aba CMV Contábil.';}
+  const sv=document.getElementById('cmv-btn-salvar');if(sv)sv.style.display=hub?'none':'';
+  const dv=document.getElementById('cmv-btn-desv');if(dv)dv.style.display=hub?'':'none';
+}
+function cmvDesvincularCelula(){
+  const sku=document.getElementById('cmv-prod-sku').textContent,clb=document.getElementById('cmv-prod-clb').textContent;
+  if(!confirm('Desvincular '+sku+' do Hub de Importação em '+clb+'?\nOs valores ficam, mas passam a ser editáveis à mão e deixam de ser atualizados pelo Hub.'))return;
+  const allD=LS.get('lb_cmv_data')||{};const c=(allD[sku]||{})[clb];if(!c)return;
+  delete c.hub;LS.set('lb_cmv_data',allD);cmvAplicarTravaHub(sku,clb);rCmv();cmvHubVerificar();toast('Desvinculado: agora é manual.');
+}
+
+// ── Aviso "mudou no Hub" ──
+async function cmvHubVerificar(){
+  try{
+    const all=LS.get('lb_cmv_data')||{};const porClb={};
+    Object.entries(all).forEach(([sku,cl])=>Object.entries(cl||{}).forEach(([clb,c])=>{if(c&&c.hub&&c.hub.cid){(porClb[clb]=porClb[clb]||{cid:c.hub.cid,cells:{}}).cells[sku]=c;}}));
+    const nomes=Object.keys(porClb);_hubDiffs={};
+    if(!nomes.length){cmvHubRenderAviso();return;}
+    const view=hubImpAgrupar(await hubImpLerView(nomes.map(n=>porClb[n].cid)));const vinc=await hubImpLerVinculos();const ignAll=await hubImpLerIgnorados();const ps=LS.get('lb_p')||[];
+    nomes.forEach(nome=>{
+      const c=view.find(x=>x.id===porClb[nome].cid);if(!c)return;
+      let n=0;const vistos=new Set();
+      c.lista.forEach(it=>{
+        const alvo=vinc[it.sku]||it.sku;vistos.add(alvo);const cel=porClb[nome].cells[alvo];
+        if(!cel){const p=ps.find(x=>x.sku===alvo);const ig=ignAll[c.id]&&ignAll[c.id].has(it.sku);if(p&&p.tipo==='Importado'&&!ig)n++;}
+        else if(Math.abs((parseFloat(cel.cmv)||0)-it.custo)>0.005||Math.abs((parseFloat(cel.qtd)||0)-it.qtd)>0.5)n++;
+      });
+      Object.keys(porClb[nome].cells).forEach(s=>{if(!vistos.has(s))n++;});
+      if(n)_hubDiffs[nome]={n,cid:porClb[nome].cid};
+    });
+    cmvHubRenderAviso();
+  }catch(e){console.warn('cmvHubVerificar',e);}
+}
+function cmvHubRenderAviso(){
+  const el=document.getElementById('cmv-hub-aviso');if(!el)return;
+  const ks=Object.keys(_hubDiffs);
+  if(!ks.length){el.innerHTML='';el.style.display='none';return;}
+  el.style.display='block';
+  el.innerHTML='<div class="hub-ban" style="background:#fffbeb;border-color:#f59e0b;">⚠️ <strong>Mudou no Hub de Importação:</strong> '+ks.map(k=>`${_esc(k)} (${_hubDiffs[k].n} SKU${_hubDiffs[k].n>1?'s':''}) <button class="btn btn-sm" onclick="hubImpAtualizarDireto('${_esc(k)}')">Atualizar</button>`).join(' · ')+'</div>';
+}
+async function hubImpAtualizarDireto(nome){
+  const d=_hubDiffs[nome];
+  let cid=d&&d.cid;
+  if(!cid){const x=_hubImp.view.find(v=>v.nome===nome);cid=x&&x.id;}
+  if(!cid){toast('Container não encontrado no Hub','e');return;}
+  hubImpAnalisar(cid,'atualizar');
+}
+
 // EXPORTAR PDF POR MARKETPLACE
 let _expMk=null;
 const EXPORT_COLS=[
