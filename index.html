@@ -592,7 +592,8 @@ tr.drag-over{border-top:2px solid var(--accent2)!important;}
             <div class="flex g8 fc" style="flex-wrap:wrap;">
               <span class="fl" style="margin:0;white-space:nowrap;">CMV até:</span>
               <input type="date" id="cmv-data-ate" onchange="rCmv()" style="padding:6px 10px;font-size:12px;" title="Mostrar CMV do último container registrado até esta data">
-              \1
+              <button class="btn btn-sm" onclick="document.getElementById('cmv-data-ate').value='';rCmv()">✕ Limpar</button>
+            </div>
             <div class="flex g8 fc" style="flex-wrap:wrap;"><input type="text" id="cmv-busca" placeholder="Buscar SKU ou nome..." oninput="rCmv()" autocomplete="off" style="padding:6px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--r);min-width:200px;"><button class="btn btn-sm" onclick="document.getElementById('cmv-busca').value='';rCmv()" title="Limpar a busca">✕</button><button class="btn btn-sm" id="cmv-btn-modo" onclick="cmvToggleModo()">Mostrar todos</button><span class="tsm tmu" id="cmv-contador"></span></div>
             <div class="flex g8 fc ml-auto">
               <button class="btn btn-sm btn-p" onclick="openCmvAddProd()">+ Produto</button>
