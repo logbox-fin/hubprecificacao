@@ -2526,7 +2526,9 @@ async function hubImpLerCmvFresco(){
 }
 async function hubImpEstoque(skus,dataClb){
   const out={};if(!skus.length)return out;
-  const{data,error}=await SB.rpc('ef_saldo_em_data',{p_skus:skus,p_cutoff:dataClb+'T00:00:00-03:00'});
+  /* data de hoje (ou futura): lê a foto MAIS RECENTE do STOKBOX (última hora cheia); dia passado: início do dia, como antes */
+  const _cut=(dataClb>=td())?new Date().toISOString():dataClb+'T00:00:00-03:00';
+  const{data,error}=await SB.rpc('ef_saldo_em_data',{p_skus:skus,p_cutoff:_cut});
   if(error)throw error;
   (data||[]).forEach(r=>{out[r.sku]={saldo:parseFloat(r.saldo)||0,fonte:r.fonte};});
   return out;
@@ -3149,7 +3151,7 @@ function cuRender(){
   document.getElementById('cu-titulo').textContent=nf?('Importar NF '+(S.nf.numero||'')+' — '+(S.nf.emitente.nome||'')):((S.modo==='atualizar'?'Atualizar ':'Aplicar ')+'custo do container '+S.ref.nome+' (Hub de Importação)');
   const cab=cuCabAlertas();
   document.getElementById('cu-banners').innerHTML=
-    (nf?`<div class="hub-ban"><div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;"><span><strong>NF ${_esc(S.nf.numero||'?')}</strong> série ${_esc(S.nf.serie||'?')} · ${_esc(S.nf.emitente.nome||'emitente?')} (${_esc(_fmtCnpj(S.nf.emitente.cnpj)||'?')})</span><label class="tsm">Emissão <input type="date" id="cu-emissao" value="${S.nf.emissao||''}" onchange="nfDataMudou()" style="padding:3px 6px;"></label><label class="tsm">Entrada no galpão <input type="date" id="cu-entrada" value="${S.ref.data||''}" onchange="nfDataMudou()" style="padding:3px 6px;"></label></div><div class="tmu tsm" style="margin-top:4px;word-break:break-all;">Chave: ${_esc(S.nf.chave||'não lida')}</div></div>`
+    (nf?`<div class="hub-ban"><div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;"><span><strong>NF ${_esc(S.nf.numero||'?')}</strong> série ${_esc(S.nf.serie||'?')} · ${_esc(S.nf.emitente.nome||'emitente?')} (${_esc(_fmtCnpj(S.nf.emitente.cnpj)||'?')})</span><label class="tsm">Emissão <input type="date" id="cu-emissao" value="${S.nf.emissao||''}" onchange="nfDataMudou()" style="padding:3px 6px;"></label><label class="tsm">Entrada no galpão <input type="date" id="cu-entrada" value="${S.ref.data||''}" onchange="nfDataMudou()" style="padding:3px 6px;"></label><button class="btn btn-sm" onclick="nfAtualizarEstoque()" title="Relê o estoque do STOKBOX agora">&#8635; Atualizar estoque</button></div><div class="tmu tsm" style="margin-top:4px;word-break:break-all;">Chave: ${_esc(S.nf.chave||'não lida')}</div></div>`
       :`<div class="hub-ban">Container <strong>${_esc(S.ref.nome)}</strong> · chegada <strong>${_fmtData(S.ref.data)}</strong> (data de referência do estoque e da ordem) · custo = Custo Base de Dados (com rateios) · ${S.modo==='atualizar'?'<strong>Atualizar nunca altera o estoque já registrado.</strong>':'estoque antes vem do histórico do STOKBOX'}</div>`)+
     cab.bloq.map(t=>`<div class="hub-ban" style="background:#fef2f2;border-color:#fca5a5;">🔴 ${_esc(t)}</div>`).join('')+
     cab.warn.map((t,k)=>`<div class="hub-ban" style="background:#fffbeb;border-color:#fcd34d;display:flex;gap:10px;align-items:center;"><span style="flex:1;">🟡 ${_esc(t)}</span>${S.cabOk[t]?'<span class="tsm" style="color:#166534;">✔ conferido</span>':`<button class="btn btn-sm btn-p" onclick="cuCabOk(${k})">OK, está certo</button>`}</div>`).join('')+
@@ -3456,7 +3458,7 @@ async function nfPrepararMapa(nf,arquivo){
   const alvos=[...new Set(linhas.filter(L=>L.alvo).map(L=>L.alvo))];
   const prods=await prodsFrescos(alvos),ledger=await cuLerLedger(alvos);
   linhas.forEach(L=>{if(L.alvo&&prods[L.alvo])L.tipoNovo=prods[L.alvo].tipo;});
-  const dataEnt=nf.emissao||null;
+  const dataEnt=td();
   if(dataEnt&&alvos.length){const e=await hubImpEstoque(alvos,dataEnt);linhas.forEach(L=>{const r=L.alvo?e[L.alvo]:null;L.est=(r&&r.fonte==='dia1')?r.saldo:0;L.estFonte=r?r.fonte:null;});}
   const divMem={};{const r=await SB.from('nf_sku_divisoes').select('cod_fornecedor,skus').eq('cnpj_emitente',cnpj);if(!r.error)(r.data||[]).forEach(d=>{if(Array.isArray(d.skus)&&d.skus.length>=2)divMem[d.cod_fornecedor]=d.skus;});}
   _cu={origem:'nf',modo:'importar',ref:{id:nf.chave||('sem-chave-'+Date.now()),nome:'NF '+(nf.numero||'?')+' · '+(nf.emitente.nome||nf.emitente.cnpj||'?'),data:dataEnt},nf,linhas,prods,ledger,cnpj:cnpj,ja,jaDesfeita,arquivo,cb:null,vincIdx:null,grupos:{},cabOk:{},divMem,proxGrupo:0};
@@ -3479,6 +3481,11 @@ async function nfAplicarMemoriaDivisao(){
     const e=S.ref.data?await hubImpEstoque(alvos,S.ref.data):{};
     S.linhas.forEach(L=>{if(L.grupo!=null&&L.alvo){const r=e[L.alvo];L.est=(r&&r.fonte==='dia1')?r.saldo:0;L.estFonte=r?r.fonte:null;const p=S.prods[L.alvo];L.tipoNovo=p?p.tipo:null;}});
   }
+}
+async function nfAtualizarEstoque(){
+  const S=_cu;if(!S||!S.linhas)return;
+  await nfDataMudou();
+  try{toast('Estoque do STOKBOX atualizado');}catch(e){}
 }
 async function nfDataMudou(){
   const S=_cu;S.nf.emissao=document.getElementById('cu-emissao').value||null;S.ref.data=document.getElementById('cu-entrada').value||null;
