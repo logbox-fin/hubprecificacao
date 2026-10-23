@@ -3157,7 +3157,7 @@ function cuRender(){
     cab.warn.map((t,k)=>`<div class="hub-ban" style="background:#fffbeb;border-color:#fcd34d;display:flex;gap:10px;align-items:center;"><span style="flex:1;">🟡 ${_esc(t)}</span>${S.cabOk[t]?'<span class="tsm" style="color:#166534;">✔ conferido</span>':`<button class="btn btn-sm btn-p" onclick="cuCabOk(${k})">OK, está certo</button>`}</div>`).join('')+
     cab.info.map(t=>`<div class="hub-ban">ℹ️ ${_esc(t)}</div>`).join('');
   const nCols=nf?12:10;
-  const cols=nf?[4,12,9,12,13,7,8,6,6,6,7,10]:[4,12,18,13,9,11,7,7,9,10]; // % da largura: cabe sem rolagem lateral
+  const cols=nf?[4,12,9,12,13,7,8,6,6,6,7,10]:[4,18,15,11,8,10,7,7,9,11]; // % da largura: cabe sem rolagem lateral
   const head=nf?'<th class="c-st">●</th><th>Item da nota</th><th>NCM</th><th>Produto</th><th>Tipo</th><th>Entrada</th><th>Custo NF</th><th title="R$ por unidade">ST</th><th>IPI %</th><th>ICMS %</th><th>Estoque</th><th class="acao">Ações</th>':'<th class="c-st">●</th><th>SKU no Hub</th><th>Produto</th><th>Tipo</th><th>Entrada</th><th>Novo Custo NF</th><th>IPI %</th><th>ICMS %</th><th>Estoque</th><th class="acao">Ações</th>';
   let prevG=null;
   const rows=S.linhas.map(L=>{
@@ -3170,13 +3170,13 @@ function cuRender(){
     const inpN=(f,v,step,dec)=>`<input type="number" step="${step||'0.01'}" value="${v==null||isNaN(v)?'':(dec!=null?(+v).toFixed(dec):v)}" ${L.ignorar?'disabled':''} oninput="cuEdit(${L.i},'${f}',this)">`;
     const tipoSel=nf?`<select ${L.ignorar||!L.alvo?'disabled':''} onchange="cuEdit(${L.i},'tipoNovo',this)">${_TIPOS.map(t=>`<option ${((L.tipoNovo||(L.prod&&L.prod.tipo))===t)?'selected':''}>${t}</option>`).join('')}</select>`:`<span class="tsm">${_esc(L.prod?(L.prod.tipo!=='Importado'?L.prod.tipo+' → Importado':'Importado'):'—')}</span>`;
     const acoes=[];
-    if(!L.alvo||!L.prod){acoes.push(`<button class="btn btn-sm btn-p" onclick="cuVincular(${L.i})">Vincular</button>`);if(nf&&L.grupo==null)acoes.push(`<button class="btn btn-sm" onclick="nfCriarProduto(${L.i})">Criar produto</button>`);}
+    if(!L.alvo||!L.prod){acoes.push(`<button class="btn btn-sm btn-p" onclick="cuVincular(${L.i})">Vincular</button>`);if(L.grupo==null)acoes.push(`<button class="btn btn-sm" onclick="nfCriarProduto(${L.i})">Criar produto</button>`);}
     else acoes.push(`<button class="btn btn-sm" onclick="cuVincular(${L.i})" title="Trocar o produto vinculado">Trocar</button>`);
     if(nf&&L.grupo==null)acoes.push(`<button class="btn btn-sm" onclick="nfDividirAbrir(${L.i})" title="Dividir este item em vários produtos (ex.: cores)">Dividir</button>`);
     if(L.origem==='vinculo'&&!nf)acoes.push(`<button class="btn btn-sm" onclick="cuDesvincular(${L.i})">Desvincular</button>`);
     const ncmChk=(nf&&L.prod&&L.ncm&&L.prod.ncm&&_ncmFmt(L.prod.ncm)!==_ncmFmt(L.ncm))?`<label class="tsm" style="display:block;"><input type="checkbox" ${L.atualizarNcm?'checked':''} onchange="cuEditChk(${L.i},'atualizarNcm',this.checked)"> atualizar no cadastro</label>`:'';
     return hdr+`<tr id="cu-tr-${L.i}" class="${cuRowCls(L)}"><td id="cu-st-${L.i}" style="text-align:center;">${cuStatusHtml(L)}</td>`+
-      (nf?`<td><strong>${_esc(L.cod)}</strong><div class="cu-desc">${_esc(L.desc)}</div></td><td><input type="text" value="${_esc(L.ncm||'')}" ${L.ignorar?'disabled':''} oninput="cuEdit(${L.i},'ncm',this)">${ncmChk}</td>`:`<td><strong>${_esc(L.skuOrigem)}</strong></td>`)+
+      (nf?`<td><strong>${_esc(L.cod)}</strong><div class="cu-desc">${_esc(L.desc)}</div></td><td><input type="text" value="${_esc(L.ncm||'')}" ${L.ignorar?'disabled':''} oninput="cuEdit(${L.i},'ncm',this)">${ncmChk}</td>`:`<td style="word-break:break-all;"><strong>${_esc(L.skuOrigem)}</strong></td>`)+
       `<td>${prodTxt}</td><td>${tipoSel}</td><td>${inpN('qtd',L.qtd,'1')}</td><td>${nf?inpN('custoOrig',L.custoOrig,'0.01',2):inpN('custoOrig',L.custoOrig,'0.01',2)}</td>`+
       (nf?`<td>${inpN('stUn',L.stUn,'0.0001')}</td>`:'')+
       `<td>${inpN('ipi',L.ipi,'0.01')}</td><td>${inpN('icms',L.icms,'0.01')}</td><td style="text-align:center;">${estCell}</td>`+
@@ -3506,8 +3506,9 @@ const _titulo=s=>String(s||'').toLowerCase().replace(/(^|[\s\/])(\S)/g,(m,a,b)=>
 function nfCriarProduto(i){
   const L=_cu.linhas[i];openPM();
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v==null?'':v;};
-  const sug=nfSugerirSku(L);
-  set('fps',sug.sku);set('fpn',sug.nome);set('fpncm',L.ncm);set('fpt',L.tipoSug||'Terceiro Importado');set('fpc',L.custoOrig);set('fpst',L.stUn||0);set('fpipi',L.ipi||0);set('fpicms',L.icms||0);
+  const eNF=!!_cu.nf;
+  const sug=eNF?nfSugerirSku(L):{sku:L.skuOrigem,nome:''};
+  set('fps',sug.sku);set('fpn',sug.nome);set('fpncm',L.ncm);set('fpt',eNF?(L.tipoSug||'Terceiro Importado'):'Importado');set('fpc',L.custoOrig);set('fpst',L.stUn||0);set('fpipi',L.ipi||0);set('fpicms',L.icms||0);
   document.getElementById('mprod').style.zIndex='600';
   window._cuAposSalvar=async sku=>{
     toast('Produto '+sku+' salvo — confirmando no banco…');
@@ -3516,6 +3517,9 @@ function nfCriarProduto(i){
     for(let t=0;t<15&&!f;t++){try{f=(await prodsFrescos([sku]))[sku]||null;}catch(e){console.warn(e);}if(!f)await new Promise(r=>setTimeout(r,400));}
     if(!f){toast('⚠️ O produto '+sku+' ainda não apareceu no banco. Aguarde uns segundos e use "Vincular" para ligá-lo a este item.','w');return;}
     L.alvo=sku;L.origem='novo';L.criado=true;L.tipoNovo=null;
+    if(!_cu.nf&&L.grupo==null&&sku!==L.skuOrigem){ // container do Hub: guarda o vínculo SKU do Hub → produto novo para os próximos containers
+      try{const q=(typeof CU!=='undefined'&&CU)?CU.user:null;const r=await SB.from('cmv_sku_vinculos').upsert({sku_hub:L.skuOrigem,sku_precificacao:sku,criado_por:q},{onConflict:'sku_hub'});if(r.error)toast('⚠️ Não salvei o vínculo: '+r.error.message,'w');}catch(e){console.warn(e);}
+    }
     try{await cuReavaliarLinha(L);}catch(e){console.warn(e);}
     L.est=0;L.estFonte=null;L.tipoNovo=_cu.prods[sku]?_cu.prods[sku].tipo:null;
     cuRender();toast('Produto '+sku+' criado e vinculado a este item.');
